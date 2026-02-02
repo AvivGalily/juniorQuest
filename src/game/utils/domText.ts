@@ -1,4 +1,8 @@
 import Phaser from "phaser";
+import { getUiScale } from "./resolution";
+
+const scaleCssValue = (value: string, scale: number): string =>
+  value.replace(/(\d+(\.\d+)?)px/g, (_, num) => `${Math.round(parseFloat(num) * scale)}px`);
 
 const buildStyle = (
   maxWidth: number,
@@ -38,6 +42,7 @@ export const createDialogText = (
     originY?: number;
   }
 ): Phaser.GameObjects.DOMElement => {
+  const uiScale = getUiScale();
   const maxWidth = options?.maxWidth ?? 200;
   const fontSize = options?.fontSize ?? 16;
   const color = options?.color ?? "#1b1f24";
@@ -45,7 +50,20 @@ export const createDialogText = (
   const weight = options?.weight ?? 600;
   const align = options?.align ?? "center";
 
-  const element = scene.add.dom(x, y, "div", buildStyle(maxWidth, fontSize, color, padding, weight, align), text);
+  const element = scene.add.dom(
+    x,
+    y,
+    "div",
+    buildStyle(
+      Math.round(maxWidth * uiScale),
+      Math.round(fontSize * uiScale),
+      color,
+      scaleCssValue(padding, uiScale),
+      weight,
+      align
+    ),
+    text
+  );
   element.setOrigin(options?.originX ?? 0.5, options?.originY ?? 0.5);
   (element.node as HTMLDivElement).style.pointerEvents = "none";
 

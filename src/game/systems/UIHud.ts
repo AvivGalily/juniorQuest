@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { runState } from "../RunState";
 import { createDialogText, setDomText } from "../utils/domText";
+import { getUiScale } from "../utils/resolution";
 
 export class UIHud {
   private scene: Phaser.Scene;
@@ -12,15 +13,18 @@ export class UIHud {
 
   constructor(scene: Phaser.Scene, stageNumber: number) {
     this.scene = scene;
-    const topY = 10;
-    const rightX = scene.scale.width - 8;
+    const uiScale = getUiScale();
+    const topY = 10 * uiScale;
+    const rightX = scene.scale.width - 8 * uiScale;
+    const heartSpacing = 18 * uiScale;
 
     for (let i = 0; i < 3; i += 1) {
-      const heart = scene.add.image(rightX - i * 18, topY, "heart_full").setScrollFactor(0).setDepth(1000);
+      const heart = scene.add.image(rightX - i * heartSpacing, topY, "heart_full").setScrollFactor(0).setDepth(1000);
+      heart.setScale(uiScale);
       this.hearts.push(heart);
     }
 
-    this.stageText = createDialogText(scene, 320, 8, `Stage ${stageNumber}/5`, {
+    this.stageText = createDialogText(scene, scene.scale.width / 2, 8 * uiScale, `Stage ${stageNumber}/5`, {
       maxWidth: 200,
       fontSize: 14,
       color: "#e8eef2",
@@ -28,7 +32,7 @@ export class UIHud {
       originY: 0
     }).setScrollFactor(0).setDepth(1000);
 
-    this.scoreText = createDialogText(scene, rightX, 28, "SCORE 0", {
+    this.scoreText = createDialogText(scene, rightX, 28 * uiScale, "SCORE 0", {
       maxWidth: 160,
       fontSize: 14,
       color: "#e8eef2",
@@ -37,7 +41,7 @@ export class UIHud {
       originY: 0
     }).setScrollFactor(0).setDepth(1000);
 
-    this.comboText = createDialogText(scene, rightX, 44, "FLOW x1.0", {
+    this.comboText = createDialogText(scene, rightX, 44 * uiScale, "FLOW x1.0", {
       maxWidth: 160,
       fontSize: 13,
       color: "#8fe388",
@@ -46,7 +50,7 @@ export class UIHud {
       originY: 0
     }).setScrollFactor(0).setDepth(1000);
 
-    this.timerText = createDialogText(scene, rightX, 60, "TIME 0", {
+    this.timerText = createDialogText(scene, rightX, 60 * uiScale, "TIME 0", {
       maxWidth: 160,
       fontSize: 12,
       color: "#9aa7b1",

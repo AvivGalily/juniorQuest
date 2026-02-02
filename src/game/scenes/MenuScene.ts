@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import { runState } from "../RunState";
 import { AudioManager } from "../systems/AudioManager";
 import { createDialogText } from "../utils/domText";
+import { scaleX, scaleY } from "../utils/layout";
+import { getUiScale } from "../utils/resolution";
 
 export class MenuScene extends Phaser.Scene {
   private audio!: AudioManager;
@@ -15,19 +17,19 @@ export class MenuScene extends Phaser.Scene {
     this.audio = new AudioManager(this);
     this.audio.playMusic("music-menu", 0.25);
 
-    this.add.rectangle(320, 180, 640, 360, 0x121821);
-    createDialogText(this, 320, 80, "Junior Quest", { maxWidth: 360, fontSize: 28, color: "#ffd166" });
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x121821);
+    createDialogText(this, scaleX(320), scaleY(80), "Junior Quest", { maxWidth: 360, fontSize: 28, color: "#ffd166" });
 
-    createDialogText(this, 320, 112, "The Job Hunt", { maxWidth: 260, fontSize: 16, color: "#9aa7b1" });
+    createDialogText(this, scaleX(320), scaleY(112), "The Job Hunt", { maxWidth: 260, fontSize: 16, color: "#9aa7b1" });
 
-    this.createButton(320, 170, "Start Game", true, () => {
+    this.createButton(scaleX(320), scaleY(170), "Start Game", true, () => {
       this.startGame();
     });
 
-    this.createButton(320, 210, "About", false, () => this.showModal("Coming soon"));
-    this.createButton(320, 250, "Leaderboard", false, () => this.showModal("Coming soon"));
+    this.createButton(scaleX(320), scaleY(210), "About", false, () => this.showModal("Coming soon"));
+    this.createButton(scaleX(320), scaleY(250), "Leaderboard", false, () => this.showModal("Coming soon"));
 
-    createDialogText(this, 320, 320, "WASD / Arrows to move. Space or click to confirm.", {
+    createDialogText(this, scaleX(320), scaleY(320), "WASD / Arrows to move. Space or click to confirm.", {
       maxWidth: 420,
       fontSize: 14,
       color: "#9aa7b1"
@@ -45,6 +47,7 @@ export class MenuScene extends Phaser.Scene {
 
   private createButton(x: number, y: number, label: string, enabled: boolean, onClick: () => void): void {
     const btn = this.add.image(x, y, "button").setInteractive();
+    btn.setScale(getUiScale());
     btn.setAlpha(enabled ? 1 : 0.6);
     const text = createDialogText(this, x, y, label, { maxWidth: 200, fontSize: 16, color: "#e8eef2" });
 
@@ -67,8 +70,9 @@ export class MenuScene extends Phaser.Scene {
       this.modal.text.destroy();
       this.modal = undefined;
     }
-    const panel = this.add.image(320, 180, "speech_bubble");
-    const text = createDialogText(this, 320, 180, message, {
+    const panel = this.add.image(this.scale.width / 2, this.scale.height / 2, "speech_bubble");
+    panel.setScale(getUiScale());
+    const text = createDialogText(this, this.scale.width / 2, this.scale.height / 2, message, {
       maxWidth: 220,
       fontSize: 16,
       color: "#1b1f24",

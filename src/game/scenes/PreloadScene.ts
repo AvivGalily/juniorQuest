@@ -7,17 +7,52 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
-    const base = "../entities/player/img/";
-    this.load.image("player-left-stand", new URL(`${base}player-left-stand.png`, import.meta.url).href);
-    this.load.image("player-left-walk", new URL(`${base}player-left-walk.png`, import.meta.url).href);
-    this.load.image("player-left-up", new URL(`${base}player-left-up.png`, import.meta.url).href);
-    this.load.image("player-right-stand", new URL(`${base}player-right-stand.png`, import.meta.url).href);
-    this.load.image("player-right-walk", new URL(`${base}player-right-walk.png`, import.meta.url).href);
-    this.load.image("player-right-up", new URL(`${base}player-right-up.png`, import.meta.url).href);
+    const playerBase = "../entities/player/img/";
+    this.load.image("player-walk-slow-left", new URL(`${playerBase}player-walk-slow-left.png`, import.meta.url).href);
+    this.load.image("player-walk-fast-left", new URL(`${playerBase}player-walk-fast-left.png`, import.meta.url).href);
+    this.load.image("player-walk-slow-right", new URL(`${playerBase}player-walk-slow-right.png`, import.meta.url).href);
+    this.load.image("player-walk-fast-right", new URL(`${playerBase}player-walk-fast-right.png`, import.meta.url).href);
+    this.load.image("player-carry-left", new URL(`${playerBase}Player-carry-left.png`, import.meta.url).href);
+
+    const guardBase = "../entities/guard/img/";
+    this.load.image("guard-stand", new URL(`${guardBase}gurad-stand.png`, import.meta.url).href);
+    this.load.image("guard-walk-front", new URL(`${guardBase}gurad-walk-front.png`, import.meta.url).href);
+    this.load.image("guard-walk-slow-left", new URL(`${guardBase}guard-walk-slow-left.png`, import.meta.url).href);
+    this.load.image("guard-walk-fast-left", new URL(`${guardBase}guard-walk-fast-left.png`, import.meta.url).href);
+    this.load.image("guard-walk-slow-right", new URL(`${guardBase}guard-walk-right-slow.png`, import.meta.url).href);
+    this.load.image("guard-walk-fast-right", new URL(`${guardBase}guard-walk-right-fast.png`, import.meta.url).href);
+
+    const hrBase = "../entities/recruiter/img/";
+    this.load.image("hr-stand", new URL(`${hrBase}HR-stand.png`, import.meta.url).href);
+    this.load.image("hr-walk-slow-left", new URL(`${hrBase}HR-walk-slow-left.png`, import.meta.url).href);
+    this.load.image("hr-walk-fast-left", new URL(`${hrBase}HR-walk-fast-left.png`, import.meta.url).href);
+    this.load.image("hr-walk-slow-right", new URL(`${hrBase}HR-walk-slow-right.png`, import.meta.url).href);
+    this.load.image("hr-walk-fast-right", new URL(`${hrBase}HR-walk-fast-right.png`, import.meta.url).href);
+
+    const npcBase = "../entities/npc/img/";
+    const loadNpc = (id: number, hasFast: boolean): void => {
+      this.load.image(`npc${id}-walk-front`, new URL(`${npcBase}npc${id}-walk-front.png`, import.meta.url).href);
+      this.load.image(`npc${id}-walk-back`, new URL(`${npcBase}npc${id}-walk-back.png`, import.meta.url).href);
+      this.load.image(`npc${id}-walk-slow-left`, new URL(`${npcBase}npc${id}-walk-slow-left.png`, import.meta.url).href);
+      this.load.image(`npc${id}-walk-slow-right`, new URL(`${npcBase}npc${id}-walk-slow-right.png`, import.meta.url).href);
+      if (hasFast) {
+        this.load.image(`npc${id}-walk-fast-left`, new URL(`${npcBase}npc${id}-walk-fast-left.png`, import.meta.url).href);
+        this.load.image(`npc${id}-walk-fast-right`, new URL(`${npcBase}npc${id}-walk-fast-right.png`, import.meta.url).href);
+      }
+    };
+    loadNpc(1, true);
+    loadNpc(2, true);
+    loadNpc(3, false);
+
+    const envBase = "../img/";
+    this.load.image("both1", new URL(`${envBase}both1.png`, import.meta.url).href);
+    this.load.image("both2", new URL(`${envBase}both2.png`, import.meta.url).href);
+    this.load.image("trash-empty", new URL(`${envBase}tresh-empty.png`, import.meta.url).href);
+    this.load.image("trash-full", new URL(`${envBase}tresh-full.png`, import.meta.url).href);
   }
 
   create(): void {
-    createDialogText(this, 320, 180, "Loading...", {
+    createDialogText(this, this.scale.width / 2, this.scale.height / 2, "Loading...", {
       maxWidth: 200,
       fontSize: 16,
       color: "#e8eef2"
@@ -45,32 +80,6 @@ export class PreloadScene extends Phaser.Scene {
       g.generateTexture(key, w, h);
     };
 
-    rect("player", 16, 20, 0x52d273, 0x1e3d2b);
-    rect("recruiter", 14, 18, 0x5aa7ff, 0x1c2e4a);
-    // Guard 2-frame + facing variants (simple generated art).
-    const guardTex = (key: string, facing: "left" | "right", walk: boolean): void => {
-      g.clear();
-      g.fillStyle(0xff5d5d, 1);
-      g.fillRect(0, 0, 16, 20);
-      g.lineStyle(2, 0x4a1c1c, 1);
-      g.strokeRect(0, 0, 16, 20);
-
-      // Helmet visor (shows facing).
-      g.fillStyle(0x0f172a, 1);
-      g.fillRect(facing === "left" ? 2 : 10, 4, 4, 4);
-
-      // Footstep marker (very small walk cue).
-      g.fillStyle(0x4a1c1c, 1);
-      g.fillRect(walk ? (facing === "left" ? 3 : 9) : 6, 18, 4, 2);
-
-      g.generateTexture(key, 16, 20);
-    };
-    guardTex("guard-left-stand", "left", false);
-    guardTex("guard-left-walk", "left", true);
-    guardTex("guard-right-stand", "right", false);
-    guardTex("guard-right-walk", "right", true);
-    // Keep the old key for backwards compatibility (unused by the new Guard class).
-    rect("guard", 16, 20, 0xff5d5d, 0x4a1c1c);
     rect("rival", 16, 18, 0xffb347, 0x5a3b16);
     rect("boss", 48, 30, 0x7b65ff, 0x2a1c4a);
     rect("snake_node", 20, 12, 0x8be0e0, 0x1d4a4a);
@@ -78,7 +87,6 @@ export class PreloadScene extends Phaser.Scene {
     rect("slot", 26, 26, 0x000000, 0x6b7280);
     rect("button", 120, 28, 0x1f2a33, 0x6b7280);
     rect("notice_board", 100, 36, 0x2b3037, 0x6b7280);
-    rect("booth", 40, 26, 0x22303b, 0x45525c);
     rect("platform", 64, 12, 0x35424d, 0x111822);
     rect("projectile", 10, 6, 0xffd166, 0x6b4d00);
     rect("bug", 8, 8, 0x7ed957, 0x254b2c);

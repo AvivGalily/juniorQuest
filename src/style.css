@@ -27,4 +27,5 @@ body {
 
 #game canvas {
   display: block;
+  image-rendering: auto;
 }

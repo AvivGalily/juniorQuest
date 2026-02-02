@@ -7,6 +7,7 @@ import { isDebug } from "../utils/debug";
 import { rngInt } from "../utils/rng";
 import { FloatingText } from "../entities/FloatingText";
 import { createDialogText, setDomText } from "../utils/domText";
+import { scale, scaleX, scaleY } from "../utils/layout";
 
 interface Slot {
   id: string;
@@ -38,14 +39,14 @@ export class Level2Scene extends BaseLevelScene {
   private requiredPlacements = 11;
   private cubes: Cube[] = [];
   private carriedCube?: Cube;
-  private rowY = 322;
+  private rowY = scaleY(322);
   private pileText?: Phaser.GameObjects.Text;
   private clockFace?: Phaser.GameObjects.Graphics;
   private clockHands?: Phaser.GameObjects.Graphics;
   private clockText?: Phaser.GameObjects.Text;
-  private clockCenterX = 90;
-  private clockCenterY = 42;
-  private clockRadius = 20;
+  private clockCenterX = scaleX(90);
+  private clockCenterY = scaleY(42);
+  private clockRadius = scale(20);
   private timeLimitMs = 90000;
   private timeLeftMs = 90000;
 
@@ -57,8 +58,8 @@ export class Level2Scene extends BaseLevelScene {
     this.initLevel(2);
     this.audio.playMusic("music-gameplay", 0.2);
     this.physics.world.gravity.y = 700;
-    this.physics.world.setBounds(0, 0, 640, 360);
-    this.add.rectangle(320, 180, 640, 360, 0x122033);
+    this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x122033);
 
     const diff = difficultyPresets[runState.difficulty];
     this.requiredPlacements = diff.l2.requiredPlacements;
@@ -68,21 +69,21 @@ export class Level2Scene extends BaseLevelScene {
     this.createSlots();
     const targetValues = this.assignTargetValues(this.requiredPlacements);
 
-    this.player = new Player(this, 90, 300);
+    this.player = new Player(this, scaleX(90), scaleY(300));
     this.setPlayer(this.player);
     const platforms = this.physics.add.staticGroup();
-    platforms.create(320, 332, "platform").setScale(12, 1).refreshBody();
-    const shelfYs = [286, 226, 166, 106];
-    const shelfXs = [120, 320, 520];
+    platforms.create(scaleX(320), scaleY(332), "platform").setScale(12 * scaleX(1), 1 * scaleY(1)).refreshBody();
+    const shelfYs = [286, 226, 166, 106].map(scaleY);
+    const shelfXs = [120, 320, 520].map(scaleX);
     for (const y of shelfYs) {
       for (const x of shelfXs) {
-        platforms.create(x, y, "platform").setScale(2.4, 1).refreshBody();
+        platforms.create(x, y, "platform").setScale(2.4 * scaleX(1), 1 * scaleY(1)).refreshBody();
       }
     }
 
     this.physics.add.collider(this.player, platforms);
 
-    createDialogText(this, 320, 20, "BST Tower", {
+    createDialogText(this, scaleX(320), scaleY(20), "BST Tower", {
       maxWidth: 200,
       fontSize: 16,
       color: "#e8eef2"
@@ -98,7 +99,7 @@ export class Level2Scene extends BaseLevelScene {
       return;
     }
 
-    this.player.updatePlatformer(this.inputManager, 150, 300);
+    this.player.updatePlatformer(this.inputManager, scale(150), scale(300));
     this.updateCarriedCube();
     this.syncCubeLabels();
 
@@ -119,10 +120,13 @@ export class Level2Scene extends BaseLevelScene {
 
   private createSlots(): void {
     const makeSlot = (id: string, x: number, y: number, parent?: Slot, isLeft?: boolean): Slot => {
-      const image = this.add.image(x, y, "slot").setDepth(1);
-      const slot: Slot = { id, x, y, parent, isLeft, image };
+      const sx = scaleX(x);
+      const sy = scaleY(y);
+      const image = this.add.image(sx, sy, "slot").setDepth(1);
+      image.setScale(scale(26) / 26);
+      const slot: Slot = { id, x: sx, y: sy, parent, isLeft, image };
       if (isDebug()) {
-        slot.debugText = createDialogText(this, x, y - 16, "", {
+        slot.debugText = createDialogText(this, sx, sy - scale(16), "", {
           maxWidth: 80,
           fontSize: 12,
           color: "#8fe388",
@@ -255,10 +259,10 @@ export class Level2Scene extends BaseLevelScene {
   }
 
   private createCubeRow(values: number[]): void {
-    const spacing = 28;
+    const spacing = scaleX(28);
     const count = values.length;
     const totalWidth = (count - 1) * spacing;
-    const startX = 320 - totalWidth / 2;
+    const startX = scaleX(320) - totalWidth / 2;
     const rowY = this.rowY;
 
     for (let i = 0; i < count; i += 1) {
@@ -268,7 +272,7 @@ export class Level2Scene extends BaseLevelScene {
       this.cubes.push(cube);
     }
 
-    this.pileText = createDialogText(this, 20, rowY - 18, "Cubes: 0", {
+    this.pileText = createDialogText(this, scaleX(20), rowY - scale(18), "Cubes: 0", {
       maxWidth: 140,
       fontSize: 12,
       color: "#e8eef2",
@@ -293,7 +297,7 @@ export class Level2Scene extends BaseLevelScene {
         continue;
       }
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, cube.container.x, cube.container.y);
-      if (dist < 30 && dist < bestDist) {
+      if (dist < scale(30) && dist < bestDist) {
         bestDist = dist;
         best = cube;
       }
@@ -315,8 +319,10 @@ export class Level2Scene extends BaseLevelScene {
   private createCubeContainer(value: number, x: number, y: number): Cube {
     const container = this.add.container(x, y);
     const sprite = this.add.image(0, 0, "cube");
+    const cubeScale = scale(22) / 22;
+    sprite.setScale(cubeScale);
     container.add([sprite]);
-    container.setSize(22, 22);
+    container.setSize(scale(22), scale(22));
     container.setDepth(5);
     const label = createDialogText(this, x, y, String(value), {
       maxWidth: 40,
@@ -332,7 +338,7 @@ export class Level2Scene extends BaseLevelScene {
       return;
     }
     this.carriedCube.container.x = this.player.x;
-    this.carriedCube.container.y = this.player.y - 18;
+    this.carriedCube.container.y = this.player.y - scale(18);
     this.carriedCube.label?.setPosition(this.carriedCube.container.x, this.carriedCube.container.y);
   }
 
@@ -371,7 +377,7 @@ export class Level2Scene extends BaseLevelScene {
     this.player.setCarrying(false);
     this.placedCount += 1;
     this.scoreSystem.addSkill(80);
-    FloatingText.spawn(this, slot.x, slot.y - 12, "+80", "#8fe388");
+    FloatingText.spawn(this, slot.x, slot.y - scale(12), "+80", "#8fe388");
     this.audio.playSfx("sfx-success", 0.5);
     this.updatePileText();
 
@@ -421,7 +427,7 @@ export class Level2Scene extends BaseLevelScene {
     let bestDist = 9999;
     for (const slot of this.slots) {
       const dist = Phaser.Math.Distance.Between(x, y, slot.x, slot.y);
-      if (dist < 30 && dist < bestDist) {
+      if (dist < scale(30) && dist < bestDist) {
         bestDist = dist;
         best = slot;
       }
@@ -442,14 +448,14 @@ export class Level2Scene extends BaseLevelScene {
   private createClock(): void {
     this.clockFace = this.add.graphics();
     this.clockFace.fillStyle(0x0f172a, 0.9);
-    this.clockFace.fillCircle(this.clockCenterX, this.clockCenterY, this.clockRadius + 2);
-    this.clockFace.lineStyle(3, 0xe2e8f0, 1);
+    this.clockFace.fillCircle(this.clockCenterX, this.clockCenterY, this.clockRadius + scale(2));
+    this.clockFace.lineStyle(scale(3), 0xe2e8f0, 1);
     this.clockFace.strokeCircle(this.clockCenterX, this.clockCenterY, this.clockRadius);
     this.clockFace.setDepth(900);
 
     this.clockHands = this.add.graphics();
     this.clockHands.setDepth(901);
-    this.clockText = createDialogText(this, this.clockCenterX + 26, this.clockCenterY - 6, "1:00", {
+    this.clockText = createDialogText(this, this.clockCenterX + scaleX(26), this.clockCenterY - scaleY(6), "1:00", {
       maxWidth: 80,
       fontSize: 12,
       color: "#e8eef2",
@@ -472,10 +478,10 @@ export class Level2Scene extends BaseLevelScene {
       const progress = this.timeLeftMs / this.timeLimitMs;
       const minuteAngle = Phaser.Math.DegToRad(270 + 360 * progress);
       const secondAngle = Phaser.Math.DegToRad(270 + 360 * ((this.timeLeftMs / 1000) % 60) / 60);
-      const minuteLength = this.clockRadius - 4;
-      const secondLength = this.clockRadius - 2;
+      const minuteLength = this.clockRadius - scale(4);
+      const secondLength = this.clockRadius - scale(2);
       this.clockHands.clear();
-      this.clockHands.lineStyle(3, 0xffd166, 1);
+      this.clockHands.lineStyle(scale(3), 0xffd166, 1);
       this.clockHands.lineBetween(
         this.clockCenterX,
         this.clockCenterY,
@@ -535,7 +541,7 @@ export class Level2Scene extends BaseLevelScene {
     }
     this.scoreSystem.applyTimeBonus(90000);
     this.audio.playSfx("sfx-level-complete", 0.6);
-    FloatingText.spawn(this, 320, 120, "+1500", "#8fe388");
+    FloatingText.spawn(this, scaleX(320), scaleY(120), "+1500", "#8fe388");
     this.hud.updateAll();
     this.time.delayedCall(1200, () => this.scene.start("Level3Scene"));
   }

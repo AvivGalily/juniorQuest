@@ -6,6 +6,7 @@ import { difficultyPresets } from "../../config/difficulty";
 import { runState } from "../RunState";
 import { FloatingText } from "../entities/FloatingText";
 import { createDialogText } from "../utils/domText";
+import { scale, scaleX, scaleY } from "../utils/layout";
 
 export class Level3Scene extends BaseLevelScene {
   private player!: Player;
@@ -19,16 +20,16 @@ export class Level3Scene extends BaseLevelScene {
   private attackZone?: Phaser.GameObjects.Rectangle;
   private projectileTimer?: Phaser.Time.TimerEvent;
   private projectileGroup!: Phaser.Physics.Arcade.Group;
-  private snakeHead = new Phaser.Math.Vector2(200, 220);
+  private snakeHead = new Phaser.Math.Vector2(scaleX(200), scaleY(220));
   private snakeDir = 1;
-  private snakeSpeed = 40;
+  private snakeSpeed = scale(40);
   private snakeWavePhase = 0;
   private snakeWaveSpeed = 0.004;
-  private snakeWaveAmplitude = 14;
+  private snakeWaveAmplitude = scale(14);
   private snakePath: Phaser.Math.Vector2[] = [];
-  private pathSpacing = 6;
-  private snakeMinX = 140;
-  private snakeMaxX = 500;
+  private pathSpacing = scale(6);
+  private snakeMinX = scaleX(140);
+  private snakeMaxX = scaleX(500);
 
   constructor() {
     super("Level3Scene");
@@ -38,12 +39,12 @@ export class Level3Scene extends BaseLevelScene {
     this.initLevel(3);
     this.audio.playMusic("music-gameplay", 0.2);
     this.physics.world.gravity.y = 700;
-    this.add.rectangle(320, 180, 640, 360, 0x14141f);
-    this.physics.world.setBounds(0, 0, 640, 360);
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x14141f);
+    this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
 
-    const ground = this.physics.add.staticImage(320, 330, "platform").setScale(10, 1).refreshBody();
+    const ground = this.physics.add.staticImage(scaleX(320), scaleY(330), "platform").setScale(10 * scaleX(1), 1 * scaleY(1)).refreshBody();
 
-    this.player = new Player(this, 80, 280);
+    this.player = new Player(this, scaleX(80), scaleY(280));
     this.setPlayer(this.player);
     this.physics.add.collider(this.player, ground);
 
@@ -51,18 +52,18 @@ export class Level3Scene extends BaseLevelScene {
     this.comboWindowMs = diff.l3.comboWindowMs;
 
     for (let i = 0; i < diff.l3.nodesCount; i += 1) {
-      const node = new SnakeNode(this, 200 + i * 50, 240, String(i + 1));
+      const node = new SnakeNode(this, scaleX(200 + i * 50), scaleY(240), String(i + 1));
       this.nodes.push(node);
     }
     this.initSnakePath();
 
-    createDialogText(this, 320, 30, "Reverse Linked List Snake", {
+    createDialogText(this, scaleX(320), scaleY(30), "Reverse Linked List Snake", {
       maxWidth: 360,
       fontSize: 16,
       color: "#e8eef2"
     });
 
-    createDialogText(this, 320, 52, "Target a node, then Q -> E -> Shift", {
+    createDialogText(this, scaleX(320), scaleY(52), "Target a node, then Q -> E -> Shift", {
       maxWidth: 360,
       fontSize: 14,
       color: "#9aa7b1"
@@ -78,7 +79,7 @@ export class Level3Scene extends BaseLevelScene {
     this.physics.add.overlap(this.player, this.projectileGroup, (_, proj) => {
       (proj as Phaser.GameObjects.GameObject).destroy();
       this.applyDamage();
-      FloatingText.spawn(this, this.player.x, this.player.y - 20, "HIT", "#ff6b6b");
+      FloatingText.spawn(this, this.player.x, this.player.y - scale(20), "HIT", "#ff6b6b");
     });
 
     this.projectileTimer = this.time.addEvent({
@@ -93,7 +94,7 @@ export class Level3Scene extends BaseLevelScene {
     if (this.paused) {
       return;
     }
-    this.player.updatePlatformer(this.inputManager, 140, 280);
+    this.player.updatePlatformer(this.inputManager, scale(140), scale(280));
 
     if (!this.comboActive && this.inputManager.justPressedConfirm()) {
       const nodeIndex = this.findNearestNode();
@@ -121,7 +122,7 @@ export class Level3Scene extends BaseLevelScene {
     for (let i = 0; i < this.nodes.length; i += 1) {
       const node = this.nodes[i];
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, node.x, node.y);
-      if (dist < 60 && dist < bestDist) {
+      if (dist < scale(60) && dist < bestDist) {
         bestDist = dist;
         best = i;
       }
@@ -134,7 +135,7 @@ export class Level3Scene extends BaseLevelScene {
     this.comboStep = 0;
     this.comboStartMs = Date.now();
     this.activeNodeIndex = index;
-    FloatingText.spawn(this, this.nodes[index].x, this.nodes[index].y - 20, "COMBO", "#ffd166");
+    FloatingText.spawn(this, this.nodes[index].x, this.nodes[index].y - scale(20), "COMBO", "#ffd166");
   }
 
   private handleComboInput(): void {
@@ -166,7 +167,7 @@ export class Level3Scene extends BaseLevelScene {
     this.comboStep = 0;
     this.scoreSystem.addSkill(120);
     this.audio.playSfx("sfx-success", 0.5);
-    FloatingText.spawn(this, node.x, node.y - 20, "+120", "#8fe388");
+    FloatingText.spawn(this, node.x, node.y - scale(20), "+120", "#8fe388");
 
     if (this.nodes.every((n) => n.flipped)) {
       this.finishLevel();
@@ -179,19 +180,19 @@ export class Level3Scene extends BaseLevelScene {
     this.scoreSystem.addPenalty(-50);
     this.scoreSystem.breakCombo();
     this.applyDamage();
-    FloatingText.spawn(this, this.player.x, this.player.y - 20, "-1 HEART", "#ff6b6b");
+    FloatingText.spawn(this, this.player.x, this.player.y - scale(20), "-1 HEART", "#ff6b6b");
   }
 
   private triggerSnakeAttack(): void {
     if (this.attackZone) {
       this.attackZone.destroy();
     }
-    this.attackZone = this.add.rectangle(320, 300, 260, 20, 0xff4d4d, 0.4);
+    this.attackZone = this.add.rectangle(scaleX(320), scaleY(300), scaleX(260), scaleY(20), 0xff4d4d, 0.4);
     this.time.delayedCall(350, () => {
       const playerOnGround = this.player.body.blocked.down;
       if (playerOnGround && Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), this.attackZone!.getBounds())) {
         this.applyDamage();
-        FloatingText.spawn(this, this.player.x, this.player.y - 20, "HIT", "#ff6b6b");
+        FloatingText.spawn(this, this.player.x, this.player.y - scale(20), "HIT", "#ff6b6b");
       }
       this.attackZone?.destroy();
       this.attackZone = undefined;
@@ -224,7 +225,7 @@ export class Level3Scene extends BaseLevelScene {
       this.snakeDir = -1;
     }
     this.snakeWavePhase += delta * this.snakeWaveSpeed;
-    const baseY = 220;
+    const baseY = scaleY(220);
     this.snakeHead.y = baseY + Math.sin(this.snakeWavePhase) * this.snakeWaveAmplitude;
 
     this.snakePath.unshift(new Phaser.Math.Vector2(this.snakeHead.x, this.snakeHead.y));
@@ -245,11 +246,13 @@ export class Level3Scene extends BaseLevelScene {
       return;
     }
     const origin = this.nodes[0];
-    const speed = 180;
+    const speed = scale(180);
     const left = this.projectileGroup.create(origin.x, origin.y, "projectile") as Phaser.Physics.Arcade.Image;
+    left.setScale(scale(1));
     left.setVelocity(-speed, 0);
     left.body.allowGravity = false;
     const right = this.projectileGroup.create(origin.x, origin.y, "projectile") as Phaser.Physics.Arcade.Image;
+    right.setScale(scale(1));
     right.setVelocity(speed, 0);
     right.body.allowGravity = false;
   }
@@ -277,7 +280,7 @@ export class Level3Scene extends BaseLevelScene {
     }
     this.scoreSystem.applyTimeBonus(120000);
     this.audio.playSfx("sfx-level-complete", 0.6);
-    FloatingText.spawn(this, 320, 120, "+2000", "#8fe388");
+    FloatingText.spawn(this, scaleX(320), scaleY(120), "+2000", "#8fe388");
     this.hud.updateAll();
     this.time.delayedCall(1400, () => this.scene.start("Level4Scene"));
   }

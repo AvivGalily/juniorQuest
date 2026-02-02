@@ -85,7 +85,7 @@ export class BaseLevelScene extends Phaser.Scene {
   }
 
   protected createPauseOverlay(): void {
-    this.pauseText = createDialogText(this, 320, 180, "PAUSED", {
+    this.pauseText = createDialogText(this, this.scale.width / 2, this.scale.height / 2, "PAUSED", {
       maxWidth: 200,
       fontSize: 20,
       color: "#ffd166"

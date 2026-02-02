@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { createDialogText } from "../utils/domText";
+import { scale } from "../utils/layout";
 
 export class SnakeNode extends Phaser.GameObjects.Container {
   private arrow: Phaser.GameObjects.Image;
@@ -9,7 +10,10 @@ export class SnakeNode extends Phaser.GameObjects.Container {
   constructor(scene: Phaser.Scene, x: number, y: number, label: string) {
     super(scene, x, y);
     const body = scene.add.image(0, 0, "snake_node");
-    this.arrow = scene.add.image(14, 0, "arrow_right");
+    const nodeScale = scale(1);
+    body.setScale(nodeScale);
+    this.arrow = scene.add.image(14 * nodeScale, 0, "arrow_right");
+    this.arrow.setScale(nodeScale);
     this.add([body, this.arrow]);
     scene.add.existing(this);
     this.label = createDialogText(scene, x, y, label, {
