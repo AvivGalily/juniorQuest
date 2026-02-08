@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { ANIMATION, ENTITIES, GUARD, INPUT } from "../../../config/physics";
 import { BASE_HEIGHT } from "../../utils/resolution";
 import { scaleSpriteToHeight } from "../../utils/spriteScale";
 
@@ -9,16 +10,16 @@ export class Guard extends Phaser.Physics.Arcade.Sprite {
   private facing: "left" | "right" = "right";
   private moving = false;
   private facingAngle = 0;
-  private readonly walkToggleMs = 160;
+  private readonly walkToggleMs = ANIMATION.WALK_TOGGLE_MS;
   private walkPhase: 0 | 1 = 0;
   private lastWalkSwitchAt = 0;
   private lastAnimFacing: "left" | "right" | "front" = "right";
-  private readonly targetHeight = BASE_HEIGHT * 0.1;
+  private readonly targetHeight = BASE_HEIGHT * ENTITIES.SPRITE_HEIGHT_RATIO;
   private lastX = 0;
   private lastY = 0;
   private lastMoveCheckAt = 0;
   private stuckMs = 0;
-  private readonly stuckThresholdMs = 350;
+  private readonly stuckThresholdMs = GUARD.STUCK_THRESHOLD_MS;
 
   constructor(scene: Phaser.Scene, x: number, y: number, waypoints: Phaser.Math.Vector2[], speed: number) {
     super(scene, x, y, "guard-stand");
@@ -45,7 +46,7 @@ export class Guard extends Phaser.Physics.Arcade.Sprite {
     const dx = target.x - this.x;
     const dy = target.y - this.y;
     const dist = Math.hypot(dx, dy);
-    if (dist < 4) {
+    if (dist < GUARD.CLOSE_ENOUGH_DIST) {
       this.currentIndex = (this.currentIndex + 1) % this.waypoints.length;
       this.setVelocity(0, 0);
       this.moving = false;
@@ -57,10 +58,10 @@ export class Guard extends Phaser.Physics.Arcade.Sprite {
     this.setVelocity(vx, vy);
     this.facingAngle = Phaser.Math.Angle.Between(0, 0, vx, vy);
     const prevFacing = this.facing;
-    if (Math.abs(vx) > 0.01) {
+    if (Math.abs(vx) > INPUT.AXIS_EPSILON) {
       this.facing = vx < 0 ? "left" : "right";
     }
-    this.moving = Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01;
+    this.moving = Math.abs(vx) > INPUT.AXIS_EPSILON || Math.abs(vy) > INPUT.AXIS_EPSILON;
     const animFacing = this.resolveAnimFacing(vx, vy);
     this.updateWalkPhase(prevFacing !== this.facing || animFacing !== this.lastAnimFacing);
     this.updateTexture(false, animFacing);
@@ -68,10 +69,10 @@ export class Guard extends Phaser.Physics.Arcade.Sprite {
   }
 
   private resolveAnimFacing(vx: number, vy: number): "left" | "right" | "front" {
-    if (Math.abs(vy) > Math.abs(vx) && vy > 0.01) {
+    if (Math.abs(vy) > Math.abs(vx) && vy > INPUT.AXIS_EPSILON) {
       return "front";
     }
-    if (Math.abs(vx) > 0.01) {
+    if (Math.abs(vx) > INPUT.AXIS_EPSILON) {
       return vx < 0 ? "left" : "right";
     }
     return this.lastAnimFacing;
@@ -139,7 +140,7 @@ export class Guard extends Phaser.Physics.Arcade.Sprite {
       return;
     }
     const movedDist = Phaser.Math.Distance.Between(this.x, this.y, this.lastX, this.lastY);
-    if (movedDist < 0.5) {
+    if (movedDist < GUARD.STUCK_MOVE_EPS) {
       this.stuckMs += dt;
       if (this.stuckMs >= this.stuckThresholdMs && this.waypoints.length > 1) {
         this.currentIndex = (this.currentIndex + 1) % this.waypoints.length;

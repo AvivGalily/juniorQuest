@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { ANIMATION, ENTITIES, INPUT, WANDER } from "../../../config/physics";
 import { rngInt } from "../../utils/rng";
 import { BASE_HEIGHT } from "../../utils/resolution";
 import { scale } from "../../utils/layout";
@@ -7,13 +8,13 @@ import { scaleSpriteToHeight } from "../../utils/spriteScale";
 export class Recruiter extends Phaser.Physics.Arcade.Sprite {
   companyTag: string;
   private wanderTimer = 0;
-  private speed = scale(40);
+  private speed = scale(ENTITIES.RECRUITER_WANDER_SPEED);
   private facing: "left" | "right" = "right";
   private moving = false;
-  private readonly walkToggleMs = 160;
+  private readonly walkToggleMs = ANIMATION.WALK_TOGGLE_MS;
   private walkPhase: 0 | 1 = 0;
   private lastWalkSwitchAt = 0;
-  private readonly targetHeight = BASE_HEIGHT * 0.1;
+  private readonly targetHeight = BASE_HEIGHT * ENTITIES.SPRITE_HEIGHT_RATIO;
 
   constructor(scene: Phaser.Scene, x: number, y: number, companyTag: string) {
     super(scene, x, y, "hr-stand");
@@ -34,18 +35,18 @@ export class Recruiter extends Phaser.Physics.Arcade.Sprite {
     const vx = this.body?.velocity.x ?? 0;
     const vy = this.body?.velocity.y ?? 0;
     const prevFacing = this.facing;
-    if (Math.abs(vx) > 0.01) {
+    if (Math.abs(vx) > INPUT.AXIS_EPSILON) {
       this.facing = vx < 0 ? "left" : "right";
     }
-    this.moving = Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01;
+    this.moving = Math.abs(vx) > INPUT.AXIS_EPSILON || Math.abs(vy) > INPUT.AXIS_EPSILON;
     this.updateWalkPhase(prevFacing !== this.facing);
     this.updateTexture();
   }
 
   private pickNewDirection(): void {
-    const angle = Phaser.Math.DegToRad(rngInt(0, 360));
+    const angle = Phaser.Math.DegToRad(rngInt(WANDER.ANGLE_MIN_DEG, WANDER.ANGLE_MAX_DEG));
     this.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
-    this.wanderTimer = rngInt(900, 1600);
+    this.wanderTimer = rngInt(WANDER.MIN_MS, WANDER.MAX_MS);
   }
 
   private updateWalkPhase(directionChanged: boolean): void {

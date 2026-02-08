@@ -1,10 +1,12 @@
+import { LEADERBOARD } from "../../config/physics";
+
 export interface LeaderboardEntry {
   name: string;
   score: number;
   dateISO: string;
 }
 
-const KEY = "juniorquest_leaderboard_v1";
+const KEY = `${LEADERBOARD.KEY_PREFIX}${LEADERBOARD.VERSION}`;
 
 export const loadLeaderboard = (): { entries: LeaderboardEntry[] } => {
   try {
@@ -27,7 +29,7 @@ export const saveLeaderboard = (data: { entries: LeaderboardEntry[] }): void => 
 };
 
 export const addLeaderboardEntry = (name: string, score: number): LeaderboardEntry[] => {
-  const sanitized = name.trim().slice(0, 10) || "ANON";
+  const sanitized = name.trim().slice(0, LEADERBOARD.NAME_MAX_LEN) || "ANON";
   const entry: LeaderboardEntry = {
     name: sanitized,
     score,
@@ -36,7 +38,7 @@ export const addLeaderboardEntry = (name: string, score: number): LeaderboardEnt
   const data = loadLeaderboard();
   data.entries.push(entry);
   data.entries.sort((a, b) => b.score - a.score);
-  data.entries = data.entries.slice(0, 20);
+  data.entries = data.entries.slice(0, LEADERBOARD.MAX_ENTRIES);
   saveLeaderboard(data);
   return data.entries;
 };

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { AUDIO_TONES, NPCS, PRELOAD, TEXTURES } from "../../config/physics";
 import { createDialogText } from "../utils/domText";
 
 export class PreloadScene extends Phaser.Scene {
@@ -7,11 +8,20 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
-    const playerBase = "../entities/player/img/";
+    const envBase = "../img/";
+    const playerBase = envBase;
     this.load.image("player-walk-slow-left", new URL(`${playerBase}player-walk-slow-left.png`, import.meta.url).href);
     this.load.image("player-walk-fast-left", new URL(`${playerBase}player-walk-fast-left.png`, import.meta.url).href);
     this.load.image("player-walk-slow-right", new URL(`${playerBase}player-walk-slow-right.png`, import.meta.url).href);
     this.load.image("player-walk-fast-right", new URL(`${playerBase}player-walk-fast-right.png`, import.meta.url).href);
+    this.load.image("player-walk-front", new URL(`${playerBase}player-walk-front.png`, import.meta.url).href);
+    this.load.image("player-walk-back", new URL(`${playerBase}player-walk-back.png`, import.meta.url).href);
+    this.load.image("player-cv-walk-front", new URL(`${playerBase}player-cv-walk-front.png`, import.meta.url).href);
+    this.load.image("player-cv-walk-back", new URL(`${playerBase}player-cv-walk-back.png`, import.meta.url).href);
+    this.load.image("player-cv-walk-slow-left", new URL(`${playerBase}player-cv-walk-slow-left.png`, import.meta.url).href);
+    this.load.image("player-cv-walk-fast-left", new URL(`${playerBase}player-cv-walk-fast-left.png`, import.meta.url).href);
+    this.load.image("player-cv-walk-slow-right", new URL(`${playerBase}player-cv-walk-slow-right.png`, import.meta.url).href);
+    this.load.image("player-cv-walk-fast-right", new URL(`${playerBase}player-cv-walk-fast-right.png`, import.meta.url).href);
     this.load.image("player-carry-left", new URL(`${playerBase}Player-carry-left.png`, import.meta.url).href);
 
     const guardBase = "../entities/guard/img/";
@@ -29,7 +39,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("hr-walk-slow-right", new URL(`${hrBase}HR-walk-slow-right.png`, import.meta.url).href);
     this.load.image("hr-walk-fast-right", new URL(`${hrBase}HR-walk-fast-right.png`, import.meta.url).href);
 
-    const npcBase = "../entities/npc/img/";
+    const npcBase = envBase;
     const loadNpc = (id: number, hasFast: boolean): void => {
       this.load.image(`npc${id}-walk-front`, new URL(`${npcBase}npc${id}-walk-front.png`, import.meta.url).href);
       this.load.image(`npc${id}-walk-back`, new URL(`${npcBase}npc${id}-walk-back.png`, import.meta.url).href);
@@ -40,11 +50,7 @@ export class PreloadScene extends Phaser.Scene {
         this.load.image(`npc${id}-walk-fast-right`, new URL(`${npcBase}npc${id}-walk-fast-right.png`, import.meta.url).href);
       }
     };
-    loadNpc(1, true);
-    loadNpc(2, true);
-    loadNpc(3, false);
-
-    const envBase = "../img/";
+    NPCS.VARIANTS.forEach((variant) => loadNpc(variant.id, variant.hasFast));
     this.load.image("both1", new URL(`${envBase}both1.png`, import.meta.url).href);
     this.load.image("both2", new URL(`${envBase}both2.png`, import.meta.url).href);
     this.load.image("trash-empty", new URL(`${envBase}tresh-empty.png`, import.meta.url).href);
@@ -53,8 +59,8 @@ export class PreloadScene extends Phaser.Scene {
 
   create(): void {
     createDialogText(this, this.scale.width / 2, this.scale.height / 2, "Loading...", {
-      maxWidth: 200,
-      fontSize: 16,
+      maxWidth: PRELOAD.LOADING_MAX_WIDTH,
+      fontSize: PRELOAD.LOADING_FONT_SIZE,
       color: "#e8eef2"
     });
 
@@ -70,9 +76,9 @@ export class PreloadScene extends Phaser.Scene {
     const rect = (key: string, w: number, h: number, fill: number, stroke?: number): void => {
       g.clear();
       if (stroke !== undefined) {
-        g.lineStyle(2, stroke, 1);
+        g.lineStyle(TEXTURES.RECT_STROKE_WIDTH, stroke, TEXTURES.RECT_STROKE_ALPHA);
       }
-      g.fillStyle(fill, 1);
+      g.fillStyle(fill, TEXTURES.ALPHA_FULL);
       g.fillRect(0, 0, w, h);
       if (stroke !== undefined) {
         g.strokeRect(0, 0, w, h);
@@ -80,59 +86,79 @@ export class PreloadScene extends Phaser.Scene {
       g.generateTexture(key, w, h);
     };
 
-    rect("rival", 16, 18, 0xffb347, 0x5a3b16);
-    rect("boss", 48, 30, 0x7b65ff, 0x2a1c4a);
-    rect("snake_node", 20, 12, 0x8be0e0, 0x1d4a4a);
-    rect("cube", 22, 22, 0x9fa8ff, 0x2c3160);
-    rect("slot", 26, 26, 0x000000, 0x6b7280);
-    rect("button", 120, 28, 0x1f2a33, 0x6b7280);
-    rect("notice_board", 100, 36, 0x2b3037, 0x6b7280);
-    rect("platform", 64, 12, 0x35424d, 0x111822);
-    rect("projectile", 10, 6, 0xffd166, 0x6b4d00);
-    rect("bug", 8, 8, 0x7ed957, 0x254b2c);
-    rect("cv", 10, 12, 0xf5f5f5, 0x222222);
+    for (const def of TEXTURES.RECTS) {
+      rect(def.key, def.w, def.h, def.fill, def.stroke);
+    }
 
     g.clear();
-    g.fillStyle(0x3498db, 1);
-    g.fillRect(0, 0, 16, 16);
-    g.fillStyle(0x2b82b8, 1);
-    g.fillRect(0, 12, 16, 4);
-    g.generateTexture("water", 16, 16);
+    g.fillStyle(TEXTURES.WATER.TOP_COLOR, TEXTURES.ALPHA_FULL);
+    g.fillRect(0, 0, TEXTURES.WATER.SIZE, TEXTURES.WATER.SIZE);
+    g.fillStyle(TEXTURES.WATER.STRIP_COLOR, TEXTURES.ALPHA_FULL);
+    g.fillRect(0, TEXTURES.WATER.SIZE - TEXTURES.WATER.STRIP_HEIGHT, TEXTURES.WATER.SIZE, TEXTURES.WATER.STRIP_HEIGHT);
+    g.generateTexture("water", TEXTURES.WATER.SIZE, TEXTURES.WATER.SIZE);
 
     g.clear();
-    g.fillStyle(0xff4d6d, 1);
-    g.fillCircle(4, 4, 3);
-    g.fillCircle(8, 4, 3);
-    g.fillTriangle(1, 5, 11, 5, 6, 11);
-    g.generateTexture("heart_full", 12, 12);
+    g.fillStyle(TEXTURES.HEART.COLOR, TEXTURES.ALPHA_FULL);
+    g.fillCircle(TEXTURES.HEART.CIRCLE_1.x, TEXTURES.HEART.CIRCLE_1.y, TEXTURES.HEART.CIRCLE_RADIUS);
+    g.fillCircle(TEXTURES.HEART.CIRCLE_2.x, TEXTURES.HEART.CIRCLE_2.y, TEXTURES.HEART.CIRCLE_RADIUS);
+    g.fillTriangle(
+      TEXTURES.HEART.TRIANGLE.x1,
+      TEXTURES.HEART.TRIANGLE.y1,
+      TEXTURES.HEART.TRIANGLE.x2,
+      TEXTURES.HEART.TRIANGLE.y2,
+      TEXTURES.HEART.TRIANGLE.x3,
+      TEXTURES.HEART.TRIANGLE.y3
+    );
+    g.generateTexture("heart_full", TEXTURES.HEART.SIZE, TEXTURES.HEART.SIZE);
 
     g.clear();
-    g.lineStyle(1, 0xff4d6d, 1);
-    g.strokeCircle(4, 4, 3);
-    g.strokeCircle(8, 4, 3);
-    g.strokeTriangle(1, 5, 11, 5, 6, 11);
-    g.generateTexture("heart_empty", 12, 12);
+    g.lineStyle(TEXTURES.HEART.STROKE_WIDTH, TEXTURES.HEART.COLOR, TEXTURES.ALPHA_FULL);
+    g.strokeCircle(TEXTURES.HEART.CIRCLE_1.x, TEXTURES.HEART.CIRCLE_1.y, TEXTURES.HEART.CIRCLE_RADIUS);
+    g.strokeCircle(TEXTURES.HEART.CIRCLE_2.x, TEXTURES.HEART.CIRCLE_2.y, TEXTURES.HEART.CIRCLE_RADIUS);
+    g.strokeTriangle(
+      TEXTURES.HEART.TRIANGLE.x1,
+      TEXTURES.HEART.TRIANGLE.y1,
+      TEXTURES.HEART.TRIANGLE.x2,
+      TEXTURES.HEART.TRIANGLE.y2,
+      TEXTURES.HEART.TRIANGLE.x3,
+      TEXTURES.HEART.TRIANGLE.y3
+    );
+    g.generateTexture("heart_empty", TEXTURES.HEART.SIZE, TEXTURES.HEART.SIZE);
 
     g.clear();
-    g.lineStyle(2, 0x1c1c1c, 1);
-    g.fillStyle(0xf9f7f7, 1);
-    g.fillRoundedRect(0, 0, 220, 70, 8);
-    g.strokeRoundedRect(0, 0, 220, 70, 8);
-    g.generateTexture("speech_bubble", 220, 70);
+    g.lineStyle(TEXTURES.SPEECH_BUBBLE.STROKE_WIDTH, TEXTURES.SPEECH_BUBBLE.STROKE_COLOR, TEXTURES.ALPHA_FULL);
+    g.fillStyle(TEXTURES.SPEECH_BUBBLE.FILL_COLOR, TEXTURES.ALPHA_FULL);
+    g.fillRoundedRect(0, 0, TEXTURES.SPEECH_BUBBLE.WIDTH, TEXTURES.SPEECH_BUBBLE.HEIGHT, TEXTURES.SPEECH_BUBBLE.RADIUS);
+    g.strokeRoundedRect(0, 0, TEXTURES.SPEECH_BUBBLE.WIDTH, TEXTURES.SPEECH_BUBBLE.HEIGHT, TEXTURES.SPEECH_BUBBLE.RADIUS);
+    g.generateTexture("speech_bubble", TEXTURES.SPEECH_BUBBLE.WIDTH, TEXTURES.SPEECH_BUBBLE.HEIGHT);
 
     g.clear();
-    g.fillStyle(0x1b1f24, 1);
-    g.fillRect(0, 0, 10, 6);
-    g.fillStyle(0x42d9f5, 1);
-    g.fillTriangle(0, 3, 10, 0, 10, 6);
-    g.generateTexture("arrow_right", 10, 6);
+    g.fillStyle(TEXTURES.ARROW.BG_COLOR, TEXTURES.ALPHA_FULL);
+    g.fillRect(0, 0, TEXTURES.ARROW.WIDTH, TEXTURES.ARROW.HEIGHT);
+    g.fillStyle(TEXTURES.ARROW.FG_COLOR, TEXTURES.ALPHA_FULL);
+    g.fillTriangle(
+      TEXTURES.ARROW.RIGHT.x1,
+      TEXTURES.ARROW.RIGHT.y1,
+      TEXTURES.ARROW.RIGHT.x2,
+      TEXTURES.ARROW.RIGHT.y2,
+      TEXTURES.ARROW.RIGHT.x3,
+      TEXTURES.ARROW.RIGHT.y3
+    );
+    g.generateTexture("arrow_right", TEXTURES.ARROW.WIDTH, TEXTURES.ARROW.HEIGHT);
 
     g.clear();
-    g.fillStyle(0x1b1f24, 1);
-    g.fillRect(0, 0, 10, 6);
-    g.fillStyle(0x42d9f5, 1);
-    g.fillTriangle(10, 3, 0, 0, 0, 6);
-    g.generateTexture("arrow_left", 10, 6);
+    g.fillStyle(TEXTURES.ARROW.BG_COLOR, TEXTURES.ALPHA_FULL);
+    g.fillRect(0, 0, TEXTURES.ARROW.WIDTH, TEXTURES.ARROW.HEIGHT);
+    g.fillStyle(TEXTURES.ARROW.FG_COLOR, TEXTURES.ALPHA_FULL);
+    g.fillTriangle(
+      TEXTURES.ARROW.LEFT.x1,
+      TEXTURES.ARROW.LEFT.y1,
+      TEXTURES.ARROW.LEFT.x2,
+      TEXTURES.ARROW.LEFT.y2,
+      TEXTURES.ARROW.LEFT.x3,
+      TEXTURES.ARROW.LEFT.y3
+    );
+    g.generateTexture("arrow_left", TEXTURES.ARROW.WIDTH, TEXTURES.ARROW.HEIGHT);
   }
 
   private applyTextureFilter(): void {
@@ -161,17 +187,13 @@ export class PreloadScene extends Phaser.Scene {
       this.cache.audio.add(key, makeTone(freq, duration, volume));
     };
 
-    add("sfx-select", 520, 0.08, 0.4);
-    add("sfx-confirm", 620, 0.1, 0.4);
-    add("sfx-hit", 180, 0.18, 0.6);
-    add("sfx-success", 760, 0.12, 0.5);
-    add("sfx-level-complete", 820, 0.18, 0.5);
-    add("sfx-gameover", 120, 0.3, 0.5);
-    add("sfx-phase", 660, 0.2, 0.5);
+    for (const tone of AUDIO_TONES.SFX) {
+      add(tone.key, tone.freq, tone.duration, tone.volume);
+    }
 
-    const makeLoop = (freq: number): AudioBuffer => makeTone(freq, 1.2, 0.2);
-    this.cache.audio.add("music-menu", makeLoop(220));
-    this.cache.audio.add("music-gameplay", makeLoop(180));
-    this.cache.audio.add("music-boss", makeLoop(260));
+    const makeLoop = (freq: number): AudioBuffer => makeTone(freq, AUDIO_TONES.MUSIC.LOOP_DURATION, AUDIO_TONES.MUSIC.LOOP_VOLUME);
+    this.cache.audio.add("music-menu", makeLoop(AUDIO_TONES.MUSIC.MENU_FREQ));
+    this.cache.audio.add("music-gameplay", makeLoop(AUDIO_TONES.MUSIC.GAMEPLAY_FREQ));
+    this.cache.audio.add("music-boss", makeLoop(AUDIO_TONES.MUSIC.BOSS_FREQ));
   }
 }

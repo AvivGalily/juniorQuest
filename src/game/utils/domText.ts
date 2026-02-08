@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { DOM_TEXT } from "../../config/physics";
 import { getUiScale } from "./resolution";
 
 const scaleCssValue = (value: string, scale: number): string =>
@@ -18,7 +19,7 @@ const buildStyle = (
     "font-family:\"Courier New\", Courier, monospace",
     `font-size:${fontSize}px`,
     `font-weight:${weight}`,
-    "line-height:1.3",
+    `line-height:${DOM_TEXT.LINE_HEIGHT}`,
     `text-align:${align}`,
     `color:${color}`,
     "background:transparent",
@@ -43,11 +44,11 @@ export const createDialogText = (
   }
 ): Phaser.GameObjects.DOMElement => {
   const uiScale = getUiScale();
-  const maxWidth = options?.maxWidth ?? 200;
-  const fontSize = options?.fontSize ?? 16;
+  const maxWidth = options?.maxWidth ?? DOM_TEXT.DEFAULT_MAX_WIDTH;
+  const fontSize = options?.fontSize ?? DOM_TEXT.DEFAULT_FONT_SIZE;
   const color = options?.color ?? "#1b1f24";
   const padding = options?.padding ?? "0";
-  const weight = options?.weight ?? 600;
+  const weight = options?.weight ?? DOM_TEXT.DEFAULT_WEIGHT;
   const align = options?.align ?? "center";
 
   const element = scene.add.dom(
@@ -64,7 +65,7 @@ export const createDialogText = (
     ),
     text
   );
-  element.setOrigin(options?.originX ?? 0.5, options?.originY ?? 0.5);
+  element.setOrigin(options?.originX ?? DOM_TEXT.DEFAULT_ORIGIN, options?.originY ?? DOM_TEXT.DEFAULT_ORIGIN);
   (element.node as HTMLDivElement).style.pointerEvents = "none";
 
   return element;

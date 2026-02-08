@@ -1,3 +1,5 @@
+import { TIME } from "../../config/physics";
+
 let state = 1 >>> 0;
 
 const normalizeSeed = (seed: number): number => {
@@ -18,7 +20,7 @@ export const seedFromQueryOrDate = (): void => {
   }
   const now = new Date();
   const stamp = Number(
-    `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}${String(now.getUTCDate()).padStart(2, "0")}`
+    `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(TIME.PAD_TWO, "0")}${String(now.getUTCDate()).padStart(TIME.PAD_TWO, "0")}`
   );
   seedRng(stamp);
 };

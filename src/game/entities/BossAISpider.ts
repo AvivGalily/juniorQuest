@@ -1,10 +1,11 @@
 import Phaser from "phaser";
+import { ENTITIES } from "../../config/physics";
 import { BASE_HEIGHT } from "../utils/resolution";
 import { scaleSpriteToHeight } from "../utils/spriteScale";
 
 export class BossAISpider extends Phaser.Physics.Arcade.Sprite {
   hp: number;
-  private readonly targetHeight = BASE_HEIGHT * 0.12;
+  private readonly targetHeight = BASE_HEIGHT * ENTITIES.BOSS_HEIGHT_RATIO;
 
   constructor(scene: Phaser.Scene, x: number, y: number, hp: number) {
     super(scene, x, y, "boss");

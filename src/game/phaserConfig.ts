@@ -9,6 +9,7 @@ import { Level4Scene } from "./scenes/Level4Scene";
 import { Level5Scene } from "./scenes/Level5Scene";
 import { GameOverScene } from "./scenes/GameOverScene";
 import { VictoryScene } from "./scenes/VictoryScene";
+import { PHASER } from "../config/physics";
 import { isDebug } from "./utils/debug";
 import { BASE_HEIGHT, BASE_WIDTH, getInitialRenderResolution } from "./utils/resolution";
 
@@ -38,7 +39,7 @@ export const phaserConfig: Phaser.Types.Core.GameConfig = {
   physics: {
     default: "arcade",
     arcade: {
-      gravity: { y: 600 },
+      gravity: { y: PHASER.DEFAULT_GRAVITY_Y },
       debug: isDebug()
     }
   },

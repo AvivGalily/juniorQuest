@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { AUDIO, GAME_OVER } from "../../config/physics";
 import { runState } from "../RunState";
 import { AudioManager } from "../systems/AudioManager";
 import { createDialogText } from "../utils/domText";
@@ -14,20 +15,32 @@ export class GameOverScene extends Phaser.Scene {
 
   create(): void {
     this.audio = new AudioManager(this);
-    this.audio.playSfx("sfx-gameover", 0.6);
-    this.audio.playMusic("music-menu", 0.2);
+    this.audio.playSfx("sfx-gameover", AUDIO.SFX.GAME_OVER);
+    this.audio.playMusic("music-menu", AUDIO.MUSIC.MENU_LOW);
 
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x101317);
-    createDialogText(this, scaleX(320), scaleY(120), "GAME OVER", { maxWidth: 260, fontSize: 28, color: "#ff6b6b" });
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, GAME_OVER.BG_COLOR);
+    createDialogText(this, scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.TITLE_Y), "GAME OVER", {
+      maxWidth: GAME_OVER.TITLE_MAX_WIDTH,
+      fontSize: GAME_OVER.TITLE_FONT_SIZE,
+      color: "#ff6b6b"
+    });
 
-    createDialogText(this, scaleX(320), scaleY(160), `Score: ${runState.runScore}`, { maxWidth: 220, fontSize: 16, color: "#e8eef2" });
+    createDialogText(this, scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.SCORE_Y), `Score: ${runState.runScore}`, {
+      maxWidth: GAME_OVER.SCORE_MAX_WIDTH,
+      fontSize: GAME_OVER.SCORE_FONT_SIZE,
+      color: "#e8eef2"
+    });
 
-    const btn = this.add.image(scaleX(320), scaleY(220), "button").setInteractive();
+    const btn = this.add.image(scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.BUTTON_Y), "button").setInteractive();
     btn.setScale(getUiScale());
-    createDialogText(this, scaleX(320), scaleY(220), "Back to Menu", { maxWidth: 200, fontSize: 16, color: "#e8eef2" });
+    createDialogText(this, scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.BUTTON_Y), "Back to Menu", {
+      maxWidth: GAME_OVER.BUTTON_MAX_WIDTH,
+      fontSize: GAME_OVER.BUTTON_FONT_SIZE,
+      color: "#e8eef2"
+    });
 
     btn.on("pointerdown", () => {
-      this.audio.playSfx("sfx-confirm", 0.6);
+      this.audio.playSfx("sfx-confirm", AUDIO.SFX.CONFIRM);
       this.scene.start("MenuScene");
     });
   }

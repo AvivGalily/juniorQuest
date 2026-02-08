@@ -1,27 +1,28 @@
 import { Difficulty } from "../config/difficulty";
+import { RUN } from "../config/physics";
 
 class RunState {
-  currentLevel = 1;
-  runScore = 0;
-  hearts = 3;
-  comboSteps = 0;
+  currentLevel = RUN.DEFAULT_LEVEL;
+  runScore = RUN.DEFAULT_SCORE;
+  hearts = RUN.DEFAULT_HEARTS;
+  comboSteps = RUN.DEFAULT_COMBO_STEPS;
   difficulty: Difficulty = "bootcamp";
   levelStartTimeMs = 0;
-  mistakes = 0;
+  mistakes = RUN.DEFAULT_MISTAKES;
 
   resetRun(): void {
-    this.currentLevel = 1;
-    this.runScore = 0;
-    this.hearts = 3;
-    this.comboSteps = 0;
-    this.mistakes = 0;
+    this.currentLevel = RUN.DEFAULT_LEVEL;
+    this.runScore = RUN.DEFAULT_SCORE;
+    this.hearts = RUN.DEFAULT_HEARTS;
+    this.comboSteps = RUN.DEFAULT_COMBO_STEPS;
+    this.mistakes = RUN.DEFAULT_MISTAKES;
     this.levelStartTimeMs = Date.now();
   }
 
   resetLevel(): void {
-    this.hearts = 3;
-    this.comboSteps = 0;
-    this.mistakes = 0;
+    this.hearts = RUN.DEFAULT_HEARTS;
+    this.comboSteps = RUN.DEFAULT_COMBO_STEPS;
+    this.mistakes = RUN.DEFAULT_MISTAKES;
     this.levelStartTimeMs = Date.now();
   }
 }

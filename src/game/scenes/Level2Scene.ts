@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { BaseLevelScene } from "./BaseLevelScene";
 import { Player } from "../entities/player/Player";
 import { difficultyPresets } from "../../config/difficulty";
+import { ALPHA, AUDIO, DEPTH, DOM_TEXT, LEVEL2, LEVEL2_SLOTS, MATH, PLAYER, RUN, SCALE, STAGE, TIME } from "../../config/physics";
 import { runState } from "../RunState";
 import { isDebug } from "../utils/debug";
 import { rngInt } from "../utils/rng";
@@ -36,30 +37,30 @@ export class Level2Scene extends BaseLevelScene {
   private player!: Player;
   private slots: Slot[] = [];
   private placedCount = 0;
-  private requiredPlacements = 11;
+  private requiredPlacements = LEVEL2.DEFAULT_REQUIRED_PLACEMENTS;
   private cubes: Cube[] = [];
   private carriedCube?: Cube;
-  private rowY = scaleY(322);
+  private rowY = scaleY(LEVEL2.ROW_Y);
   private pileText?: Phaser.GameObjects.Text;
   private clockFace?: Phaser.GameObjects.Graphics;
   private clockHands?: Phaser.GameObjects.Graphics;
   private clockText?: Phaser.GameObjects.Text;
-  private clockCenterX = scaleX(90);
-  private clockCenterY = scaleY(42);
-  private clockRadius = scale(20);
-  private timeLimitMs = 90000;
-  private timeLeftMs = 90000;
+  private clockCenterX = scaleX(LEVEL2.CLOCK_CENTER_X);
+  private clockCenterY = scaleY(LEVEL2.CLOCK_CENTER_Y);
+  private clockRadius = scale(LEVEL2.CLOCK_RADIUS);
+  private timeLimitMs = LEVEL2.TIME_LIMIT_MS;
+  private timeLeftMs = LEVEL2.TIME_LIMIT_MS;
 
   constructor() {
     super("Level2Scene");
   }
 
   create(): void {
-    this.initLevel(2);
-    this.audio.playMusic("music-gameplay", 0.2);
-    this.physics.world.gravity.y = 700;
+    this.initLevel(STAGE.LEVEL2);
+    this.audio.playMusic("music-gameplay", AUDIO.MUSIC.GAMEPLAY);
+    this.physics.world.gravity.y = LEVEL2.WORLD_GRAVITY_Y;
     this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x122033);
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, LEVEL2.BG_COLOR);
 
     const diff = difficultyPresets[runState.difficulty];
     this.requiredPlacements = diff.l2.requiredPlacements;
@@ -69,23 +70,29 @@ export class Level2Scene extends BaseLevelScene {
     this.createSlots();
     const targetValues = this.assignTargetValues(this.requiredPlacements);
 
-    this.player = new Player(this, scaleX(90), scaleY(300));
+    this.player = new Player(this, scaleX(LEVEL2.PLAYER_START.x), scaleY(LEVEL2.PLAYER_START.y));
     this.setPlayer(this.player);
     const platforms = this.physics.add.staticGroup();
-    platforms.create(scaleX(320), scaleY(332), "platform").setScale(12 * scaleX(1), 1 * scaleY(1)).refreshBody();
-    const shelfYs = [286, 226, 166, 106].map(scaleY);
-    const shelfXs = [120, 320, 520].map(scaleX);
+    platforms
+      .create(scaleX(LEVEL2.GROUND_X), scaleY(LEVEL2.GROUND_Y), "platform")
+      .setScale(LEVEL2.GROUND_SCALE_X * scaleX(SCALE.UNIT), LEVEL2.GROUND_SCALE_Y * scaleY(SCALE.UNIT))
+      .refreshBody();
+    const shelfYs = LEVEL2.SHELF_YS.map(scaleY);
+    const shelfXs = LEVEL2.SHELF_XS.map(scaleX);
     for (const y of shelfYs) {
       for (const x of shelfXs) {
-        platforms.create(x, y, "platform").setScale(2.4 * scaleX(1), 1 * scaleY(1)).refreshBody();
+        platforms
+          .create(x, y, "platform")
+          .setScale(LEVEL2.SHELF_SCALE_X * scaleX(SCALE.UNIT), LEVEL2.SHELF_SCALE_Y * scaleY(SCALE.UNIT))
+          .refreshBody();
       }
     }
 
     this.physics.add.collider(this.player, platforms);
 
-    createDialogText(this, scaleX(320), scaleY(20), "BST Tower", {
-      maxWidth: 200,
-      fontSize: 16,
+    createDialogText(this, scaleX(LEVEL2.TITLE_X), scaleY(LEVEL2.TITLE_Y), "BST Tower", {
+      maxWidth: LEVEL2.TITLE_MAX_WIDTH,
+      fontSize: LEVEL2.TITLE_FONT_SIZE,
       color: "#e8eef2"
     });
 
@@ -99,7 +106,7 @@ export class Level2Scene extends BaseLevelScene {
       return;
     }
 
-    this.player.updatePlatformer(this.inputManager, scale(150), scale(300));
+    this.player.updatePlatformer(this.inputManager, scale(PLAYER.PLATFORMER_SPEED), scale(PLAYER.JUMP_L2));
     this.updateCarriedCube();
     this.syncCubeLabels();
 
@@ -122,43 +129,31 @@ export class Level2Scene extends BaseLevelScene {
     const makeSlot = (id: string, x: number, y: number, parent?: Slot, isLeft?: boolean): Slot => {
       const sx = scaleX(x);
       const sy = scaleY(y);
-      const image = this.add.image(sx, sy, "slot").setDepth(1);
-      image.setScale(scale(26) / 26);
+      const image = this.add.image(sx, sy, "slot").setDepth(DEPTH.LEVEL2_SLOT);
+      image.setScale(scale(LEVEL2.SLOT_SIZE) / LEVEL2.SLOT_SIZE);
       const slot: Slot = { id, x: sx, y: sy, parent, isLeft, image };
       if (isDebug()) {
-        slot.debugText = createDialogText(this, sx, sy - scale(16), "", {
-          maxWidth: 80,
-          fontSize: 12,
+        slot.debugText = createDialogText(this, sx, sy - scale(LEVEL2.SLOT_DEBUG_OFFSET_Y), "", {
+          maxWidth: LEVEL2.SLOT_DEBUG_MAX_WIDTH,
+          fontSize: LEVEL2.SLOT_DEBUG_FONT_SIZE,
           color: "#8fe388",
           align: "center"
-        }).setDepth(2);
+        }).setDepth(DEPTH.LEVEL2_SLOT_HINT);
       }
       this.slots.push(slot);
       return slot;
     };
-
-    const root = makeSlot("root", 320, 90);
-    const l1 = makeSlot("l1", 220, 150, root, true);
-    const r1 = makeSlot("r1", 420, 150, root, false);
-
-    const l1l = makeSlot("l1l", 160, 210, l1, true);
-    const l1r = makeSlot("l1r", 280, 210, l1, false);
-    const r1l = makeSlot("r1l", 360, 210, r1, true);
-    const r1r = makeSlot("r1r", 480, 210, r1, false);
-
-    makeSlot("l1l1", 100, 270, l1l, true);
-    makeSlot("l1l2", 180, 270, l1l, false);
-    makeSlot("l1r1", 240, 270, l1r, true);
-    makeSlot("l1r2", 320, 270, l1r, false);
-    makeSlot("r1l1", 360, 270, r1l, true);
-    makeSlot("r1l2", 440, 270, r1l, false);
-    makeSlot("r1r1", 500, 270, r1r, true);
-    makeSlot("r1r2", 580, 270, r1r, false);
+    const slotMap = new Map<string, Slot>();
+    for (const def of LEVEL2_SLOTS) {
+      const parent = def.parent ? slotMap.get(def.parent) : undefined;
+      const slot = makeSlot(def.id, def.x, def.y, parent, def.isLeft);
+      slotMap.set(def.id, slot);
+    }
   }
 
   private assignTargetValues(count: number): number[] {
     const slotsToFill = this.slots.slice(0, Math.min(count, this.slots.length));
-    const maxAttempts = 40;
+    const maxAttempts = LEVEL2.MAX_ASSIGN_ATTEMPTS;
 
     for (const slot of this.slots) {
       slot.active = false;
@@ -191,11 +186,11 @@ export class Level2Scene extends BaseLevelScene {
           }
           slot.hintText?.destroy();
           slot.hintText = createDialogText(this, slot.x, slot.y, String(slot.targetValue), {
-            maxWidth: 40,
-            fontSize: 12,
+            maxWidth: LEVEL2.HINT_MAX_WIDTH,
+            fontSize: LEVEL2.HINT_FONT_SIZE,
             color: "#94a3b8",
             align: "center"
-          }).setDepth(2).setAlpha(0.35);
+          }).setDepth(DEPTH.LEVEL2_SLOT_HINT).setAlpha(LEVEL2.HINT_ALPHA);
         }
         return this.shuffle(this.valuesFromSlots(slotsToFill));
       }
@@ -205,8 +200,8 @@ export class Level2Scene extends BaseLevelScene {
   }
 
   private getSlotTargetRange(slot: Slot): { min: number; max: number } {
-    let min = 1;
-    let max = 99;
+    let min = LEVEL2.VALUE_MIN;
+    let max = LEVEL2.VALUE_MAX;
     let node: Slot | undefined = slot;
     while (node?.parent) {
       const parent = node.parent;
@@ -259,10 +254,10 @@ export class Level2Scene extends BaseLevelScene {
   }
 
   private createCubeRow(values: number[]): void {
-    const spacing = scaleX(28);
+    const spacing = scaleX(LEVEL2.ROW_SPACING);
     const count = values.length;
     const totalWidth = (count - 1) * spacing;
-    const startX = scaleX(320) - totalWidth / 2;
+    const startX = scaleX(LEVEL2.ROW_CENTER_X) - totalWidth / 2;
     const rowY = this.rowY;
 
     for (let i = 0; i < count; i += 1) {
@@ -272,12 +267,12 @@ export class Level2Scene extends BaseLevelScene {
       this.cubes.push(cube);
     }
 
-    this.pileText = createDialogText(this, scaleX(20), rowY - scale(18), "Cubes: 0", {
-      maxWidth: 140,
-      fontSize: 12,
+    this.pileText = createDialogText(this, scaleX(LEVEL2.PILE_TEXT_X), rowY - scale(LEVEL2.PILE_TEXT_OFFSET_Y), "Cubes: 0", {
+      maxWidth: LEVEL2.PILE_TEXT_MAX_WIDTH,
+      fontSize: LEVEL2.PILE_TEXT_FONT_SIZE,
       color: "#e8eef2",
       align: "left",
-      originX: 0
+      originX: DOM_TEXT.ORIGIN_LEFT
     });
     this.updatePileText();
   }
@@ -291,13 +286,13 @@ export class Level2Scene extends BaseLevelScene {
 
   private findNearestCube(): Cube | null {
     let best: Cube | null = null;
-    let bestDist = 9999;
+    let bestDist = MATH.LARGE_NUMBER;
     for (const cube of this.cubes) {
       if (cube.placed || cube === this.carriedCube) {
         continue;
       }
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, cube.container.x, cube.container.y);
-      if (dist < scale(30) && dist < bestDist) {
+      if (dist < scale(LEVEL2.INTERACT_RANGE) && dist < bestDist) {
         bestDist = dist;
         best = cube;
       }
@@ -319,17 +314,17 @@ export class Level2Scene extends BaseLevelScene {
   private createCubeContainer(value: number, x: number, y: number): Cube {
     const container = this.add.container(x, y);
     const sprite = this.add.image(0, 0, "cube");
-    const cubeScale = scale(22) / 22;
+    const cubeScale = scale(LEVEL2.CUBE_SIZE) / LEVEL2.CUBE_SIZE;
     sprite.setScale(cubeScale);
     container.add([sprite]);
-    container.setSize(scale(22), scale(22));
-    container.setDepth(5);
+    container.setSize(scale(LEVEL2.CUBE_SIZE), scale(LEVEL2.CUBE_SIZE));
+    container.setDepth(DEPTH.LEVEL2_CUBE);
     const label = createDialogText(this, x, y, String(value), {
-      maxWidth: 40,
-      fontSize: 12,
+      maxWidth: LEVEL2.CUBE_LABEL_MAX_WIDTH,
+      fontSize: LEVEL2.CUBE_LABEL_FONT_SIZE,
       color: "#0f172a",
       align: "center"
-    }).setDepth(6);
+    }).setDepth(DEPTH.LEVEL2_CUBE_LABEL);
     return { container, value, placed: false, startX: x, startY: y, label };
   }
 
@@ -338,7 +333,7 @@ export class Level2Scene extends BaseLevelScene {
       return;
     }
     this.carriedCube.container.x = this.player.x;
-    this.carriedCube.container.y = this.player.y - scale(18);
+    this.carriedCube.container.y = this.player.y - scale(LEVEL2.CUBE_CARRY_OFFSET_Y);
     this.carriedCube.label?.setPosition(this.carriedCube.container.x, this.carriedCube.container.y);
   }
 
@@ -370,15 +365,21 @@ export class Level2Scene extends BaseLevelScene {
     const cube = this.carriedCube;
     cube.container.x = slot.x;
     cube.container.y = slot.y;
-    cube.container.setDepth(2);
+    cube.container.setDepth(DEPTH.LEVEL2_CUBE_PLACED);
     cube.placed = true;
     slot.value = cube.value;
     this.carriedCube = undefined;
     this.player.setCarrying(false);
     this.placedCount += 1;
-    this.scoreSystem.addSkill(80);
-    FloatingText.spawn(this, slot.x, slot.y - scale(12), "+80", "#8fe388");
-    this.audio.playSfx("sfx-success", 0.5);
+    this.scoreSystem.addSkill(LEVEL2.CUBE_SUCCESS_SCORE);
+    FloatingText.spawn(
+      this,
+      slot.x,
+      slot.y - scale(LEVEL2.SCORE_FLOAT_OFFSET_Y),
+      `+${LEVEL2.CUBE_SUCCESS_SCORE}`,
+      "#8fe388"
+    );
+    this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_MED);
     this.updatePileText();
 
     if (this.placedCount >= this.requiredPlacements) {
@@ -393,16 +394,16 @@ export class Level2Scene extends BaseLevelScene {
     const cube = this.carriedCube;
     this.carriedCube = undefined;
     this.player.setCarrying(false);
-    this.scoreSystem.addPenalty(-10);
+    this.scoreSystem.addPenalty(LEVEL2.CUBE_REJECT_PENALTY);
     this.scoreSystem.breakCombo();
     runState.mistakes += 1;
-    this.audio.playSfx("sfx-hit", 0.4);
-    cube.container.setDepth(5);
+    this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT_LIGHT);
+    cube.container.setDepth(DEPTH.LEVEL2_CUBE);
     this.tweens.add({
       targets: cube.container,
       x: cube.startX,
       y: cube.startY,
-      duration: 200,
+      duration: LEVEL2.CUBE_REJECT_TWEEN_MS,
       ease: "Sine.easeOut"
     });
     this.updatePileText();
@@ -414,8 +415,8 @@ export class Level2Scene extends BaseLevelScene {
     }
     this.carriedCube = cube;
     this.player.setCarrying(true);
-    cube.container.setDepth(6);
-    this.audio.playSfx("sfx-select", 0.4);
+    cube.container.setDepth(DEPTH.LEVEL2_CUBE_LABEL);
+    this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT_LIGHT);
   }
 
   private getRemainingCubes(): number {
@@ -424,10 +425,10 @@ export class Level2Scene extends BaseLevelScene {
 
   private findClosestSlot(x: number, y: number): Slot | null {
     let best: Slot | null = null;
-    let bestDist = 9999;
+    let bestDist = MATH.LARGE_NUMBER;
     for (const slot of this.slots) {
       const dist = Phaser.Math.Distance.Between(x, y, slot.x, slot.y);
-      if (dist < scale(30) && dist < bestDist) {
+      if (dist < scale(LEVEL2.INTERACT_RANGE) && dist < bestDist) {
         bestDist = dist;
         best = slot;
       }
@@ -447,56 +448,65 @@ export class Level2Scene extends BaseLevelScene {
 
   private createClock(): void {
     this.clockFace = this.add.graphics();
-    this.clockFace.fillStyle(0x0f172a, 0.9);
-    this.clockFace.fillCircle(this.clockCenterX, this.clockCenterY, this.clockRadius + scale(2));
-    this.clockFace.lineStyle(scale(3), 0xe2e8f0, 1);
+    this.clockFace.fillStyle(LEVEL2.CLOCK_FACE_COLOR, LEVEL2.CLOCK_FACE_ALPHA);
+    this.clockFace.fillCircle(this.clockCenterX, this.clockCenterY, this.clockRadius + scale(LEVEL2.CLOCK_RING_PADDING));
+    this.clockFace.lineStyle(scale(LEVEL2.CLOCK_RING_STROKE), LEVEL2.CLOCK_RING_COLOR, ALPHA.FULL);
     this.clockFace.strokeCircle(this.clockCenterX, this.clockCenterY, this.clockRadius);
-    this.clockFace.setDepth(900);
+    this.clockFace.setDepth(DEPTH.LEVEL2_CLOCK_FACE);
 
     this.clockHands = this.add.graphics();
-    this.clockHands.setDepth(901);
-    this.clockText = createDialogText(this, this.clockCenterX + scaleX(26), this.clockCenterY - scaleY(6), "1:00", {
-      maxWidth: 80,
-      fontSize: 12,
-      color: "#e8eef2",
-      align: "left",
-      originX: 0,
-      originY: 0.5
-    }).setDepth(902);
+    this.clockHands.setDepth(DEPTH.LEVEL2_CLOCK_HANDS);
+    this.clockText = createDialogText(
+      this,
+      this.clockCenterX + scaleX(LEVEL2.CLOCK_TEXT_OFFSET_X),
+      this.clockCenterY - scaleY(LEVEL2.CLOCK_TEXT_OFFSET_Y),
+      "1:00",
+      {
+        maxWidth: LEVEL2.CLOCK_TEXT_MAX_WIDTH,
+        fontSize: LEVEL2.CLOCK_TEXT_FONT_SIZE,
+        color: "#e8eef2",
+        align: "left",
+        originX: DOM_TEXT.ORIGIN_LEFT,
+        originY: DOM_TEXT.ORIGIN_MIDDLE
+      }
+    ).setDepth(DEPTH.LEVEL2_CLOCK_TEXT);
   }
 
   private updateClock(delta: number): void {
     this.timeLeftMs = Math.max(0, this.timeLeftMs - delta);
-    const secondsLeft = Math.ceil(this.timeLeftMs / 1000);
-    const mins = Math.floor(secondsLeft / 60);
-    const secs = secondsLeft % 60;
+    const secondsLeft = Math.ceil(this.timeLeftMs / TIME.MS_PER_SEC);
+    const mins = Math.floor(secondsLeft / TIME.SEC_PER_MIN);
+    const secs = secondsLeft % TIME.SEC_PER_MIN;
     if (this.clockText) {
-      setDomText(this.clockText, `${mins}:${String(secs).padStart(2, "0")}`);
+      setDomText(this.clockText, `${mins}:${String(secs).padStart(TIME.PAD_TWO, "0")}`);
     }
 
     if (this.clockHands) {
       const progress = this.timeLeftMs / this.timeLimitMs;
-      const minuteAngle = Phaser.Math.DegToRad(270 + 360 * progress);
-      const secondAngle = Phaser.Math.DegToRad(270 + 360 * ((this.timeLeftMs / 1000) % 60) / 60);
-      const minuteLength = this.clockRadius - scale(4);
-      const secondLength = this.clockRadius - scale(2);
+      const minuteAngle = Phaser.Math.DegToRad(LEVEL2.CLOCK_START_DEG + MATH.FULL_CIRCLE_DEG * progress);
+      const secondAngle = Phaser.Math.DegToRad(
+        LEVEL2.CLOCK_START_DEG +
+          MATH.FULL_CIRCLE_DEG * ((this.timeLeftMs / TIME.MS_PER_SEC) % TIME.SEC_PER_MIN) / TIME.SEC_PER_MIN
+      );
+      const minuteLength = this.clockRadius - scale(LEVEL2.CLOCK_MINUTE_PADDING);
+      const secondLength = this.clockRadius - scale(LEVEL2.CLOCK_SECOND_PADDING);
       this.clockHands.clear();
-      this.clockHands.lineStyle(scale(3), 0xffd166, 1);
+      this.clockHands.lineStyle(scale(LEVEL2.CLOCK_HAND_STROKE), LEVEL2.CLOCK_HAND_MINUTE_COLOR, ALPHA.FULL);
       this.clockHands.lineBetween(
         this.clockCenterX,
         this.clockCenterY,
         this.clockCenterX + Math.cos(minuteAngle) * minuteLength,
         this.clockCenterY + Math.sin(minuteAngle) * minuteLength
       );
-      this.clockHands.lineStyle(2, 0x8fe388, 1);
+      this.clockHands.lineStyle(LEVEL2.CLOCK_HAND_SECOND_STROKE, LEVEL2.CLOCK_HAND_SECOND_COLOR, ALPHA.FULL);
       this.clockHands.lineBetween(
         this.clockCenterX,
         this.clockCenterY,
         this.clockCenterX + Math.cos(secondAngle) * secondLength,
         this.clockCenterY + Math.sin(secondAngle) * secondLength
       );
-      this.clockHands.fillStyle(0xe2e8f0, 1);
-      this.clockHands.fillCircle(this.clockCenterX, this.clockCenterY, 2);
+      this.clockHands.fillStyle(LEVEL2.CLOCK_CENTER_COLOR, ALPHA.FULL);
+      this.clockHands.fillCircle(this.clockCenterX, this.clockCenterY, LEVEL2.CLOCK_CENTER_RADIUS);
     }
 
     if (this.timeLeftMs <= 0) {
@@ -535,14 +545,14 @@ export class Level2Scene extends BaseLevelScene {
   }
 
   private completeLevel(): void {
-    this.scoreSystem.addBase(1500);
-    if (runState.hearts === 3) {
-      this.scoreSystem.addBase(400);
+    this.scoreSystem.addBase(LEVEL2.COMPLETE_SCORE);
+    if (runState.hearts === RUN.DEFAULT_HEARTS) {
+      this.scoreSystem.addBase(LEVEL2.PERFECT_HEARTS_BONUS);
     }
-    this.scoreSystem.applyTimeBonus(90000);
-    this.audio.playSfx("sfx-level-complete", 0.6);
-    FloatingText.spawn(this, scaleX(320), scaleY(120), "+1500", "#8fe388");
+    this.scoreSystem.applyTimeBonus(LEVEL2.TIME_BONUS_MS);
+    this.audio.playSfx("sfx-level-complete", AUDIO.SFX.LEVEL_COMPLETE);
+    FloatingText.spawn(this, scaleX(LEVEL2.COMPLETE_TEXT_X), scaleY(LEVEL2.COMPLETE_TEXT_Y), `+${LEVEL2.COMPLETE_SCORE}`, "#8fe388");
     this.hud.updateAll();
-    this.time.delayedCall(1200, () => this.scene.start("Level3Scene"));
+    this.time.delayedCall(LEVEL2.COMPLETE_DELAY_MS, () => this.scene.start("Level3Scene"));
   }
 }

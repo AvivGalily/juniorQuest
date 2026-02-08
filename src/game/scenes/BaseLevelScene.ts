@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { AUDIO, BASE_LEVEL, DEPTH } from "../../config/physics";
 import { runState } from "../RunState";
 import { InputManager } from "../systems/InputManager";
 import { AudioManager } from "../systems/AudioManager";
@@ -20,7 +21,7 @@ export class BaseLevelScene extends Phaser.Scene {
   protected paused = false;
   private pauseText?: Phaser.GameObjects.Text;
   private lastEscPressMs = 0;
-  private escDoubleWindowMs = 350;
+  private escDoubleWindowMs = BASE_LEVEL.ESC_DOUBLE_PRESS_MS;
 
   protected initLevel(stageNumber: number): void {
     runState.currentLevel = stageNumber;
@@ -68,12 +69,12 @@ export class BaseLevelScene extends Phaser.Scene {
     }
     runState.hearts -= 1;
     this.comboSystem.reset();
-    this.audio.playSfx("sfx-hit", 0.6);
+    this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT);
     if (this.player) {
-      flashTween(this, this.player, 800);
+      flashTween(this, this.player, BASE_LEVEL.FLASH_DURATION_MS);
     }
     this.invulnerable = true;
-    this.time.delayedCall(800, () => {
+    this.time.delayedCall(BASE_LEVEL.INVULNERABLE_MS, () => {
       this.invulnerable = false;
     });
     if (respawn) {
@@ -86,9 +87,9 @@ export class BaseLevelScene extends Phaser.Scene {
 
   protected createPauseOverlay(): void {
     this.pauseText = createDialogText(this, this.scale.width / 2, this.scale.height / 2, "PAUSED", {
-      maxWidth: 200,
-      fontSize: 20,
+      maxWidth: BASE_LEVEL.PAUSE_MAX_WIDTH,
+      fontSize: BASE_LEVEL.PAUSE_FONT_SIZE,
       color: "#ffd166"
-    }).setScrollFactor(0).setDepth(1000).setVisible(false);
+    }).setScrollFactor(0).setDepth(DEPTH.PAUSE_OVERLAY).setVisible(false);
   }
 }

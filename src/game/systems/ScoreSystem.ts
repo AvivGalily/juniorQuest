@@ -1,9 +1,10 @@
+import { SCORE, TIME } from "../../config/physics";
 import { runState } from "../RunState";
 import { ComboSystem } from "./ComboSystem";
 
 export class ScoreSystem {
   private combo: ComboSystem;
-  private timeFactorPerSec = 20;
+  private timeFactorPerSec = SCORE.TIME_FACTOR_PER_SEC;
 
   constructor(combo: ComboSystem) {
     this.combo = combo;
@@ -32,7 +33,7 @@ export class ScoreSystem {
 
   applyTimeBonus(targetMs: number): number {
     const elapsedMs = Date.now() - runState.levelStartTimeMs;
-    const bonus = Math.max(0, targetMs - elapsedMs) / 1000 * this.timeFactorPerSec;
+    const bonus = Math.max(0, targetMs - elapsedMs) / TIME.MS_PER_SEC * this.timeFactorPerSec;
     const add = Math.floor(bonus);
     runState.runScore += add;
     return add;

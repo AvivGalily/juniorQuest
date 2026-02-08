@@ -3,6 +3,7 @@ import { BaseLevelScene } from "./BaseLevelScene";
 import { Player } from "../entities/player/Player";
 import { BossAISpider } from "../entities/BossAISpider";
 import { difficultyPresets } from "../../config/difficulty";
+import { AUDIO, FLOATING_TEXT, LEVEL5, MATH, PLAYER, RUN, SCALE, STAGE } from "../../config/physics";
 import { runState } from "../RunState";
 import { FloatingText } from "../entities/FloatingText";
 import { rngPick } from "../utils/rng";
@@ -13,10 +14,10 @@ import { scale, scaleX, scaleY } from "../utils/layout";
 export class Level5Scene extends BaseLevelScene {
   private player!: Player;
   private boss!: BossAISpider;
-  private phase = 1;
+  private phase = LEVEL5.PHASE_ONE;
   private patternActive = false;
   private pattern: string[] = [];
-  private patternIndex = 0;
+  private patternIndex = LEVEL5.PATTERN_INDEX_START;
   private patternText!: Phaser.GameObjects.Text;
   private hpText!: Phaser.GameObjects.Text;
   private patternTimeout?: Phaser.Time.TimerEvent;
@@ -24,44 +25,47 @@ export class Level5Scene extends BaseLevelScene {
   private patternTimer?: Phaser.Time.TimerEvent;
   private bugGroup!: Phaser.Physics.Arcade.Group;
   private fightActive = false;
-  private patternWindowMs = 1600;
-  private patternIntervalMs = 2800;
-  private basePatternIntervalMs = 2800;
+  private patternWindowMs = LEVEL5.DEFAULT_PATTERN_WINDOW_MS;
+  private patternIntervalMs = LEVEL5.DEFAULT_PATTERN_INTERVAL_MS;
+  private basePatternIntervalMs = LEVEL5.DEFAULT_PATTERN_INTERVAL_MS;
 
   constructor() {
     super("Level5Scene");
   }
 
   create(): void {
-    this.initLevel(5);
-    this.audio.playMusic("music-boss", 0.25);
-    this.physics.world.gravity.y = 700;
+    this.initLevel(STAGE.LEVEL5);
+    this.audio.playMusic("music-boss", AUDIO.MUSIC.BOSS);
+    this.physics.world.gravity.y = LEVEL5.WORLD_GRAVITY_Y;
     this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
 
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x101019);
-    const ground = this.physics.add.staticImage(scaleX(320), scaleY(330), "platform").setScale(10 * scaleX(1), 1 * scaleY(1)).refreshBody();
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, LEVEL5.BG_COLOR);
+    const ground = this.physics.add
+      .staticImage(scaleX(LEVEL5.GROUND_X), scaleY(LEVEL5.GROUND_Y), "platform")
+      .setScale(LEVEL5.GROUND_SCALE_X * scaleX(SCALE.UNIT), LEVEL5.GROUND_SCALE_Y * scaleY(SCALE.UNIT))
+      .refreshBody();
 
-    this.player = new Player(this, scaleX(120), scaleY(280));
+    this.player = new Player(this, scaleX(LEVEL5.PLAYER_START.x), scaleY(LEVEL5.PLAYER_START.y));
     this.setPlayer(this.player);
     this.physics.add.collider(this.player, ground);
 
     const diff = difficultyPresets[runState.difficulty];
     this.patternWindowMs = Math.max(diff.l5.patternWindowMs, diff.l5.minReactionWindowMs);
-    this.basePatternIntervalMs = Math.max(1800, 3200 / diff.l5.patternSpeed);
+    this.basePatternIntervalMs = Math.max(LEVEL5.PATTERN_TIMER_BASE_MIN_MS, LEVEL5.PATTERN_TIMER_BASE_MAX_MS / diff.l5.patternSpeed);
     this.patternIntervalMs = this.basePatternIntervalMs;
 
-    this.boss = new BossAISpider(this, scaleX(520), scaleY(200), diff.l5.bossHP);
+    this.boss = new BossAISpider(this, scaleX(LEVEL5.BOSS_X), scaleY(LEVEL5.BOSS_Y), diff.l5.bossHP);
     this.boss.body.allowGravity = false;
 
-    this.hpText = createDialogText(this, scaleX(520), scaleY(130), `HP ${this.boss.hp}`, {
-      maxWidth: 120,
-      fontSize: 14,
+    this.hpText = createDialogText(this, scaleX(LEVEL5.HP_X), scaleY(LEVEL5.HP_Y), `HP ${this.boss.hp}`, {
+      maxWidth: LEVEL5.HP_MAX_WIDTH,
+      fontSize: LEVEL5.HP_FONT_SIZE,
       color: "#ffd166"
     });
 
-    this.patternText = createDialogText(this, scaleX(320), scaleY(60), "", {
-      maxWidth: 300,
-      fontSize: 16,
+    this.patternText = createDialogText(this, scaleX(LEVEL5.PATTERN_X), scaleY(LEVEL5.PATTERN_Y), "", {
+      maxWidth: LEVEL5.PATTERN_MAX_WIDTH,
+      fontSize: LEVEL5.PATTERN_FONT_SIZE,
       color: "#8fe388"
     });
 
@@ -85,9 +89,9 @@ export class Level5Scene extends BaseLevelScene {
     if (this.paused) {
       return;
     }
-    this.player.updatePlatformer(this.inputManager, scale(150), scale(300));
+    this.player.updatePlatformer(this.inputManager, scale(PLAYER.PLATFORMER_SPEED), scale(PLAYER.JUMP_DEFAULT));
 
-    if (this.phase === 3) {
+    if (this.phase === LEVEL5.PHASE_THREE) {
       this.bugGroup.children.iterate((child) => {
         const bug = child as Phaser.Physics.Arcade.Sprite;
         if (!bug.active) {
@@ -96,7 +100,7 @@ export class Level5Scene extends BaseLevelScene {
         const dx = this.player.x - bug.x;
         const dy = this.player.y - bug.y;
         const dist = Math.hypot(dx, dy) || 1;
-        bug.setVelocity((dx / dist) * scale(80), (dy / dist) * scale(80));
+        bug.setVelocity((dx / dist) * scale(LEVEL5.BUG_SPEED), (dy / dist) * scale(LEVEL5.BUG_SPEED));
         return true;
       });
     }
@@ -105,7 +109,7 @@ export class Level5Scene extends BaseLevelScene {
       const bug = this.getNearestBug();
       if (bug) {
         bug.destroy();
-        FloatingText.spawn(this, bug.x, bug.y - scale(10), "CLEAR", "#8fe388");
+        FloatingText.spawn(this, bug.x, bug.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), "CLEAR", "#8fe388");
       }
     }
 
@@ -113,16 +117,16 @@ export class Level5Scene extends BaseLevelScene {
   }
 
   private showDialog(text: string, onDone: () => void): void {
-    const bubble = this.add.image(scaleX(320), scaleY(260), "speech_bubble");
+    const bubble = this.add.image(scaleX(LEVEL5.DIALOG_X), scaleY(LEVEL5.DIALOG_Y), "speech_bubble");
     bubble.setScale(getUiScale());
-    const label = createDialogText(this, scaleX(320), scaleY(260), text, {
-      maxWidth: 180,
-      fontSize: 14,
+    const label = createDialogText(this, scaleX(LEVEL5.DIALOG_X), scaleY(LEVEL5.DIALOG_Y), text, {
+      maxWidth: LEVEL5.DIALOG_MAX_WIDTH,
+      fontSize: LEVEL5.DIALOG_FONT_SIZE,
       color: "#1b1f24",
-      padding: "6px 8px",
+      padding: `${LEVEL5.DIALOG_PADDING_Y}px ${LEVEL5.DIALOG_PADDING_X}px`,
       align: "center"
     });
-    this.time.delayedCall(2200, () => {
+    this.time.delayedCall(LEVEL5.DIALOG_DURATION_MS, () => {
       bubble.destroy();
       label.destroy();
       onDone();
@@ -138,7 +142,7 @@ export class Level5Scene extends BaseLevelScene {
     });
 
     this.attackTimer = this.time.addEvent({
-      delay: 1800,
+      delay: LEVEL5.ATTACK_INTERVAL_MS,
       loop: true,
       callback: () => this.triggerAttack()
     });
@@ -148,13 +152,14 @@ export class Level5Scene extends BaseLevelScene {
     if (!this.fightActive || this.patternActive) {
       return;
     }
-    const length = this.phase === 1 ? 3 : 4;
-    const pool = this.phase === 1 ? ["A", "S", "D"] : ["A", "S", "D", "F"];
+    const length =
+      this.phase === LEVEL5.PHASE_ONE ? LEVEL5.PATTERN_PHASE1_LENGTH : LEVEL5.PATTERN_PHASE2_LENGTH;
+    const pool = this.phase === LEVEL5.PHASE_ONE ? ["A", "S", "D"] : ["A", "S", "D", "F"];
     this.pattern = [];
     for (let i = 0; i < length; i += 1) {
       this.pattern.push(rngPick(pool));
     }
-    this.patternIndex = 0;
+    this.patternIndex = LEVEL5.PATTERN_INDEX_START;
     this.patternActive = true;
     setDomText(this.patternText, this.pattern.join(" "));
 
@@ -183,11 +188,17 @@ export class Level5Scene extends BaseLevelScene {
   private completePattern(): void {
     this.patternActive = false;
     setDomText(this.patternText, "");
-    this.scoreSystem.addSkill(200);
-    this.audio.playSfx("sfx-success", 0.6);
-    this.boss.damage(1);
+    this.scoreSystem.addSkill(LEVEL5.PATTERN_SUCCESS_SCORE);
+    this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS);
+    this.boss.damage(LEVEL5.BOSS_DAMAGE);
     setDomText(this.hpText, `HP ${this.boss.hp}`);
-    FloatingText.spawn(this, this.boss.x, this.boss.y - scale(20), "-1 HP", "#ffd166");
+    FloatingText.spawn(
+      this,
+      this.boss.x,
+      this.boss.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM),
+      `-${LEVEL5.BOSS_DAMAGE} HP`,
+      "#ffd166"
+    );
 
     if (this.boss.hp <= 0) {
       this.finishLevel();
@@ -200,19 +211,19 @@ export class Level5Scene extends BaseLevelScene {
   private failPattern(): void {
     this.patternActive = false;
     setDomText(this.patternText, "");
-    this.scoreSystem.addPenalty(-75);
+    this.scoreSystem.addPenalty(LEVEL5.PATTERN_FAIL_PENALTY);
     this.scoreSystem.breakCombo();
     this.applyDamage();
-    FloatingText.spawn(this, this.player.x, this.player.y - scale(20), "FAILED", "#ff6b6b");
+    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), "FAILED", "#ff6b6b");
   }
 
   private triggerAttack(): void {
     if (!this.fightActive) {
       return;
     }
-    if (this.phase === 1) {
+    if (this.phase === LEVEL5.PHASE_ONE) {
       this.spawnProjectile();
-    } else if (this.phase === 2) {
+    } else if (this.phase === LEVEL5.PHASE_TWO) {
       this.spawnSlam();
     } else {
       this.spawnBug();
@@ -220,9 +231,13 @@ export class Level5Scene extends BaseLevelScene {
   }
 
   private spawnProjectile(): void {
-    const proj = this.physics.add.image(this.boss.x - scale(30), this.boss.y - scale(10), "projectile");
-    proj.setScale(scale(1));
-    proj.setVelocity(-scale(220), -scale(30));
+    const proj = this.physics.add.image(
+      this.boss.x - scale(LEVEL5.PROJECTILE_OFFSET_X),
+      this.boss.y - scale(LEVEL5.PROJECTILE_OFFSET_Y),
+      "projectile"
+    );
+    proj.setScale(scale(SCALE.UNIT));
+    proj.setVelocity(-scale(LEVEL5.PROJECTILE_SPEED_X), -scale(LEVEL5.PROJECTILE_SPEED_Y));
     proj.body.allowGravity = false;
     this.physics.add.overlap(this.player, proj, () => {
       proj.destroy();
@@ -231,8 +246,15 @@ export class Level5Scene extends BaseLevelScene {
   }
 
   private spawnSlam(): void {
-    const warning = this.add.rectangle(scaleX(320), scaleY(320), this.scale.width, scaleY(20), 0xff4d4d, 0.4);
-    this.time.delayedCall(300, () => {
+    const warning = this.add.rectangle(
+      scaleX(LEVEL5.PATTERN_X),
+      scaleY(LEVEL5.SLAM_Y),
+      this.scale.width,
+      scaleY(LEVEL5.SLAM_HEIGHT),
+      LEVEL5.SLAM_COLOR,
+      LEVEL5.SLAM_ALPHA
+    );
+    this.time.delayedCall(LEVEL5.SLAM_DELAY_MS, () => {
       if (this.player.body.blocked.down) {
         this.applyDamage();
       }
@@ -241,8 +263,8 @@ export class Level5Scene extends BaseLevelScene {
   }
 
   private spawnBug(): void {
-    const bug = this.physics.add.image(scaleX(480), scaleY(260), "bug");
-    bug.setScale(scale(1));
+    const bug = this.physics.add.image(scaleX(LEVEL5.BUG_SPAWN_X), scaleY(LEVEL5.BUG_SPAWN_Y), "bug");
+    bug.setScale(scale(SCALE.UNIT));
     bug.body.allowGravity = false;
     this.bugGroup.add(bug);
     this.physics.add.overlap(this.player, bug, () => {
@@ -254,16 +276,17 @@ export class Level5Scene extends BaseLevelScene {
   private updatePhase(): void {
     const maxHp = difficultyPresets[runState.difficulty].l5.bossHP;
     let nextPhase = this.phase;
-    if (this.boss.hp <= Math.ceil(maxHp / 3)) {
-      nextPhase = 3;
-    } else if (this.boss.hp <= Math.ceil((maxHp * 2) / 3)) {
-      nextPhase = 2;
+    if (this.boss.hp <= Math.ceil(maxHp * LEVEL5.PHASE_THREE_THRESHOLD)) {
+      nextPhase = LEVEL5.PHASE_THREE;
+    } else if (this.boss.hp <= Math.ceil(maxHp * LEVEL5.PHASE_TWO_THRESHOLD)) {
+      nextPhase = LEVEL5.PHASE_TWO;
     }
     if (nextPhase !== this.phase) {
       this.phase = nextPhase;
-      this.audio.playSfx("sfx-phase", 0.6);
-      const phaseMultiplier = this.phase === 2 ? 0.9 : 0.8;
-      this.patternIntervalMs = Math.max(1200, this.basePatternIntervalMs * phaseMultiplier);
+      this.audio.playSfx("sfx-phase", AUDIO.SFX.PHASE);
+      const phaseMultiplier =
+        this.phase === LEVEL5.PHASE_TWO ? LEVEL5.PATTERN_PHASE2_MULTIPLIER : LEVEL5.PATTERN_PHASE3_MULTIPLIER;
+      this.patternIntervalMs = Math.max(LEVEL5.PATTERN_INTERVAL_MIN_MS, this.basePatternIntervalMs * phaseMultiplier);
       if (this.patternTimer) {
         this.patternTimer.remove();
         this.patternTimer = this.time.addEvent({
@@ -277,11 +300,11 @@ export class Level5Scene extends BaseLevelScene {
 
   private getNearestBug(): Phaser.Physics.Arcade.Sprite | null {
     let best: Phaser.Physics.Arcade.Sprite | null = null;
-    let bestDist = 9999;
+    let bestDist = MATH.LARGE_NUMBER;
     this.bugGroup.children.iterate((child) => {
       const bug = child as Phaser.Physics.Arcade.Sprite;
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, bug.x, bug.y);
-      if (dist < scale(40) && dist < bestDist) {
+      if (dist < scale(LEVEL5.BUG_INTERACT_RANGE) && dist < bestDist) {
         bestDist = dist;
         best = bug;
       }
@@ -295,13 +318,19 @@ export class Level5Scene extends BaseLevelScene {
     this.attackTimer?.remove();
     this.patternTimer?.remove();
     this.patternTimeout?.remove();
-    this.scoreSystem.addBase(4000);
-    if (runState.hearts === 3) {
-      this.scoreSystem.addBase(800);
+    this.scoreSystem.addBase(LEVEL5.LEVEL_COMPLETE_SCORE);
+    if (runState.hearts === RUN.DEFAULT_HEARTS) {
+      this.scoreSystem.addBase(LEVEL5.PERFECT_HEARTS_BONUS);
     }
-    this.scoreSystem.applyTimeBonus(180000);
-    this.audio.playSfx("sfx-level-complete", 0.6);
-    FloatingText.spawn(this, scaleX(320), scaleY(140), "+4000", "#8fe388");
+    this.scoreSystem.applyTimeBonus(LEVEL5.TIME_BONUS_MS);
+    this.audio.playSfx("sfx-level-complete", AUDIO.SFX.LEVEL_COMPLETE);
+    FloatingText.spawn(
+      this,
+      scaleX(LEVEL5.COMPLETE_TEXT_X),
+      scaleY(LEVEL5.COMPLETE_TEXT_Y),
+      `+${LEVEL5.LEVEL_COMPLETE_SCORE}`,
+      "#8fe388"
+    );
     this.hud.updateAll();
 
     this.showDialog("Congrats on the new job! But the company shut down.", () => {

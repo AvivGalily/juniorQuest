@@ -1,0 +1,694 @@
+export const TIME = {
+  MS_PER_SEC: 1000,
+  SEC_PER_MIN: 60,
+  PAD_TWO: 2
+} as const;
+
+export const SCALE = {
+  UNIT: 1
+} as const;
+
+export const ALPHA = {
+  NONE: 0,
+  FULL: 1
+} as const;
+
+export const INPUT = {
+  AXIS_EPSILON: 0.01,
+  AXIS_EPSILON_TINY: 0.001,
+  VECTOR_EPSILON_SQ: 0.01
+} as const;
+
+export const ANIMATION = {
+  WALK_TOGGLE_MS: 160,
+  FLASH_ALPHA: 0.2,
+  FLASH_DEFAULT_COUNT: 6
+} as const;
+
+export const RUN = {
+  DEFAULT_LEVEL: 1,
+  DEFAULT_SCORE: 0,
+  DEFAULT_HEARTS: 3,
+  DEFAULT_COMBO_STEPS: 0,
+  DEFAULT_MISTAKES: 0,
+  TOTAL_LEVELS: 5
+} as const;
+
+export const STAGE = {
+  LEVEL1: 1,
+  LEVEL2: 2,
+  LEVEL3: 3,
+  LEVEL4: 4,
+  LEVEL5: 5
+} as const;
+
+export const COMBO = {
+  BASE_MULTIPLIER: 1,
+  MAX_STEPS: 8,
+  STEP_MULTIPLIER: 0.1,
+  DISPLAY_DECIMALS: 1
+} as const;
+
+export const SCORE = {
+  TIME_FACTOR_PER_SEC: 20
+} as const;
+
+export const MATH = {
+  LARGE_NUMBER: 9999,
+  DECIMAL_RADIX: 10,
+  FULL_CIRCLE_DEG: 360
+} as const;
+
+export const DEPTH = {
+  HUD: 1000,
+  FLOATING_TEXT: 900,
+  PAUSE_OVERLAY: 1000,
+  LEVEL2_SLOT: 1,
+  LEVEL2_SLOT_HINT: 2,
+  LEVEL2_CUBE: 5,
+  LEVEL2_CUBE_LABEL: 6,
+  LEVEL2_CUBE_PLACED: 2,
+  LEVEL2_CLOCK_FACE: 900,
+  LEVEL2_CLOCK_HANDS: 901,
+  LEVEL2_CLOCK_TEXT: 902
+} as const;
+
+export const DOM_TEXT = {
+  DEFAULT_MAX_WIDTH: 200,
+  DEFAULT_FONT_SIZE: 16,
+  DEFAULT_WEIGHT: 600,
+  LINE_HEIGHT: 1.3,
+  DEFAULT_ORIGIN: 0.5,
+  ORIGIN_LEFT: 0,
+  ORIGIN_RIGHT: 1,
+  ORIGIN_TOP: 0,
+  ORIGIN_MIDDLE: 0.5,
+  ORIGIN_BOTTOM: 1,
+  ORIGIN_CENTER: 0.5
+} as const;
+
+export const HUD = {
+  HEART_COUNT: 3,
+  TOP_Y: 10,
+  RIGHT_X_OFFSET: 8,
+  HEART_SPACING: 18,
+  STAGE_Y: 8,
+  SCORE_Y: 28,
+  COMBO_Y: 44,
+  TIMER_Y: 60,
+  STAGE_MAX_WIDTH: 200,
+  SCORE_MAX_WIDTH: 160,
+  COMBO_MAX_WIDTH: 160,
+  TIMER_MAX_WIDTH: 160,
+  STAGE_FONT_SIZE: 14,
+  SCORE_FONT_SIZE: 14,
+  COMBO_FONT_SIZE: 13,
+  TIMER_FONT_SIZE: 12
+} as const;
+
+export const AUDIO = {
+  DEFAULT_SFX_VOLUME: 0.5,
+  DEFAULT_MUSIC_VOLUME: 0.35,
+  MUSIC: {
+    MENU: 0.25,
+    MENU_LOW: 0.2,
+    GAMEPLAY: 0.2,
+    BOSS: 0.25
+  },
+  SFX: {
+    SELECT: 0.5,
+    SELECT_LIGHT: 0.4,
+    CONFIRM: 0.6,
+    HIT: 0.6,
+    HIT_LIGHT: 0.4,
+    SUCCESS: 0.6,
+    SUCCESS_MED: 0.5,
+    SUCCESS_LIGHT: 0.4,
+    LEVEL_COMPLETE: 0.6,
+    GAME_OVER: 0.6,
+    PHASE: 0.6
+  }
+} as const;
+
+export const AUDIO_TONES = {
+  SFX: [
+    { key: "sfx-select", freq: 520, duration: 0.08, volume: 0.4 },
+    { key: "sfx-confirm", freq: 620, duration: 0.1, volume: 0.4 },
+    { key: "sfx-hit", freq: 180, duration: 0.18, volume: 0.6 },
+    { key: "sfx-success", freq: 760, duration: 0.12, volume: 0.5 },
+    { key: "sfx-level-complete", freq: 820, duration: 0.18, volume: 0.5 },
+    { key: "sfx-gameover", freq: 120, duration: 0.3, volume: 0.5 },
+    { key: "sfx-phase", freq: 660, duration: 0.2, volume: 0.5 }
+  ],
+  MUSIC: {
+    MENU_FREQ: 220,
+    GAMEPLAY_FREQ: 180,
+    BOSS_FREQ: 260,
+    LOOP_DURATION: 1.2,
+    LOOP_VOLUME: 0.2
+  }
+} as const;
+
+export const PHASER = {
+  DEFAULT_GRAVITY_Y: 600
+} as const;
+
+export const BASE_LEVEL = {
+  ESC_DOUBLE_PRESS_MS: 350,
+  INVULNERABLE_MS: 800,
+  FLASH_DURATION_MS: 800,
+  PAUSE_MAX_WIDTH: 200,
+  PAUSE_FONT_SIZE: 20
+} as const;
+
+export const FLOATING_TEXT = {
+  MAX_WIDTH: 220,
+  FONT_SIZE: 14,
+  WEIGHT: 700,
+  START_OFFSET_TIGHT: 12,
+  START_OFFSET_SMALL: 10,
+  START_OFFSET_MEDIUM: 20,
+  DRIFT_Y: 20,
+  DURATION_MS: 700,
+  ALPHA_END: 0
+} as const;
+
+export const PLAYER = {
+  TOPDOWN_SPEED: 120,
+  PLATFORMER_SPEED: 150,
+  PLATFORMER_SPEED_L3: 140,
+  JUMP_BASE: 260,
+  JUMP_L2: 180,
+  JUMP_L3: 280,
+  JUMP_DEFAULT: 300,
+  SPRITE_HEIGHT_RATIO: 0.1
+} as const;
+
+export const ENTITIES = {
+  NPC_WANDER_SPEED: 36,
+  RECRUITER_WANDER_SPEED: 40,
+  RIVAL_SPEED: 80,
+  RIVAL_JUMP_VELOCITY: 220,
+  RIVAL_BOUNCE: 0.1,
+  SPRITE_HEIGHT_RATIO: 0.1,
+  BOSS_HEIGHT_RATIO: 0.12
+} as const;
+
+export const WANDER = {
+  MIN_MS: 900,
+  MAX_MS: 1600,
+  ANGLE_MIN_DEG: 0,
+  ANGLE_MAX_DEG: 360
+} as const;
+
+export const GUARD = {
+  CLOSE_ENOUGH_DIST: 4,
+  STUCK_THRESHOLD_MS: 350,
+  STUCK_MOVE_EPS: 0.5
+} as const;
+
+export const NPCS = {
+  VARIANTS: [
+    { id: 1, hasFast: true },
+    { id: 2, hasFast: true },
+    { id: 3, hasFast: true }
+  ]
+} as const;
+
+export const MENU = {
+  BG_COLOR: 0x121821,
+  BUTTON_HOVER_TINT: 0x334155,
+  BUTTON_ALPHA_ENABLED: 1,
+  BUTTON_ALPHA_DISABLED: 0.6,
+  TITLE_X: 320,
+  TITLE_Y: 80,
+  TITLE_MAX_WIDTH: 360,
+  TITLE_FONT_SIZE: 28,
+  SUBTITLE_Y: 112,
+  SUBTITLE_MAX_WIDTH: 260,
+  SUBTITLE_FONT_SIZE: 16,
+  START_BUTTON_Y: 160,
+  LEVEL_LABEL_Y: 200,
+  LEVEL_SELECT_Y: 224,
+  ABOUT_BUTTON_Y: 260,
+  LEADERBOARD_BUTTON_Y: 300,
+  FOOTER_Y: 340,
+  FOOTER_MAX_WIDTH: 420,
+  FOOTER_FONT_SIZE: 14,
+  BUTTON_MAX_WIDTH: 200,
+  BUTTON_FONT_SIZE: 16,
+  MODAL_MAX_WIDTH: 220,
+  MODAL_FONT_SIZE: 16,
+  MODAL_PADDING_Y: 6,
+  MODAL_PADDING_X: 8,
+  MODAL_DURATION_MS: 1200,
+  SELECT_WIDTH: 140,
+  SELECT_FONT_SIZE: 14,
+  SELECT_PADDING_Y: 4,
+  SELECT_PADDING_X: 8,
+  SELECT_BORDER_RADIUS: 4,
+  SELECT_BORDER_WIDTH: 1
+} as const;
+
+export const GAME_OVER = {
+  BG_COLOR: 0x101317,
+  TITLE_X: 320,
+  TITLE_Y: 120,
+  TITLE_MAX_WIDTH: 260,
+  TITLE_FONT_SIZE: 28,
+  SCORE_Y: 160,
+  SCORE_MAX_WIDTH: 220,
+  SCORE_FONT_SIZE: 16,
+  BUTTON_Y: 220,
+  BUTTON_MAX_WIDTH: 200,
+  BUTTON_FONT_SIZE: 16
+} as const;
+
+export const VICTORY = {
+  BG_COLOR: 0x0f141b,
+  TITLE_X: 320,
+  TITLE_Y: 60,
+  TITLE_MAX_WIDTH: 220,
+  TITLE_FONT_SIZE: 26,
+  BLURB_Y: 92,
+  BLURB_MAX_WIDTH: 420,
+  BLURB_FONT_SIZE: 14,
+  SUBTITLE_Y: 112,
+  SUBTITLE_MAX_WIDTH: 200,
+  SUBTITLE_FONT_SIZE: 14,
+  SCORE_Y: 140,
+  SCORE_MAX_WIDTH: 260,
+  SCORE_FONT_SIZE: 16,
+  INPUT_Y: 165,
+  INPUT_WIDTH: 120,
+  INPUT_PADDING_Y: 4,
+  INPUT_PADDING_X: 4,
+  INPUT_FONT_SIZE: 12,
+  INPUT_BORDER_WIDTH: 1,
+  SUBMIT_Y: 198,
+  BUTTON_MAX_WIDTH: 200,
+  BUTTON_FONT_SIZE: 16,
+  BACK_Y: 316,
+  LEADERBOARD_X: 40,
+  LEADERBOARD_Y: 220,
+  LEADERBOARD_MAX_WIDTH: 240,
+  LEADERBOARD_FONT_SIZE: 13
+} as const;
+
+export const LEADERBOARD = {
+  KEY_PREFIX: "juniorquest_leaderboard_v",
+  VERSION: 1,
+  NAME_MAX_LEN: 10,
+  MAX_ENTRIES: 20,
+  DISPLAY_COUNT: 8
+} as const;
+
+export const PRELOAD = {
+  LOADING_MAX_WIDTH: 200,
+  LOADING_FONT_SIZE: 16
+} as const;
+
+export const TEXTURES = {
+  ALPHA_FULL: 1,
+  RECT_STROKE_WIDTH: 2,
+  RECT_STROKE_ALPHA: 1,
+  RECTS: [
+    { key: "rival", w: 16, h: 18, fill: 0xffb347, stroke: 0x5a3b16 },
+    { key: "boss", w: 48, h: 30, fill: 0x7b65ff, stroke: 0x2a1c4a },
+    { key: "snake_node", w: 20, h: 12, fill: 0x8be0e0, stroke: 0x1d4a4a },
+    { key: "cube", w: 22, h: 22, fill: 0x9fa8ff, stroke: 0x2c3160 },
+    { key: "slot", w: 26, h: 26, fill: 0x000000, stroke: 0x6b7280 },
+    { key: "button", w: 120, h: 28, fill: 0x1f2a33, stroke: 0x6b7280 },
+    { key: "notice_board", w: 100, h: 36, fill: 0x2b3037, stroke: 0x6b7280 },
+    { key: "platform", w: 64, h: 12, fill: 0x35424d, stroke: 0x111822 },
+    { key: "projectile", w: 10, h: 6, fill: 0xffd166, stroke: 0x6b4d00 },
+    { key: "bug", w: 8, h: 8, fill: 0x7ed957, stroke: 0x254b2c },
+    { key: "cv", w: 10, h: 12, fill: 0xf5f5f5, stroke: 0x222222 }
+  ],
+  WATER: {
+    SIZE: 16,
+    STRIP_HEIGHT: 4,
+    TOP_COLOR: 0x3498db,
+    STRIP_COLOR: 0x2b82b8
+  },
+  HEART: {
+    SIZE: 12,
+    STROKE_WIDTH: 1,
+    COLOR: 0xff4d6d,
+    CIRCLE_RADIUS: 3,
+    CIRCLE_1: { x: 4, y: 4 },
+    CIRCLE_2: { x: 8, y: 4 },
+    TRIANGLE: { x1: 1, y1: 5, x2: 11, y2: 5, x3: 6, y3: 11 }
+  },
+  SPEECH_BUBBLE: {
+    WIDTH: 220,
+    HEIGHT: 70,
+    RADIUS: 8,
+    STROKE_WIDTH: 2,
+    STROKE_COLOR: 0x1c1c1c,
+    FILL_COLOR: 0xf9f7f7
+  },
+  ARROW: {
+    WIDTH: 10,
+    HEIGHT: 6,
+    BG_COLOR: 0x1b1f24,
+    FG_COLOR: 0x42d9f5,
+    RIGHT: { x1: 0, y1: 3, x2: 10, y2: 0, x3: 10, y3: 6 },
+    LEFT: { x1: 10, y1: 3, x2: 0, y2: 0, x3: 0, y3: 6 }
+  }
+} as const;
+
+export const LEVEL1 = {
+  BG_COLOR: 0x15202b,
+  WORLD_GRAVITY_Y: 0,
+  BOOTH_HEIGHT_RATIO: 0.22,
+  BOOTHS: [
+    { x: 140, y: 110, texture: "both1" },
+    { x: 500, y: 110, texture: "both1" },
+    { x: 220, y: 240, texture: "both2" },
+    { x: 420, y: 240, texture: "both2" }
+  ],
+  TRASH_HEIGHT_RATIO: 0.08,
+  TRASH_POSITIONS: [
+    { x: 70, y: 120 },
+    { x: 570, y: 120 },
+    { x: 70, y: 280 },
+    { x: 570, y: 280 }
+  ],
+  PLAYER_START: { x: 60, y: 320 },
+  CV_START: { x: 560, y: 70 },
+  SPAWN_MIN_X: 80,
+  SPAWN_MAX_X: 560,
+  SPAWN_MIN_Y: 70,
+  SPAWN_MAX_Y: 300,
+  RECRUITER_COUNT: 4,
+  NPC_COUNT: 6,
+  NPC_VARIANT_COUNT: 3,
+  NPC_VARIANT_MIN: 1,
+  NOTICE_X: 80,
+  NOTICE_Y: 50,
+  NOTICE_MAX_WIDTH: 120,
+  NOTICE_FONT_SIZE: 14,
+  TARGET_TINT: 0x8b5cf6,
+  WAYPOINTS_1: [
+    { x: 520, y: 60 },
+    { x: 560, y: 180 },
+    { x: 480, y: 300 },
+    { x: 420, y: 180 }
+  ],
+  WAYPOINTS_2: [
+    { x: 90, y: 300 },
+    { x: 90, y: 340 },
+    { x: 220, y: 340 },
+    { x: 220, y: 300 }
+  ],
+  GUARD_STARTS: [
+    { x: 520, y: 60 },
+    { x: 100, y: 320 }
+  ],
+  CV_LABEL_OFFSET_X: 18,
+  CV_LABEL_MAX_WIDTH: 120,
+  CV_LABEL_FONT_SIZE: 12,
+  DIALOG_X: 320,
+  DIALOG_Y: 300,
+  DIALOG_MAX_WIDTH: 180,
+  DIALOG_FONT_SIZE: 14,
+  DIALOG_PADDING_Y: 6,
+  DIALOG_PADDING_X: 8,
+  DIALOG_DURATION_MS: 1500,
+  WRONG_INTERACTION_PENALTY: -20,
+  DETECTION_PENALTY: -200,
+  LEVEL_COMPLETE_SCORE: 1000,
+  PERFECT_HEARTS_BONUS: 300,
+  TIME_BONUS_MS: 60000,
+  LEVEL_COMPLETE_DELAY_MS: 1200,
+  COMPLETE_TEXT_X: 320,
+  COMPLETE_TEXT_Y: 120,
+  FOV_COLOR: 0xff4d4d,
+  FOV_ALPHA: 0.18,
+  NEAR_RANGE: 26,
+  RECRUITER_INTERACT_RANGE: 30,
+  TRASH_FULL_RANGE: 32,
+  CV_ICON_SIZE: 12,
+  GUARD_DETECTION_RANGE: 130
+} as const;
+
+export const LEVEL2 = {
+  BG_COLOR: 0x122033,
+  WORLD_GRAVITY_Y: 700,
+  PLAYER_START: { x: 90, y: 300 },
+  GROUND_X: 320,
+  GROUND_Y: 332,
+  GROUND_SCALE_X: 12,
+  GROUND_SCALE_Y: 1,
+  SHELF_YS: [286, 226, 166, 106],
+  SHELF_XS: [120, 320, 520],
+  SHELF_SCALE_X: 2.4,
+  SHELF_SCALE_Y: 1,
+  TITLE_X: 320,
+  TITLE_Y: 20,
+  TITLE_MAX_WIDTH: 200,
+  TITLE_FONT_SIZE: 16,
+  ROW_Y: 322,
+  ROW_SPACING: 28,
+  ROW_CENTER_X: 320,
+  PILE_TEXT_X: 20,
+  PILE_TEXT_MAX_WIDTH: 140,
+  PILE_TEXT_FONT_SIZE: 12,
+  DEFAULT_REQUIRED_PLACEMENTS: 11,
+  VALUE_MIN: 1,
+  VALUE_MAX: 99,
+  MAX_ASSIGN_ATTEMPTS: 40,
+  TIME_LIMIT_MS: 90000,
+  INTERACT_RANGE: 30,
+  CLOCK_CENTER_X: 90,
+  CLOCK_CENTER_Y: 42,
+  CLOCK_TEXT_OFFSET_X: 26,
+  CLOCK_TEXT_OFFSET_Y: 6,
+  CLOCK_TEXT_MAX_WIDTH: 80,
+  CLOCK_TEXT_FONT_SIZE: 12,
+  CLOCK_START_DEG: 270,
+  CLOCK_RADIUS: 20,
+  SLOT_SIZE: 26,
+  SLOT_DEBUG_OFFSET_Y: 16,
+  SLOT_DEBUG_MAX_WIDTH: 80,
+  SLOT_DEBUG_FONT_SIZE: 12,
+  PILE_TEXT_OFFSET_Y: 18,
+  CUBE_SIZE: 22,
+  CUBE_CARRY_OFFSET_Y: 18,
+  SCORE_FLOAT_OFFSET_Y: 12,
+  CUBE_LABEL_MAX_WIDTH: 40,
+  CUBE_LABEL_FONT_SIZE: 12,
+  CUBE_SUCCESS_SCORE: 80,
+  CUBE_REJECT_PENALTY: -10,
+  CUBE_REJECT_TWEEN_MS: 200,
+  CLOCK_RING_PADDING: 2,
+  CLOCK_RING_STROKE: 3,
+  CLOCK_MINUTE_PADDING: 4,
+  CLOCK_SECOND_PADDING: 2,
+  CLOCK_HAND_STROKE: 3,
+  CLOCK_HAND_SECOND_STROKE: 2,
+  CLOCK_FACE_COLOR: 0x0f172a,
+  CLOCK_FACE_ALPHA: 0.9,
+  CLOCK_RING_COLOR: 0xe2e8f0,
+  CLOCK_HAND_MINUTE_COLOR: 0xffd166,
+  CLOCK_HAND_SECOND_COLOR: 0x8fe388,
+  CLOCK_CENTER_COLOR: 0xe2e8f0,
+  CLOCK_CENTER_RADIUS: 2,
+  HINT_ALPHA: 0.35,
+  HINT_MAX_WIDTH: 40,
+  HINT_FONT_SIZE: 12,
+  COMPLETE_SCORE: 1500,
+  PERFECT_HEARTS_BONUS: 400,
+  TIME_BONUS_MS: 90000,
+  COMPLETE_TEXT_X: 320,
+  COMPLETE_TEXT_Y: 120,
+  COMPLETE_DELAY_MS: 1200
+} as const;
+
+export const LEVEL3 = {
+  BG_COLOR: 0x14141f,
+  WORLD_GRAVITY_Y: 700,
+  GROUND_X: 320,
+  GROUND_Y: 330,
+  GROUND_SCALE_X: 10,
+  GROUND_SCALE_Y: 1,
+  PLAYER_START: { x: 80, y: 280 },
+  TITLE_X: 320,
+  TITLE_Y: 30,
+  TITLE_MAX_WIDTH: 360,
+  TITLE_FONT_SIZE: 16,
+  SUBTITLE_Y: 52,
+  SUBTITLE_MAX_WIDTH: 360,
+  SUBTITLE_FONT_SIZE: 14,
+  NODE_START_X: 200,
+  NODE_START_Y: 240,
+  NODE_SPACING_X: 50,
+  NODE_ARROW_OFFSET_X: 14,
+  NODE_LABEL_MAX_WIDTH: 40,
+  NODE_LABEL_FONT_SIZE: 12,
+  SNAKE_HEAD_X: 200,
+  SNAKE_HEAD_Y: 220,
+  SNAKE_MIN_X: 140,
+  SNAKE_MAX_X: 500,
+  SNAKE_SPEED: 40,
+  SNAKE_WAVE_SPEED: 0.004,
+  SNAKE_WAVE_AMPLITUDE: 14,
+  PATH_SPACING: 6,
+  PATH_PADDING: 10,
+  ACTIVE_NODE_NONE: -1,
+  COMBO_STEP_START: 0,
+  COMBO_STEP_Q: 1,
+  COMBO_STEP_E: 2,
+  SNAKE_DIR_RIGHT: 1,
+  SNAKE_DIR_LEFT: -1,
+  DEFAULT_COMBO_WINDOW_MS: 2000,
+  COMBO_SKILL_SCORE: 120,
+  COMBO_FAIL_PENALTY: -50,
+  PROJECTILE_INTERVAL_MS: 900,
+  ATTACK_ZONE_Y: 300,
+  ATTACK_ZONE_WIDTH: 260,
+  ATTACK_ZONE_HEIGHT: 20,
+  ATTACK_ZONE_ALPHA: 0.4,
+  ATTACK_ZONE_COLOR: 0xff4d4d,
+  ATTACK_ZONE_DELAY_MS: 350,
+  PROJECTILE_CULL_MIN_X: -20,
+  PROJECTILE_CULL_MAX_X: 660,
+  PROJECTILE_SPEED: 180,
+  NODE_INTERACT_RANGE: 60,
+  LEVEL_COMPLETE_SCORE: 2000,
+  PERFECT_HEARTS_BONUS: 500,
+  TIME_BONUS_MS: 120000,
+  COMPLETE_TEXT_X: 320,
+  COMPLETE_TEXT_Y: 120,
+  LEVEL_COMPLETE_DELAY_MS: 1400
+} as const;
+
+export const LEVEL4 = {
+  BG_COLOR: 0x0f1621,
+  WORLD_GRAVITY_Y: 700,
+  WORLD_HEIGHT: 2400,
+  BG_CENTER_X: 320,
+  BG_CENTER_Y: 1200,
+  GROUND_X: 320,
+  GROUND_Y: 2360,
+  GROUND_SCALE_X: 10,
+  GROUND_SCALE_Y: 1,
+  PLATFORM_START_Y: 2200,
+  PLATFORM_STEP_Y: 120,
+  PLATFORM_COUNT: 18,
+  PLATFORM_X_BASE: 120,
+  PLATFORM_X_STEP: 180,
+  PLATFORM_X_GROUP: 3,
+  PLATFORM_SCALE_X: 1,
+  PLATFORM_SCALE_Y: 1,
+  PLAYER_START: { x: 100, y: 2300 },
+  CHECKPOINT_START_Y: 2200,
+  CHECKPOINT_EVERY_DEFAULT: 450,
+  CAMERA_LERP: 0.08,
+  RIVAL_SPAWN_X_START: 180,
+  RIVAL_SPAWN_X_STEP: 40,
+  RIVAL_SPAWN_Y: 2300,
+  RIVAL_OVERTAKE_SCORE: 100,
+  RIVAL_PUSH_Y_MULTIPLIER: 0.7,
+  RIVAL_PUSH_JUMP_MULTIPLIER: 0.9,
+  DOOR_X: 320,
+  DOOR_Y: 80,
+  DOOR_WIDTH: 80,
+  DOOR_HEIGHT: 40,
+  DOOR_COLOR: 0x8fe388,
+  DOOR_ALPHA: 0.7,
+  FALL_RESET_BUFFER_Y: 400,
+  FALL_PENALTY: -100,
+  DEFAULT_PUSH_STRENGTH: 220,
+  RIVAL_INTERACT_RANGE: 40,
+  COMPLETE_SCORE: 2500,
+  PERFECT_HEARTS_BONUS: 600,
+  TIME_BONUS_MS: 150000,
+  COMPLETE_TEXT_X: 320,
+  COMPLETE_TEXT_Y_OFFSET: 80,
+  COMPLETE_DELAY_MS: 1200
+} as const;
+
+export const LEVEL5 = {
+  BG_COLOR: 0x101019,
+  WORLD_GRAVITY_Y: 700,
+  GROUND_X: 320,
+  GROUND_Y: 330,
+  GROUND_SCALE_X: 10,
+  GROUND_SCALE_Y: 1,
+  PLAYER_START: { x: 120, y: 280 },
+  BOSS_X: 520,
+  BOSS_Y: 200,
+  HP_X: 520,
+  HP_Y: 130,
+  HP_MAX_WIDTH: 120,
+  HP_FONT_SIZE: 14,
+  PATTERN_X: 320,
+  PATTERN_Y: 60,
+  PATTERN_MAX_WIDTH: 300,
+  PATTERN_FONT_SIZE: 16,
+  DEFAULT_PATTERN_WINDOW_MS: 1600,
+  DEFAULT_PATTERN_INTERVAL_MS: 2800,
+  DIALOG_X: 320,
+  DIALOG_Y: 260,
+  DIALOG_MAX_WIDTH: 180,
+  DIALOG_FONT_SIZE: 14,
+  DIALOG_PADDING_Y: 6,
+  DIALOG_PADDING_X: 8,
+  DIALOG_DURATION_MS: 2200,
+  PATTERN_INTERVAL_MIN_MS: 1200,
+  PATTERN_TIMER_BASE_MIN_MS: 1800,
+  PATTERN_TIMER_BASE_MAX_MS: 3200,
+  ATTACK_INTERVAL_MS: 1800,
+  PATTERN_PHASE1_LENGTH: 3,
+  PATTERN_PHASE2_LENGTH: 4,
+  PATTERN_INDEX_START: 0,
+  PHASE_ONE: 1,
+  PHASE_TWO: 2,
+  PHASE_THREE: 3,
+  PATTERN_SUCCESS_SCORE: 200,
+  PATTERN_FAIL_PENALTY: -75,
+  BOSS_DAMAGE: 1,
+  BUG_SPAWN_X: 480,
+  BUG_SPAWN_Y: 260,
+  BUG_SPEED: 80,
+  BUG_INTERACT_RANGE: 40,
+  PROJECTILE_OFFSET_X: 30,
+  PROJECTILE_OFFSET_Y: 10,
+  PROJECTILE_SPEED_X: 220,
+  PROJECTILE_SPEED_Y: 30,
+  SLAM_Y: 320,
+  SLAM_HEIGHT: 20,
+  SLAM_COLOR: 0xff4d4d,
+  SLAM_ALPHA: 0.4,
+  SLAM_DELAY_MS: 300,
+  PATTERN_PHASE2_MULTIPLIER: 0.9,
+  PATTERN_PHASE3_MULTIPLIER: 0.8,
+  PHASE_TWO_THRESHOLD: 2 / 3,
+  PHASE_THREE_THRESHOLD: 1 / 3,
+  LEVEL_COMPLETE_SCORE: 4000,
+  PERFECT_HEARTS_BONUS: 800,
+  TIME_BONUS_MS: 180000,
+  LEVEL_COMPLETE_DELAY_MS: 1200,
+  COMPLETE_TEXT_X: 320,
+  COMPLETE_TEXT_Y: 140
+} as const;
+
+export const LEVEL2_SLOTS = [
+  { id: "root", x: 320, y: 90 },
+  { id: "l1", x: 220, y: 150, parent: "root", isLeft: true },
+  { id: "r1", x: 420, y: 150, parent: "root", isLeft: false },
+  { id: "l1l", x: 160, y: 210, parent: "l1", isLeft: true },
+  { id: "l1r", x: 280, y: 210, parent: "l1", isLeft: false },
+  { id: "r1l", x: 360, y: 210, parent: "r1", isLeft: true },
+  { id: "r1r", x: 480, y: 210, parent: "r1", isLeft: false },
+  { id: "l1l1", x: 100, y: 270, parent: "l1l", isLeft: true },
+  { id: "l1l2", x: 180, y: 270, parent: "l1l", isLeft: false },
+  { id: "l1r1", x: 240, y: 270, parent: "l1r", isLeft: true },
+  { id: "l1r2", x: 320, y: 270, parent: "l1r", isLeft: false },
+  { id: "r1l1", x: 360, y: 270, parent: "r1l", isLeft: true },
+  { id: "r1l2", x: 440, y: 270, parent: "r1l", isLeft: false },
+  { id: "r1r1", x: 500, y: 270, parent: "r1r", isLeft: true },
+  { id: "r1r2", x: 580, y: 270, parent: "r1r", isLeft: false }
+] as const;

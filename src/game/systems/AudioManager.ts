@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { AUDIO } from "../../config/physics";
 
 export class AudioManager {
   private scene: Phaser.Scene;
@@ -8,14 +9,14 @@ export class AudioManager {
     this.scene = scene;
   }
 
-  playSfx(key: string, volume = 0.5): void {
+  playSfx(key: string, volume = AUDIO.DEFAULT_SFX_VOLUME): void {
     if (!this.scene.cache.audio.exists(key)) {
       return;
     }
     this.scene.sound.play(key, { volume });
   }
 
-  playMusic(key: string, volume = 0.35): void {
+  playMusic(key: string, volume = AUDIO.DEFAULT_MUSIC_VOLUME): void {
     if (!this.scene.cache.audio.exists(key)) {
       return;
     }

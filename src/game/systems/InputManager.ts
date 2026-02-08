@@ -60,6 +60,10 @@ export class InputManager {
     return Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || Phaser.Input.Keyboard.JustDown(this.keys.ENTER) || pointer.justDown;
   }
 
+  justPressedInteract(): boolean {
+    return Phaser.Input.Keyboard.JustDown(this.keys.E);
+  }
+
   isConfirmDown(): boolean {
     return this.keys.SPACE.isDown || this.keys.ENTER.isDown || this.scene.input.activePointer.isDown;
   }
