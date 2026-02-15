@@ -5,7 +5,7 @@ import { scale } from "../utils/layout";
 
 export class SnakeNode extends Phaser.GameObjects.Container {
   private arrow: Phaser.GameObjects.Image;
-  private label: Phaser.GameObjects.Text;
+  private label: Phaser.GameObjects.DOMElement;
   flipped = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, label: string) {

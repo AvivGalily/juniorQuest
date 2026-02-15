@@ -9,7 +9,7 @@ import { getUiScale } from "../utils/resolution";
 
 export class VictoryScene extends Phaser.Scene {
   private audio!: AudioManager;
-  private leaderboardText?: Phaser.GameObjects.Text;
+  private leaderboardText?: Phaser.GameObjects.DOMElement;
   private submitted = false;
 
   constructor() {

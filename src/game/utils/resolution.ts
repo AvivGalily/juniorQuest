@@ -9,7 +9,7 @@ export const BASE_WIDTH = 1920;
 export const BASE_HEIGHT = 1080;
 
 // Render at a higher internal resolution so text/sprites stay sharp after FIT scaling.
-const MIN_RENDER_RESOLUTION = 2;
+const MIN_RENDER_RESOLUTION = 3;
 const MAX_RENDER_RESOLUTION = 8;
 
 export const getDevicePixelRatio = (): number => (typeof window === "undefined" ? 1 : window.devicePixelRatio || 1);

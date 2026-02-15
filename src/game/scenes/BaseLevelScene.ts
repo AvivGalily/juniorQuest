@@ -19,7 +19,7 @@ export class BaseLevelScene extends Phaser.Scene {
   protected player?: Player;
   protected invulnerable = false;
   protected paused = false;
-  private pauseText?: Phaser.GameObjects.Text;
+  private pauseText?: Phaser.GameObjects.DOMElement;
   private lastEscPressMs = 0;
   private escDoubleWindowMs = BASE_LEVEL.ESC_DOUBLE_PRESS_MS;
 

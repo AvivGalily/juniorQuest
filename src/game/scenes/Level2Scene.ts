@@ -50,6 +50,7 @@ export class Level2Scene extends BaseLevelScene {
   private clockRadius = scale(LEVEL2.CLOCK_RADIUS);
   private timeLimitMs = LEVEL2.TIME_LIMIT_MS;
   private timeLeftMs = LEVEL2.TIME_LIMIT_MS;
+  private readonly platformTopLift = Math.max(1, Math.round(scaleY(2)));
 
   constructor() {
     super("Level2Scene");
@@ -73,18 +74,20 @@ export class Level2Scene extends BaseLevelScene {
     this.player = new Player(this, scaleX(LEVEL2.PLAYER_START.x), scaleY(LEVEL2.PLAYER_START.y));
     this.setPlayer(this.player);
     const platforms = this.physics.add.staticGroup();
-    platforms
+    const ground = platforms
       .create(scaleX(LEVEL2.GROUND_X), scaleY(LEVEL2.GROUND_Y), "platform")
       .setScale(LEVEL2.GROUND_SCALE_X * scaleX(SCALE.UNIT), LEVEL2.GROUND_SCALE_Y * scaleY(SCALE.UNIT))
       .refreshBody();
+    this.liftPlatformColliderTop(ground as Phaser.Physics.Arcade.Image);
     const shelfYs = LEVEL2.SHELF_YS.map(scaleY);
     const shelfXs = LEVEL2.SHELF_XS.map(scaleX);
     for (const y of shelfYs) {
       for (const x of shelfXs) {
-        platforms
+        const shelf = platforms
           .create(x, y, "platform")
           .setScale(LEVEL2.SHELF_SCALE_X * scaleX(SCALE.UNIT), LEVEL2.SHELF_SCALE_Y * scaleY(SCALE.UNIT))
           .refreshBody();
+        this.liftPlatformColliderTop(shelf as Phaser.Physics.Arcade.Image);
       }
     }
 
@@ -162,6 +165,7 @@ export class Level2Scene extends BaseLevelScene {
       slot.hintText?.destroy();
       slot.hintText = undefined;
     }
+    this.updateSlotVisibility();
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const used = new Set<number>();
@@ -192,11 +196,30 @@ export class Level2Scene extends BaseLevelScene {
             align: "center"
           }).setDepth(DEPTH.LEVEL2_SLOT_HINT).setAlpha(LEVEL2.HINT_ALPHA);
         }
+        this.updateSlotVisibility();
         return this.shuffle(this.valuesFromSlots(slotsToFill));
       }
     }
 
+    this.updateSlotVisibility();
     return this.shuffle(this.valuesFromSlots(slotsToFill));
+  }
+
+  private updateSlotVisibility(): void {
+    for (const slot of this.slots) {
+      const visible = Boolean(slot.active);
+      slot.image.setVisible(visible);
+      slot.debugText?.setVisible(visible);
+    }
+  }
+
+  private liftPlatformColliderTop(platform: Phaser.Physics.Arcade.Image): void {
+    const body = platform.body as Phaser.Physics.Arcade.StaticBody | undefined;
+    if (!body) {
+      return;
+    }
+    body.setOffset(body.offset.x, body.offset.y - this.platformTopLift);
+    body.updateFromGameObject();
   }
 
   private getSlotTargetRange(slot: Slot): { min: number; max: number } {

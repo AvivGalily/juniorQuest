@@ -9,25 +9,48 @@ import { AUDIO, DOM_TEXT, FLOATING_TEXT, LEVEL1, MATH, PLAYER, RUN, STAGE } from
 import { runState } from "../RunState";
 import { rngInt, rngPick } from "../utils/rng";
 import { FloatingText } from "../entities/FloatingText";
-import { createDialogText } from "../utils/domText";
+import { createDialogText, setDomText } from "../utils/domText";
 import { BASE_HEIGHT, getUiScale } from "../utils/resolution";
 import { scale, scaleX, scaleY } from "../utils/layout";
 import { scaleSpriteToHeight } from "../utils/spriteScale";
+
+type RecruiterState = {
+  recruiter: Recruiter;
+  npcCvCount: number;
+  leaving: boolean;
+  barBg: Phaser.GameObjects.Rectangle;
+  barFill: Phaser.GameObjects.Rectangle;
+  barLabel: Phaser.GameObjects.DOMElement;
+};
+
+type NpcCourierState = {
+  npc: Npc;
+  target?: RecruiterState;
+  deliveryCooldownMs: number;
+  deliveredRecruiters: Set<RecruiterState>;
+};
+
+type Level1RestartData = {
+  heartsOverride?: number;
+};
 
 export class Level1Scene extends BaseLevelScene {
   private player!: Player;
   private guards: Guard[] = [];
   private guardFovs: Phaser.GameObjects.Graphics[] = [];
-  private recruiters: Recruiter[] = [];
-  private npcs: Npc[] = [];
-  private targetRecruiterId = 0;
+  private recruiterStates: RecruiterState[] = [];
+  private npcCouriers: NpcCourierState[] = [];
+  private targetRecruiter?: Recruiter;
   private targetCompany = "";
+  private targetNoticeText?: Phaser.GameObjects.DOMElement;
   private detectionTimer = 0;
-  private dialog?: { bubble: Phaser.GameObjects.Image; label: Phaser.GameObjects.Text };
+  private dialog?: { bubble: Phaser.GameObjects.Image; label: Phaser.GameObjects.DOMElement };
   private wrongInteractions = 0;
   private hasCV = false;
+  private levelCompleted = false;
+  private allRecruitersGoneHandled = false;
   private cvItem?: Phaser.Physics.Arcade.Image;
-  private cvLabel?: Phaser.GameObjects.Text;
+  private cvLabel?: Phaser.GameObjects.DOMElement;
   private cvStartX = LEVEL1.CV_START.x;
   private cvStartY = LEVEL1.CV_START.y;
   private trashBins: { sprite: Phaser.Physics.Arcade.Image; full: boolean }[] = [];
@@ -36,11 +59,24 @@ export class Level1Scene extends BaseLevelScene {
     super("Level1Scene");
   }
 
-  create(): void {
+  create(data?: Level1RestartData): void {
     this.initLevel(STAGE.LEVEL1);
+    if (typeof data?.heartsOverride === "number") {
+      runState.hearts = data.heartsOverride;
+      this.hud.updateAll();
+    }
+    this.allRecruitersGoneHandled = false;
     this.audio.playMusic("music-gameplay", AUDIO.MUSIC.GAMEPLAY);
     this.physics.world.gravity.y = LEVEL1.WORLD_GRAVITY_Y;
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, LEVEL1.BG_COLOR);
+    this.add.image(this.scale.width / 2, this.scale.height / 2, "job-fair-bg").setDisplaySize(this.scale.width, this.scale.height);
+    this.add.rectangle(
+      this.scale.width / 2,
+      this.scale.height / 2,
+      this.scale.width,
+      this.scale.height,
+      LEVEL1.BG_COLOR,
+      LEVEL1.BG_OVERLAY_ALPHA
+    );
     this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
 
     const obstacles = this.physics.add.staticGroup();
@@ -58,7 +94,7 @@ export class Level1Scene extends BaseLevelScene {
     this.trashBins = LEVEL1.TRASH_POSITIONS.map((pos) => {
       const x = scaleX(pos.x);
       const y = scaleY(pos.y);
-      const sprite = trashGroup.create(x, y, "trash-empty") as Phaser.Physics.Arcade.Image;
+      const sprite = trashGroup.create(x, y, "trash-empty-crisp") as Phaser.Physics.Arcade.Image;
       scaleSpriteToHeight(sprite, trashHeight);
       sprite.refreshBody();
       return { sprite, full: false };
@@ -87,7 +123,7 @@ export class Level1Scene extends BaseLevelScene {
       recruiter.body.allowGravity = false;
       recruiter.setInteractive({ useHandCursor: true });
       recruiter.on("pointerdown", () => this.tryRecruiterInteraction(recruiter));
-      this.recruiters.push(recruiter);
+      this.recruiterStates.push(this.createRecruiterState(recruiter));
       this.physics.add.collider(recruiter, obstacles);
       this.physics.add.collider(recruiter, trashGroup);
       this.physics.add.collider(this.player, recruiter);
@@ -99,23 +135,25 @@ export class Level1Scene extends BaseLevelScene {
       const variant = ((i % LEVEL1.NPC_VARIANT_COUNT) + LEVEL1.NPC_VARIANT_MIN) as 1 | 2 | 3;
       const npc = new Npc(this, x, y, variant);
       npc.body.allowGravity = false;
-      this.npcs.push(npc);
+      this.npcCouriers.push({
+        npc,
+        deliveryCooldownMs: 0,
+        deliveredRecruiters: new Set<RecruiterState>()
+      });
       this.physics.add.collider(npc, obstacles);
       this.physics.add.collider(npc, trashGroup);
       this.physics.add.collider(this.player, npc);
     }
 
-    this.targetRecruiterId = rngInt(0, this.recruiters.length - 1);
-    this.targetCompany = this.recruiters[this.targetRecruiterId].companyTag;
-    this.recruiters[this.targetRecruiterId].setTint(LEVEL1.TARGET_TINT);
-
     const notice = this.add.image(scaleX(LEVEL1.NOTICE_X), scaleY(LEVEL1.NOTICE_Y), "notice_board");
     notice.setScale(getUiScale());
-    createDialogText(this, scaleX(LEVEL1.NOTICE_X), scaleY(LEVEL1.NOTICE_Y), `Target: ${this.targetCompany}`, {
+    this.targetNoticeText = createDialogText(this, scaleX(LEVEL1.NOTICE_X), scaleY(LEVEL1.NOTICE_Y), "", {
       maxWidth: LEVEL1.NOTICE_MAX_WIDTH,
       fontSize: LEVEL1.NOTICE_FONT_SIZE,
       color: "#e8eef2"
     });
+    const initialTarget = rngPick(this.getActiveRecruiterStates());
+    this.setTargetRecruiter(initialTarget?.recruiter);
 
     const waypoints = LEVEL1.WAYPOINTS_1.map((pos) => new Phaser.Math.Vector2(scaleX(pos.x), scaleY(pos.y)));
     const waypoints2 = LEVEL1.WAYPOINTS_2.map((pos) => new Phaser.Math.Vector2(scaleX(pos.x), scaleY(pos.y)));
@@ -140,8 +178,13 @@ export class Level1Scene extends BaseLevelScene {
     }
     this.player.updateTopDown(this.inputManager, scale(PLAYER.TOPDOWN_SPEED));
     this.guards.forEach((guard) => guard.update());
-    this.recruiters.forEach((recruiter) => recruiter.update(delta));
-    this.npcs.forEach((npc) => npc.update(delta));
+    this.recruiterStates.forEach((state) => {
+      if (!state.leaving && state.recruiter.active) {
+        state.recruiter.update(delta);
+      }
+    });
+    this.updateNpcCouriers(delta);
+    this.updateRecruiterBars();
     this.checkGuardDetection(delta);
 
     const confirmPressed = this.inputManager.justPressedConfirm();
@@ -159,10 +202,260 @@ export class Level1Scene extends BaseLevelScene {
     this.hud.updateAll();
   }
 
+  private createRecruiterState(recruiter: Recruiter): RecruiterState {
+    const barWidth = scaleX(LEVEL1.RECRUITER_BAR_WIDTH);
+    const barHeight = Math.max(2, scaleY(LEVEL1.RECRUITER_BAR_HEIGHT));
+    const barY = recruiter.y - scaleY(LEVEL1.RECRUITER_BAR_OFFSET_Y);
+
+    const barBg = this.add
+      .rectangle(recruiter.x, barY, barWidth, barHeight, LEVEL1.RECRUITER_BAR_BG_COLOR, 0.9)
+      .setDepth(20);
+    const barFill = this.add
+      .rectangle(
+        recruiter.x - barWidth / 2,
+        barY,
+        barWidth,
+        Math.max(2, barHeight - 2),
+        LEVEL1.RECRUITER_BAR_FILL_COLOR,
+        1
+      )
+      .setOrigin(0, 0.5)
+      .setScale(0, 1)
+      .setDepth(21);
+    const barLabel = createDialogText(
+      this,
+      recruiter.x,
+      barY - scaleY(LEVEL1.RECRUITER_BAR_LABEL_OFFSET_Y),
+      `0/${LEVEL1.RECRUITER_NPC_CV_GOAL}`,
+      {
+        maxWidth: LEVEL1.RECRUITER_BAR_WIDTH + 30,
+        fontSize: 11,
+        color: "#e8eef2"
+      }
+    ).setDepth(22);
+
+    return {
+      recruiter,
+      npcCvCount: 0,
+      leaving: false,
+      barBg,
+      barFill,
+      barLabel
+    };
+  }
+
+  private updateRecruiterBars(): void {
+    const barWidth = scaleX(LEVEL1.RECRUITER_BAR_WIDTH);
+    const barYOffset = scaleY(LEVEL1.RECRUITER_BAR_OFFSET_Y);
+    const labelYOffset = scaleY(LEVEL1.RECRUITER_BAR_LABEL_OFFSET_Y);
+    for (const state of this.recruiterStates) {
+      if (!state.recruiter.active) {
+        continue;
+      }
+      const x = state.recruiter.x;
+      const y = state.recruiter.y - barYOffset;
+      const ratio = Phaser.Math.Clamp(state.npcCvCount / LEVEL1.RECRUITER_NPC_CV_GOAL, 0, 1);
+      state.barBg.setPosition(x, y);
+      state.barFill.setPosition(x - barWidth / 2, y);
+      state.barFill.setScale(ratio, 1);
+      state.barFill.setVisible(ratio > 0);
+      state.barLabel.setPosition(x, y - labelYOffset);
+      setDomText(state.barLabel, `${state.npcCvCount}/${LEVEL1.RECRUITER_NPC_CV_GOAL}`);
+    }
+  }
+
+  private updateNpcCouriers(delta: number): void {
+    const activeRecruiters = this.getActiveRecruiterStates();
+    for (const courier of this.npcCouriers) {
+      if (!courier.npc.active) {
+        continue;
+      }
+
+      courier.deliveryCooldownMs = Math.max(0, courier.deliveryCooldownMs - delta);
+      if (courier.deliveryCooldownMs > 0) {
+        courier.target = undefined;
+        courier.npc.clearMoveTarget();
+        courier.npc.setVelocity(0, 0);
+        continue;
+      }
+
+      if (!courier.target || courier.target.leaving || !courier.target.recruiter.active) {
+        courier.target = this.pickNpcTarget(courier, activeRecruiters);
+      }
+
+      if (courier.target) {
+        const target = courier.target.recruiter;
+        courier.npc.setMoveTarget(target.x, target.y);
+        const dist = Phaser.Math.Distance.Between(courier.npc.x, courier.npc.y, target.x, target.y);
+        if (dist <= scale(LEVEL1.NPC_DELIVERY_RANGE) && courier.deliveryCooldownMs <= 0) {
+          this.handleNpcDelivery(courier, courier.target);
+        }
+      } else {
+        courier.npc.clearMoveTarget();
+      }
+
+      courier.npc.update(delta);
+    }
+  }
+
+  private pickNpcTarget(courier: NpcCourierState, candidates: RecruiterState[]): RecruiterState | undefined {
+    const openTargets = candidates.filter(
+      (state) =>
+        !state.leaving &&
+        state.recruiter.active &&
+        state.npcCvCount < LEVEL1.RECRUITER_NPC_CV_GOAL &&
+        !courier.deliveredRecruiters.has(state)
+    );
+    if (openTargets.length === 0) {
+      return undefined;
+    }
+    return openTargets.sort((a, b) => {
+      if (a.npcCvCount !== b.npcCvCount) {
+        return a.npcCvCount - b.npcCvCount;
+      }
+      const distA = Phaser.Math.Distance.Between(courier.npc.x, courier.npc.y, a.recruiter.x, a.recruiter.y);
+      const distB = Phaser.Math.Distance.Between(courier.npc.x, courier.npc.y, b.recruiter.x, b.recruiter.y);
+      return distA - distB;
+    })[0];
+  }
+
+  private handleNpcDelivery(courier: NpcCourierState, state: RecruiterState): void {
+    if (state.leaving || !state.recruiter.active) {
+      return;
+    }
+    state.npcCvCount += 1;
+    courier.deliveryCooldownMs = LEVEL1.NPC_POST_DELIVERY_WAIT_MS;
+    courier.deliveredRecruiters.add(state);
+    courier.target = undefined;
+    this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT_LIGHT);
+
+    if (state.npcCvCount >= LEVEL1.RECRUITER_NPC_CV_GOAL) {
+      this.retireRecruiter(state);
+    }
+  }
+
+  private retireRecruiter(state: RecruiterState): void {
+    if (state.leaving || !state.recruiter.active) {
+      return;
+    }
+    state.leaving = true;
+    state.recruiter.disableInteractive();
+    state.recruiter.setVelocity(0, 0);
+    if (state.recruiter.body) {
+      state.recruiter.body.enable = false;
+    }
+
+    this.npcCouriers.forEach((courier) => {
+      if (courier.target === state) {
+        courier.target = undefined;
+      }
+    });
+
+    this.showRecruiterSpeech(state.recruiter, "Finished for today!");
+    if (this.targetRecruiter === state.recruiter) {
+      const nextTarget = rngPick(this.getActiveRecruiterStates());
+      this.setTargetRecruiter(nextTarget?.recruiter);
+      this.showDialog(
+        nextTarget
+          ? `Target moved to ${nextTarget.recruiter.companyTag}.`
+          : "All recruiters are done for today. Bring CV faster."
+      );
+    }
+
+    this.time.delayedCall(LEVEL1.RECRUITER_EXIT_DELAY_MS, () => {
+      if (!state.recruiter.active) {
+        return;
+      }
+      const exitX = state.recruiter.x < this.scale.width / 2 ? -state.recruiter.displayWidth : this.scale.width + state.recruiter.displayWidth;
+      this.tweens.add({
+        targets: state.recruiter,
+        x: exitX,
+        alpha: 0,
+        duration: LEVEL1.RECRUITER_EXIT_DURATION_MS,
+        ease: "Sine.easeIn",
+        onComplete: () => {
+          state.recruiter.destroy();
+          state.barBg.destroy();
+          state.barFill.destroy();
+          state.barLabel.destroy();
+          this.recruiterStates = this.recruiterStates.filter((entry) => entry !== state);
+          if (this.recruiterStates.length === 0) {
+            this.onAllRecruitersGone();
+          }
+        }
+      });
+    });
+  }
+
+  private showRecruiterSpeech(recruiter: Recruiter, text: string): void {
+    const bubbleY = recruiter.y - scaleY(LEVEL1.RECRUITER_RETIRE_DIALOG_OFFSET_Y);
+    const bubble = this.add.image(recruiter.x, bubbleY, "speech_bubble");
+    bubble.setScale(getUiScale() * 0.8);
+    const label = createDialogText(this, recruiter.x, bubbleY, text, {
+      maxWidth: LEVEL1.DIALOG_MAX_WIDTH,
+      fontSize: LEVEL1.DIALOG_FONT_SIZE - 1,
+      color: "#1b1f24",
+      padding: `${LEVEL1.DIALOG_PADDING_Y}px ${LEVEL1.DIALOG_PADDING_X}px`,
+      align: "center"
+    });
+    this.time.delayedCall(LEVEL1.RECRUITER_RETIRE_DIALOG_DURATION_MS, () => {
+      bubble.destroy();
+      label.destroy();
+    });
+  }
+
+  private getActiveRecruiterStates(): RecruiterState[] {
+    return this.recruiterStates.filter((state) => !state.leaving && state.recruiter.active);
+  }
+
+  private getRecruiterState(recruiter: Recruiter): RecruiterState | undefined {
+    return this.recruiterStates.find((state) => state.recruiter === recruiter);
+  }
+
+  private setTargetRecruiter(recruiter?: Recruiter): void {
+    this.getActiveRecruiterStates().forEach((state) => state.recruiter.clearTint());
+    this.targetRecruiter = recruiter;
+    if (recruiter) {
+      recruiter.setTint(LEVEL1.TARGET_TINT);
+      this.targetCompany = recruiter.companyTag;
+    } else {
+      this.targetCompany = "None";
+    }
+    if (this.targetNoticeText) {
+      setDomText(this.targetNoticeText, `Target: ${this.targetCompany}`);
+    }
+  }
+
+  private onAllRecruitersGone(): void {
+    if (this.levelCompleted || this.allRecruitersGoneHandled) {
+      return;
+    }
+    this.allRecruitersGoneHandled = true;
+    const nextHearts = runState.hearts - 1;
+    this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT);
+    FloatingText.spawn(
+      this,
+      scaleX(LEVEL1.COMPLETE_TEXT_X),
+      scaleY(LEVEL1.COMPLETE_TEXT_Y),
+      "-1 HEART",
+      "#ff6b6b"
+    );
+
+    if (nextHearts <= 0) {
+      runState.hearts = 0;
+      this.scene.start("GameOverScene");
+      return;
+    }
+
+    this.time.delayedCall(LEVEL1.ALL_HR_GONE_RESTART_DELAY_MS, () => {
+      this.scene.restart({ heartsOverride: nextHearts });
+    });
+  }
+
   private getNearestRecruiter(): Recruiter | null {
     let best: Recruiter | null = null;
     let bestDist = MATH.LARGE_NUMBER;
-    for (const recruiter of this.recruiters) {
+    for (const recruiter of this.getActiveRecruiterStates().map((state) => state.recruiter)) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, recruiter.x, recruiter.y);
       if (dist < scale(LEVEL1.NEAR_RANGE) && dist < bestDist) {
         bestDist = dist;
@@ -173,15 +466,23 @@ export class Level1Scene extends BaseLevelScene {
   }
 
   private tryRecruiterInteraction(recruiter: Recruiter): void {
+    const state = this.getRecruiterState(recruiter);
+    if (!state || state.leaving || !recruiter.active) {
+      return;
+    }
     const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, recruiter.x, recruiter.y);
     if (dist > scale(LEVEL1.RECRUITER_INTERACT_RANGE)) {
+      return;
+    }
+    if (!this.targetRecruiter) {
+      this.showDialog("No open target at the moment.");
       return;
     }
     if (!this.hasCV) {
       this.showDialog("Pick up your CV first.");
       return;
     }
-    if (this.recruiters[this.targetRecruiterId] === recruiter) {
+    if (this.targetRecruiter === recruiter) {
       this.showDialog("Thank you for applying, but you still don't have enough experience.");
       this.hasCV = false;
       this.player.setCarrying(false);
@@ -268,7 +569,7 @@ export class Level1Scene extends BaseLevelScene {
       return;
     }
     bin.full = false;
-    bin.sprite.setTexture("trash-empty");
+    bin.sprite.setTexture("trash-empty-crisp");
     this.hasCV = true;
     this.player.setCarrying(true);
     this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_LIGHT);
@@ -282,7 +583,7 @@ export class Level1Scene extends BaseLevelScene {
       return;
     }
     target.full = true;
-    target.sprite.setTexture("trash-full");
+    target.sprite.setTexture("trash-full-crisp");
   }
 
   private isNear(x: number, y: number, range: number): boolean {
@@ -377,6 +678,10 @@ export class Level1Scene extends BaseLevelScene {
   }
 
   private completeLevel(): void {
+    if (this.levelCompleted) {
+      return;
+    }
+    this.levelCompleted = true;
     this.scoreSystem.addBase(LEVEL1.LEVEL_COMPLETE_SCORE);
     if (runState.hearts === RUN.DEFAULT_HEARTS) {
       this.scoreSystem.addBase(LEVEL1.PERFECT_HEARTS_BONUS);

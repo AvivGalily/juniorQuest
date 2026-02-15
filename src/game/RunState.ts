@@ -2,13 +2,13 @@ import { Difficulty } from "../config/difficulty";
 import { RUN } from "../config/physics";
 
 class RunState {
-  currentLevel = RUN.DEFAULT_LEVEL;
-  runScore = RUN.DEFAULT_SCORE;
-  hearts = RUN.DEFAULT_HEARTS;
-  comboSteps = RUN.DEFAULT_COMBO_STEPS;
+  currentLevel: number = RUN.DEFAULT_LEVEL;
+  runScore: number = RUN.DEFAULT_SCORE;
+  hearts: number = RUN.DEFAULT_HEARTS;
+  comboSteps: number = RUN.DEFAULT_COMBO_STEPS;
   difficulty: Difficulty = "bootcamp";
-  levelStartTimeMs = 0;
-  mistakes = RUN.DEFAULT_MISTAKES;
+  levelStartTimeMs: number = 0;
+  mistakes: number = RUN.DEFAULT_MISTAKES;
 
   resetRun(): void {
     this.currentLevel = RUN.DEFAULT_LEVEL;

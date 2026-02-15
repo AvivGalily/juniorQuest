@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { AUDIO_TONES, NPCS, PRELOAD, TEXTURES } from "../../config/physics";
 import { createDialogText } from "../utils/domText";
+import { BASE_HEIGHT, BASE_WIDTH } from "../utils/resolution";
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -159,6 +160,92 @@ export class PreloadScene extends Phaser.Scene {
       TEXTURES.ARROW.LEFT.y3
     );
     g.generateTexture("arrow_left", TEXTURES.ARROW.WIDTH, TEXTURES.ARROW.HEIGHT);
+
+    this.createJobFairBackgroundTexture(g);
+    this.createCrispTrashTextures(g);
+  }
+
+  private createJobFairBackgroundTexture(g: Phaser.GameObjects.Graphics): void {
+    const topColor = Phaser.Display.Color.ValueToColor(0x102332);
+    const bottomColor = Phaser.Display.Color.ValueToColor(0x224962);
+    const bands = 54;
+
+    g.clear();
+    for (let i = 0; i < bands; i += 1) {
+      const blend = Phaser.Display.Color.Interpolate.ColorWithColor(topColor, bottomColor, bands - 1, i);
+      g.fillStyle(Phaser.Display.Color.GetColor(blend.r, blend.g, blend.b), 1);
+      const y = Math.floor((i / bands) * BASE_HEIGHT);
+      const h = Math.ceil(BASE_HEIGHT / bands) + 1;
+      g.fillRect(0, y, BASE_WIDTH, h);
+    }
+
+    for (let i = 0; i < 26; i += 1) {
+      const x = Phaser.Math.Between(0, BASE_WIDTH);
+      const y = Phaser.Math.Between(0, BASE_HEIGHT);
+      const radius = Phaser.Math.Between(38, 120);
+      const alpha = Phaser.Math.FloatBetween(0.03, 0.08);
+      g.fillStyle(0xf8fafc, alpha);
+      g.fillCircle(x, y, radius);
+    }
+
+    g.fillStyle(0x0b1722, 0.28);
+    g.fillRect(0, Math.round(BASE_HEIGHT * 0.7), BASE_WIDTH, Math.round(BASE_HEIGHT * 0.3));
+
+    g.fillStyle(0xffffff, 0.08);
+    for (let i = 0; i < 14; i += 1) {
+      const laneY = Math.round((BASE_HEIGHT * 0.14) + i * (BASE_HEIGHT * 0.05));
+      g.fillRect(0, laneY, BASE_WIDTH, 2);
+    }
+
+    g.generateTexture("job-fair-bg", BASE_WIDTH, BASE_HEIGHT);
+  }
+
+  private createCrispTrashTextures(g: Phaser.GameObjects.Graphics): void {
+    const size = 128;
+    const bodyX = 24;
+    const bodyY = 26;
+    const bodyW = 80;
+    const bodyH = 92;
+    const lidH = 14;
+    const stripeW = 8;
+    const stripeGap = 7;
+
+    const drawBaseBin = (isFull: boolean): void => {
+      g.clear();
+      g.fillStyle(0x0f1722, 1);
+      g.fillRoundedRect(bodyX, bodyY + lidH, bodyW, bodyH - lidH, 8);
+      g.lineStyle(3, 0x94a3b8, 1);
+      g.strokeRoundedRect(bodyX, bodyY + lidH, bodyW, bodyH - lidH, 8);
+
+      g.fillStyle(0x1f2937, 1);
+      g.fillRoundedRect(bodyX - 4, bodyY, bodyW + 8, lidH, 6);
+      g.lineStyle(2, 0xe2e8f0, 0.9);
+      g.strokeRoundedRect(bodyX - 4, bodyY, bodyW + 8, lidH, 6);
+
+      g.fillStyle(0x334155, 1);
+      for (let i = 0; i < 6; i += 1) {
+        const x = bodyX + 8 + i * (stripeW + stripeGap);
+        g.fillRect(x, bodyY + lidH + 8, stripeW, bodyH - lidH - 16);
+      }
+
+      if (!isFull) {
+        return;
+      }
+
+      g.fillStyle(0xf8fafc, 1);
+      g.fillRect(bodyX + 18, bodyY + 4, 18, 12);
+      g.fillRect(bodyX + 44, bodyY + 2, 22, 14);
+      g.fillRect(bodyX + 70, bodyY + 5, 14, 11);
+      g.lineStyle(1, 0x94a3b8, 0.9);
+      g.strokeRect(bodyX + 18, bodyY + 4, 18, 12);
+      g.strokeRect(bodyX + 44, bodyY + 2, 22, 14);
+      g.strokeRect(bodyX + 70, bodyY + 5, 14, 11);
+    };
+
+    drawBaseBin(false);
+    g.generateTexture("trash-empty-crisp", size, size);
+    drawBaseBin(true);
+    g.generateTexture("trash-full-crisp", size, size);
   }
 
   private applyTextureFilter(): void {

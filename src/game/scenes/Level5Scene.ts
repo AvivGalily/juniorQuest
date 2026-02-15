@@ -18,16 +18,16 @@ export class Level5Scene extends BaseLevelScene {
   private patternActive = false;
   private pattern: string[] = [];
   private patternIndex = LEVEL5.PATTERN_INDEX_START;
-  private patternText!: Phaser.GameObjects.Text;
-  private hpText!: Phaser.GameObjects.Text;
+  private patternText!: Phaser.GameObjects.DOMElement;
+  private hpText!: Phaser.GameObjects.DOMElement;
   private patternTimeout?: Phaser.Time.TimerEvent;
   private attackTimer?: Phaser.Time.TimerEvent;
   private patternTimer?: Phaser.Time.TimerEvent;
   private bugGroup!: Phaser.Physics.Arcade.Group;
   private fightActive = false;
-  private patternWindowMs = LEVEL5.DEFAULT_PATTERN_WINDOW_MS;
-  private patternIntervalMs = LEVEL5.DEFAULT_PATTERN_INTERVAL_MS;
-  private basePatternIntervalMs = LEVEL5.DEFAULT_PATTERN_INTERVAL_MS;
+  private patternWindowMs: number = LEVEL5.DEFAULT_PATTERN_WINDOW_MS;
+  private patternIntervalMs: number = LEVEL5.DEFAULT_PATTERN_INTERVAL_MS;
+  private basePatternIntervalMs: number = LEVEL5.DEFAULT_PATTERN_INTERVAL_MS;
 
   constructor() {
     super("Level5Scene");

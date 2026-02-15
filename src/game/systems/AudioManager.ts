@@ -9,14 +9,14 @@ export class AudioManager {
     this.scene = scene;
   }
 
-  playSfx(key: string, volume = AUDIO.DEFAULT_SFX_VOLUME): void {
+  playSfx(key: string, volume: number = AUDIO.DEFAULT_SFX_VOLUME): void {
     if (!this.scene.cache.audio.exists(key)) {
       return;
     }
     this.scene.sound.play(key, { volume });
   }
 
-  playMusic(key: string, volume = AUDIO.DEFAULT_MUSIC_VOLUME): void {
+  playMusic(key: string, volume: number = AUDIO.DEFAULT_MUSIC_VOLUME): void {
     if (!this.scene.cache.audio.exists(key)) {
       return;
     }

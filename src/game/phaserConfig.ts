@@ -20,15 +20,17 @@ export const phaserConfig: Phaser.Types.Core.GameConfig = {
   parent: "game",
   backgroundColor: "#0f1318",
   antialias: true,
+  antialiasGL: true,
   pixelArt: false,
   roundPixels: false,
+  mipmapFilter: "LINEAR_MIPMAP_LINEAR",
   // Pick a render resolution that matches the initial FIT scale, so the browser doesn't upscale the canvas.
   // This is the biggest win for readable UI text.
   resolution: getInitialRenderResolution(),
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    autoRound: true,
+    autoRound: false,
     zoom: Phaser.Scale.Zoom.MAX_ZOOM,
     width: BASE_WIDTH,
     height: BASE_HEIGHT

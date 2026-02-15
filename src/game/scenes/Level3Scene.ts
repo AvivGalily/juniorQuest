@@ -16,13 +16,13 @@ export class Level3Scene extends BaseLevelScene {
   private comboActive = false;
   private comboStep = LEVEL3.COMBO_STEP_START;
   private comboStartMs = 0;
-  private comboWindowMs = LEVEL3.DEFAULT_COMBO_WINDOW_MS;
+  private comboWindowMs: number = LEVEL3.DEFAULT_COMBO_WINDOW_MS;
   private attackTimer?: Phaser.Time.TimerEvent;
   private attackZone?: Phaser.GameObjects.Rectangle;
   private projectileTimer?: Phaser.Time.TimerEvent;
   private projectileGroup!: Phaser.Physics.Arcade.Group;
   private snakeHead = new Phaser.Math.Vector2(scaleX(LEVEL3.SNAKE_HEAD_X), scaleY(LEVEL3.SNAKE_HEAD_Y));
-  private snakeDir = LEVEL3.SNAKE_DIR_RIGHT;
+  private snakeDir: number = LEVEL3.SNAKE_DIR_RIGHT;
   private snakeSpeed = scale(LEVEL3.SNAKE_SPEED);
   private snakeWavePhase = 0;
   private snakeWaveSpeed = LEVEL3.SNAKE_WAVE_SPEED;

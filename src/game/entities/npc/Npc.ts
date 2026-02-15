@@ -15,6 +15,7 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
   private lastWalkSwitchAt = 0;
   private readonly targetHeight = BASE_HEIGHT * ENTITIES.SPRITE_HEIGHT_RATIO;
   private readonly variant: 1 | 2 | 3;
+  private moveTarget?: Phaser.Math.Vector2;
 
   constructor(scene: Phaser.Scene, x: number, y: number, variant: 1 | 2 | 3) {
     super(scene, x, y, `npc${variant}-walk-front`);
@@ -27,11 +28,28 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
     this.updateTexture(true);
   }
 
-  update(delta: number): void {
-    this.wanderTimer -= delta;
-    if (this.wanderTimer <= 0) {
-      this.pickNewDirection();
+  setMoveTarget(x: number, y: number): void {
+    if (!this.moveTarget) {
+      this.moveTarget = new Phaser.Math.Vector2(x, y);
+      return;
     }
+    this.moveTarget.set(x, y);
+  }
+
+  clearMoveTarget(): void {
+    this.moveTarget = undefined;
+  }
+
+  update(delta: number): void {
+    if (this.moveTarget) {
+      this.moveTowardsTarget();
+    } else {
+      this.wanderTimer -= delta;
+      if (this.wanderTimer <= 0) {
+        this.pickNewDirection();
+      }
+    }
+
     const vx = this.body?.velocity.x ?? 0;
     const vy = this.body?.velocity.y ?? 0;
     const prevFacing = this.facing;
@@ -45,6 +63,22 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
     const angle = Phaser.Math.DegToRad(rngInt(WANDER.ANGLE_MIN_DEG, WANDER.ANGLE_MAX_DEG));
     this.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
     this.wanderTimer = rngInt(WANDER.MIN_MS, WANDER.MAX_MS);
+  }
+
+  private moveTowardsTarget(): void {
+    if (!this.moveTarget) {
+      return;
+    }
+    const dx = this.moveTarget.x - this.x;
+    const dy = this.moveTarget.y - this.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance <= scale(ENTITIES.NPC_TARGET_ARRIVAL_RANGE)) {
+      this.setVelocity(0, 0);
+      return;
+    }
+    const vx = (dx / distance) * this.speed;
+    const vy = (dy / distance) * this.speed;
+    this.setVelocity(vx, vy);
   }
 
   private resolveFacing(vx: number, vy: number): "left" | "right" | "front" | "back" {

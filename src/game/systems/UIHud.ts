@@ -7,10 +7,10 @@ import { getUiScale } from "../utils/resolution";
 export class UIHud {
   private scene: Phaser.Scene;
   private hearts: Phaser.GameObjects.Image[] = [];
-  private scoreText: Phaser.GameObjects.Text;
-  private comboText: Phaser.GameObjects.Text;
-  private stageText: Phaser.GameObjects.Text;
-  private timerText: Phaser.GameObjects.Text;
+  private scoreText: Phaser.GameObjects.DOMElement;
+  private comboText: Phaser.GameObjects.DOMElement;
+  private stageText: Phaser.GameObjects.DOMElement;
+  private timerText: Phaser.GameObjects.DOMElement;
 
   constructor(scene: Phaser.Scene, stageNumber: number) {
     this.scene = scene;

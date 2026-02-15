@@ -187,6 +187,7 @@ export const PLAYER = {
 export const ENTITIES = {
   NPC_WANDER_SPEED: 36,
   RECRUITER_WANDER_SPEED: 40,
+  NPC_TARGET_ARRIVAL_RANGE: 18,
   RIVAL_SPEED: 80,
   RIVAL_JUMP_VELOCITY: 220,
   RIVAL_BOUNCE: 0.1,
@@ -360,6 +361,7 @@ export const TEXTURES = {
 
 export const LEVEL1 = {
   BG_COLOR: 0x15202b,
+  BG_OVERLAY_ALPHA: 0.2,
   WORLD_GRAVITY_Y: 0,
   BOOTH_HEIGHT_RATIO: 0.22,
   BOOTHS: [
@@ -385,6 +387,21 @@ export const LEVEL1 = {
   NPC_COUNT: 6,
   NPC_VARIANT_COUNT: 3,
   NPC_VARIANT_MIN: 1,
+  NPC_DELIVERY_RANGE: 24,
+  NPC_POST_DELIVERY_WAIT_MS: 5000,
+  RECRUITER_NPC_CV_GOAL: 5,
+  RECRUITER_BAR_WIDTH: 44,
+  RECRUITER_BAR_HEIGHT: 7,
+  RECRUITER_BAR_OFFSET_Y: 58,
+  RECRUITER_BAR_LABEL_OFFSET_Y: 11,
+  RECRUITER_BAR_BG_COLOR: 0x1f2937,
+  RECRUITER_BAR_FILL_COLOR: 0x8fe388,
+  RECRUITER_EXIT_DELAY_MS: 450,
+  RECRUITER_EXIT_DURATION_MS: 900,
+  RECRUITER_RETIRE_DIALOG_OFFSET_Y: 92,
+  RECRUITER_RETIRE_DIALOG_DURATION_MS: 1200,
+  ALL_HR_GONE_RESTART_DELAY_MS: 900,
+  TARGET_REASSIGN_DIALOG_DURATION_MS: 1200,
   NOTICE_X: 80,
   NOTICE_Y: 50,
   NOTICE_MAX_WIDTH: 120,
@@ -675,7 +692,15 @@ export const LEVEL5 = {
   COMPLETE_TEXT_Y: 140
 } as const;
 
-export const LEVEL2_SLOTS = [
+export type Level2SlotDef = {
+  id: string;
+  x: number;
+  y: number;
+  parent?: string;
+  isLeft?: boolean;
+};
+
+export const LEVEL2_SLOTS: Level2SlotDef[] = [
   { id: "root", x: 320, y: 90 },
   { id: "l1", x: 220, y: 150, parent: "root", isLeft: true },
   { id: "r1", x: 420, y: 150, parent: "root", isLeft: false },
@@ -691,4 +716,4 @@ export const LEVEL2_SLOTS = [
   { id: "r1l2", x: 440, y: 270, parent: "r1l", isLeft: false },
   { id: "r1r1", x: 500, y: 270, parent: "r1r", isLeft: true },
   { id: "r1r2", x: 580, y: 270, parent: "r1r", isLeft: false }
-] as const;
+];

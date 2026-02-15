@@ -1,16 +1,16 @@
 import Phaser from "phaser";
-import { AUDIO, MATH, MENU, RUN } from "../../config/physics";
+import { AUDIO, MENU, RUN } from "../../config/physics";
 import { runState } from "../RunState";
 import { AudioManager } from "../systems/AudioManager";
-import { createDialogText } from "../utils/domText";
+import { createDialogText, setDomText } from "../utils/domText";
 import { scaleX, scaleY } from "../utils/layout";
 import { getUiScale } from "../utils/resolution";
 
 export class MenuScene extends Phaser.Scene {
   private audio!: AudioManager;
-  private modal?: { panel: Phaser.GameObjects.Image; text: Phaser.GameObjects.Text };
+  private modal?: { panel: Phaser.GameObjects.Image; text: Phaser.GameObjects.DOMElement };
   private selectedLevel = RUN.DEFAULT_LEVEL;
-  private levelSelect?: Phaser.GameObjects.DOMElement;
+  private levelButtonLabel?: Phaser.GameObjects.DOMElement;
 
   constructor() {
     super("MenuScene");
@@ -42,7 +42,14 @@ export class MenuScene extends Phaser.Scene {
       fontSize: MENU.FOOTER_FONT_SIZE,
       color: "#9aa7b1"
     });
-    this.createLevelSelect(scaleX(MENU.TITLE_X), scaleY(MENU.LEVEL_SELECT_Y));
+    const levelButton = this.createButton(
+      scaleX(MENU.TITLE_X),
+      scaleY(MENU.LEVEL_SELECT_Y),
+      this.getLevelButtonLabel(),
+      true,
+      () => this.cycleSelectedLevel()
+    );
+    this.levelButtonLabel = levelButton.text;
 
     this.createButton(scaleX(MENU.TITLE_X), scaleY(MENU.ABOUT_BUTTON_Y), "About", false, () => this.showModal("Coming soon"));
     this.createButton(
@@ -64,43 +71,32 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private startGame(): void {
+    (document.activeElement as HTMLElement | null)?.blur();
     this.audio.playSfx("sfx-confirm", AUDIO.SFX.CONFIRM);
     runState.resetRun();
     const level = Math.min(Math.max(this.selectedLevel, RUN.DEFAULT_LEVEL), RUN.TOTAL_LEVELS);
     this.scene.start(`Level${level}Scene`);
   }
 
-  private createLevelSelect(x: number, y: number): void {
-    const uiScale = getUiScale();
-    const style = [
-      `width:${Math.round(MENU.SELECT_WIDTH * uiScale)}px`,
-      `font-family:\"Courier New\", Courier, monospace`,
-      `font-size:${Math.round(MENU.SELECT_FONT_SIZE * uiScale)}px`,
-      `padding:${Math.round(MENU.SELECT_PADDING_Y * uiScale)}px ${Math.round(MENU.SELECT_PADDING_X * uiScale)}px`,
-      "background:#1f2a33",
-      "color:#e8eef2",
-      `border:${MENU.SELECT_BORDER_WIDTH}px solid #6b7280`,
-      `border-radius:${MENU.SELECT_BORDER_RADIUS}px`,
-      "outline:none"
-    ].join(";");
-    const select = this.add.dom(x, y, "select", style);
-    const node = select.node as HTMLSelectElement;
-    node.style.pointerEvents = "auto";
-    node.style.cursor = "pointer";
-    for (let level = RUN.DEFAULT_LEVEL; level <= RUN.TOTAL_LEVELS; level += 1) {
-      const option = document.createElement("option");
-      option.value = `${level}`;
-      option.text = `Level ${level}`;
-      node.add(option);
+  private cycleSelectedLevel(): void {
+    const next = this.selectedLevel + 1;
+    this.selectedLevel = next > RUN.TOTAL_LEVELS ? RUN.DEFAULT_LEVEL : next;
+    if (this.levelButtonLabel) {
+      setDomText(this.levelButtonLabel, this.getLevelButtonLabel());
     }
-    node.value = `${this.selectedLevel}`;
-    node.onchange = () => {
-      this.selectedLevel = Number.parseInt(node.value, MATH.DECIMAL_RADIX);
-    };
-    this.levelSelect = select;
   }
 
-  private createButton(x: number, y: number, label: string, enabled: boolean, onClick: () => void): void {
+  private getLevelButtonLabel(): string {
+    return `Level: ${this.selectedLevel}`;
+  }
+
+  private createButton(
+    x: number,
+    y: number,
+    label: string,
+    enabled: boolean,
+    onClick: () => void
+  ): { button: Phaser.GameObjects.Image; text: Phaser.GameObjects.DOMElement } {
     const btn = this.add.image(x, y, "button").setInteractive();
     btn.setScale(getUiScale());
     btn.setAlpha(enabled ? MENU.BUTTON_ALPHA_ENABLED : MENU.BUTTON_ALPHA_DISABLED);
@@ -121,6 +117,8 @@ export class MenuScene extends Phaser.Scene {
       this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT);
       onClick();
     });
+
+    return { button: btn, text };
   }
 
   private showModal(message: string): void {
