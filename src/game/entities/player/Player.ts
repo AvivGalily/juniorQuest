@@ -5,8 +5,8 @@ import { BASE_HEIGHT } from "../../utils/resolution";
 import { scaleSpriteToHeight } from "../../utils/spriteScale";
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
-  speed = PLAYER.TOPDOWN_SPEED;
-  jumpSpeed = PLAYER.JUMP_BASE;
+  speed: number = PLAYER.TOPDOWN_SPEED;
+  jumpSpeed: number = PLAYER.JUMP_BASE;
   private facing: "left" | "right" | "front" | "back" = "right";
   private carrying = false;
   private carryStyle: "generic" | "cv" = "generic";
@@ -35,10 +35,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.updateTexture();
   }
 
-  updatePlatformer(input: InputManager, speed = this.speed, jumpSpeed = this.jumpSpeed): void {
+  updatePlatformer(input: InputManager, speed: number = this.speed, jumpSpeed: number = this.jumpSpeed): void {
     const axisX = input.getAxisX();
     this.setVelocityX(axisX * speed);
-    if (input.justPressedJump() && this.body.blocked.down) {
+    const body = this.body as Phaser.Physics.Arcade.Body | null;
+    if (input.justPressedJump() && body?.blocked.down) {
       this.setVelocityY(-jumpSpeed);
     }
     const prevFacing = this.facing;

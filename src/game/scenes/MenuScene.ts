@@ -19,6 +19,9 @@ export class MenuScene extends Phaser.Scene {
   create(): void {
     this.audio = new AudioManager(this);
     this.audio.playMusic("music-menu", AUDIO.MUSIC.MENU);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.audio.stopMusic("music-menu");
+    });
 
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, MENU.BG_COLOR);
     createDialogText(this, scaleX(MENU.TITLE_X), scaleY(MENU.TITLE_Y), "Junior Quest", {
@@ -73,6 +76,7 @@ export class MenuScene extends Phaser.Scene {
   private startGame(): void {
     (document.activeElement as HTMLElement | null)?.blur();
     this.audio.playSfx("sfx-confirm", AUDIO.SFX.CONFIRM);
+    this.audio.stopMusic("music-menu");
     runState.resetRun();
     const level = Math.min(Math.max(this.selectedLevel, RUN.DEFAULT_LEVEL), RUN.TOTAL_LEVELS);
     this.scene.start(`Level${level}Scene`);
@@ -121,27 +125,52 @@ export class MenuScene extends Phaser.Scene {
     return { button: btn, text };
   }
 
-  private showModal(message: string): void {
+private showModal(message: string): void {
+  if (this.modal) {
+    this.modal.bg?.destroy();
+    this.modal.panel.destroy();
+    this.modal.text.destroy();
+    this.modal = undefined;
+  }
+
+  const x = this.scale.width / 2;
+  const y = this.scale.height / 2;
+  const depth = 9999;
+
+const bg = this.add.rectangle(
+  x,
+  y,
+  this.scale.width,
+  220,
+  0xffffff,
+  1
+);
+
+  bg.setDepth(depth);
+
+  const panel = this.add.image(x, y, "speech_bubble");
+  panel.setScale(getUiScale());
+  panel.setAlpha(1);
+  panel.setDepth(depth + 1);
+
+  const text = createDialogText(this, x, y, message, {
+    maxWidth: MENU.MODAL_MAX_WIDTH,
+    fontSize: MENU.MODAL_FONT_SIZE,
+    color: "#1b1f24",
+    padding: `${MENU.MODAL_PADDING_Y}px ${MENU.MODAL_PADDING_X}px`
+  });
+
+  text.setDepth(depth + 2);
+
+  this.modal = { bg, panel, text };
+
+  this.time.delayedCall(MENU.MODAL_DURATION_MS, () => {
     if (this.modal) {
+      this.modal.bg?.destroy();
       this.modal.panel.destroy();
       this.modal.text.destroy();
       this.modal = undefined;
     }
-    const panel = this.add.image(this.scale.width / 2, this.scale.height / 2, "speech_bubble");
-    panel.setScale(getUiScale());
-    const text = createDialogText(this, this.scale.width / 2, this.scale.height / 2, message, {
-      maxWidth: MENU.MODAL_MAX_WIDTH,
-      fontSize: MENU.MODAL_FONT_SIZE,
-      color: "#1b1f24",
-      padding: `${MENU.MODAL_PADDING_Y}px ${MENU.MODAL_PADDING_X}px`
-    });
-    this.modal = { panel, text };
-    this.time.delayedCall(MENU.MODAL_DURATION_MS, () => {
-      if (this.modal) {
-        this.modal.panel.destroy();
-        this.modal.text.destroy();
-        this.modal = undefined;
-      }
-    });
-  }
+  });
+}
 }

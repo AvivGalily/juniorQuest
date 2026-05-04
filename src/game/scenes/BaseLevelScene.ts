@@ -24,6 +24,10 @@ export class BaseLevelScene extends Phaser.Scene {
   private escDoubleWindowMs = BASE_LEVEL.ESC_DOUBLE_PRESS_MS;
 
   protected initLevel(stageNumber: number): void {
+    this.paused = false;
+    this.invulnerable = false;
+    this.time.timeScale = 1;
+    this.physics.world.isPaused = false;
     runState.currentLevel = stageNumber;
     runState.resetLevel();
     this.inputManager = new InputManager(this);

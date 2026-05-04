@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { ANIMATION, ENTITIES, GUARD, INPUT } from "../../../config/physics";
+import { ANIMATION, ENTITIES, GUARD, INPUT, WANDER } from "../../../config/physics";
 import { BASE_HEIGHT } from "../../utils/resolution";
 import { scaleSpriteToHeight } from "../../utils/spriteScale";
 
@@ -20,6 +20,7 @@ export class Guard extends Phaser.Physics.Arcade.Sprite {
   private lastMoveCheckAt = 0;
   private stuckMs = 0;
   private readonly stuckThresholdMs = GUARD.STUCK_THRESHOLD_MS;
+  private desiredVelocity = new Phaser.Math.Vector2();
 
   constructor(scene: Phaser.Scene, x: number, y: number, waypoints: Phaser.Math.Vector2[], speed: number) {
     super(scene, x, y, "guard-stand");
@@ -37,7 +38,8 @@ export class Guard extends Phaser.Physics.Arcade.Sprite {
 
   update(): void {
     if (this.waypoints.length === 0) {
-      this.setVelocity(0, 0);
+      this.desiredVelocity.set(0, 0);
+      this.applySteering();
       this.moving = false;
       this.updateTexture();
       return;
@@ -48,14 +50,16 @@ export class Guard extends Phaser.Physics.Arcade.Sprite {
     const dist = Math.hypot(dx, dy);
     if (dist < GUARD.CLOSE_ENOUGH_DIST) {
       this.currentIndex = (this.currentIndex + 1) % this.waypoints.length;
-      this.setVelocity(0, 0);
+      this.desiredVelocity.set(0, 0);
+      this.applySteering();
       this.moving = false;
       this.updateTexture();
       return;
     }
-    const vx = (dx / dist) * this.speed;
-    const vy = (dy / dist) * this.speed;
-    this.setVelocity(vx, vy);
+    this.desiredVelocity.set((dx / dist) * this.speed, (dy / dist) * this.speed);
+    this.applySteering();
+    const vx = this.body.velocity.x;
+    const vy = this.body.velocity.y;
     this.facingAngle = Phaser.Math.Angle.Between(0, 0, vx, vy);
     const prevFacing = this.facing;
     if (Math.abs(vx) > INPUT.AXIS_EPSILON) {
@@ -66,6 +70,12 @@ export class Guard extends Phaser.Physics.Arcade.Sprite {
     this.updateWalkPhase(prevFacing !== this.facing || animFacing !== this.lastAnimFacing);
     this.updateTexture(false, animFacing);
     this.handleStuck();
+  }
+
+  private applySteering(): void {
+    const vx = Phaser.Math.Linear(this.body.velocity.x, this.desiredVelocity.x, WANDER.TARGET_TURN_RATE);
+    const vy = Phaser.Math.Linear(this.body.velocity.y, this.desiredVelocity.y, WANDER.TARGET_TURN_RATE);
+    this.setVelocity(vx, vy);
   }
 
   private resolveAnimFacing(vx: number, vy: number): "left" | "right" | "front" {

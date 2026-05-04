@@ -16,6 +16,7 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
   private readonly targetHeight = BASE_HEIGHT * ENTITIES.SPRITE_HEIGHT_RATIO;
   private readonly variant: 1 | 2 | 3;
   private moveTarget?: Phaser.Math.Vector2;
+  private desiredVelocity = new Phaser.Math.Vector2();
 
   constructor(scene: Phaser.Scene, x: number, y: number, variant: 1 | 2 | 3) {
     super(scene, x, y, `npc${variant}-walk-front`);
@@ -48,6 +49,7 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
       if (this.wanderTimer <= 0) {
         this.pickNewDirection();
       }
+      this.applySteering();
     }
 
     const vx = this.body?.velocity.x ?? 0;
@@ -60,8 +62,13 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
   }
 
   private pickNewDirection(): void {
+    if (rngInt(0, 99) < WANDER.IDLE_CHANCE * 100) {
+      this.desiredVelocity.set(0, 0);
+      this.wanderTimer = rngInt(WANDER.IDLE_MIN_MS, WANDER.IDLE_MAX_MS);
+      return;
+    }
     const angle = Phaser.Math.DegToRad(rngInt(WANDER.ANGLE_MIN_DEG, WANDER.ANGLE_MAX_DEG));
-    this.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
+    this.desiredVelocity.set(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
     this.wanderTimer = rngInt(WANDER.MIN_MS, WANDER.MAX_MS);
   }
 
@@ -73,11 +80,19 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
     const dy = this.moveTarget.y - this.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     if (distance <= scale(ENTITIES.NPC_TARGET_ARRIVAL_RANGE)) {
-      this.setVelocity(0, 0);
+      this.desiredVelocity.set(0, 0);
+      this.applySteering(WANDER.TARGET_TURN_RATE);
       return;
     }
     const vx = (dx / distance) * this.speed;
     const vy = (dy / distance) * this.speed;
+    this.desiredVelocity.set(vx, vy);
+    this.applySteering(WANDER.TARGET_TURN_RATE);
+  }
+
+  private applySteering(turnRate = WANDER.TURN_RATE): void {
+    const vx = Phaser.Math.Linear(this.body.velocity.x, this.desiredVelocity.x, turnRate);
+    const vy = Phaser.Math.Linear(this.body.velocity.y, this.desiredVelocity.y, turnRate);
     this.setVelocity(vx, vy);
   }
 

@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { BaseLevelScene } from "./BaseLevelScene";
 import { Player } from "../entities/player/Player";
 import { difficultyPresets } from "../../config/difficulty";
-import { ALPHA, AUDIO, DEPTH, DOM_TEXT, LEVEL2, LEVEL2_SLOTS, MATH, PLAYER, RUN, SCALE, STAGE, TIME } from "../../config/physics";
+import { ALPHA, AUDIO, DEPTH, DOM_TEXT, LEVEL2, LEVEL2_SLOTS, MATH, PLAYER, SCALE, STAGE, TEXTURES, TIME } from "../../config/physics";
 import { runState } from "../RunState";
 import { isDebug } from "../utils/debug";
 import { rngInt } from "../utils/rng";
@@ -17,40 +17,64 @@ interface Slot {
   parent?: Slot;
   isLeft?: boolean;
   active?: boolean;
-  targetValue?: number;
   value?: number;
   image: Phaser.GameObjects.Image;
-  debugText?: Phaser.GameObjects.Text;
-  hintText?: Phaser.GameObjects.Text;
+  debugText?: Phaser.GameObjects.DOMElement;
 }
 
-interface Cube {
+interface LeafToken {
   container: Phaser.GameObjects.Container;
   value: number;
   placed: boolean;
   startX: number;
   startY: number;
-  label?: Phaser.GameObjects.Text;
+  label?: Phaser.GameObjects.DOMElement;
+  standPlatform?: Phaser.Physics.Arcade.Image;
+  slot?: Slot;
+}
+
+interface PlacementValidation {
+  valid: boolean;
+  reason?: string;
+  min?: number;
+  max?: number;
 }
 
 export class Level2Scene extends BaseLevelScene {
-  private player!: Player;
+  declare protected player: Player;
   private slots: Slot[] = [];
   private placedCount = 0;
-  private requiredPlacements = LEVEL2.DEFAULT_REQUIRED_PLACEMENTS;
-  private cubes: Cube[] = [];
-  private carriedCube?: Cube;
+  private requiredPlacements: number = LEVEL2.DEFAULT_REQUIRED_PLACEMENTS;
+  private leaves: LeafToken[] = [];
+  private carriedLeaf?: LeafToken;
   private rowY = scaleY(LEVEL2.ROW_Y);
-  private pileText?: Phaser.GameObjects.Text;
+  private pileText?: Phaser.GameObjects.DOMElement;
+  private rangeHint?: Phaser.GameObjects.DOMElement;
+  private feedbackText?: Phaser.GameObjects.DOMElement;
+  private submitLabel?: Phaser.GameObjects.DOMElement;
+  private submitButton?: Phaser.GameObjects.Graphics;
+  private submitZone?: Phaser.GameObjects.Zone;
+  private branchGraphics?: Phaser.GameObjects.Graphics;
+  private pathGraphics?: Phaser.GameObjects.Graphics;
   private clockFace?: Phaser.GameObjects.Graphics;
   private clockHands?: Phaser.GameObjects.Graphics;
-  private clockText?: Phaser.GameObjects.Text;
+  private clockText?: Phaser.GameObjects.DOMElement;
   private clockCenterX = scaleX(LEVEL2.CLOCK_CENTER_X);
   private clockCenterY = scaleY(LEVEL2.CLOCK_CENTER_Y);
   private clockRadius = scale(LEVEL2.CLOCK_RADIUS);
-  private timeLimitMs = LEVEL2.TIME_LIMIT_MS;
-  private timeLeftMs = LEVEL2.TIME_LIMIT_MS;
-  private readonly platformTopLift = Math.max(1, Math.round(scaleY(2)));
+  private timeLimitMs: number = LEVEL2.TIME_LIMIT_MS;
+  private timeLeftMs: number = LEVEL2.TIME_LIMIT_MS;
+  private leafPlatforms!: Phaser.Physics.Arcade.StaticGroup;
+  private obstacleGroup?: Phaser.Physics.Arcade.Group;
+  private bugTimer?: Phaser.Time.TimerEvent;
+  private nullTimer?: Phaser.Time.TimerEvent;
+  private sideBugTimer?: Phaser.Time.TimerEvent;
+  private nextSideBugFromLeft = true;
+  private levelCompleted = false;
+  private transitionStarted = false;
+  private transitionFallbackId?: number;
+  private mistakeCountAtStart = 0;
+  private obstacleSpeedMultiplier = 1;
 
   constructor() {
     super("Level2Scene");
@@ -58,69 +82,101 @@ export class Level2Scene extends BaseLevelScene {
 
   create(): void {
     this.initLevel(STAGE.LEVEL2);
+    this.resetLevel2SceneState();
     this.audio.playMusic("music-gameplay", AUDIO.MUSIC.GAMEPLAY);
     this.physics.world.gravity.y = LEVEL2.WORLD_GRAVITY_Y;
     this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, LEVEL2.BG_COLOR);
+    this.addBackground();
 
     const diff = difficultyPresets[runState.difficulty];
-    this.requiredPlacements = diff.l2.requiredPlacements;
+    this.requiredPlacements = Math.min(diff.l2.requiredPlacements, LEVEL2_SLOTS.length);
+    this.obstacleSpeedMultiplier = Phaser.Math.Clamp(diff.l2.waterRisePxPerSec / 4, 0.85, 1.25);
     this.timeLeftMs = this.timeLimitMs;
-    this.cubes = [];
+    this.mistakeCountAtStart = runState.mistakes;
+    this.nextSideBugFromLeft = true;
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
 
     this.createSlots();
-    const targetValues = this.assignTargetValues(this.requiredPlacements);
+    const leafValues = this.assignTargetValues(this.requiredPlacements);
 
     this.player = new Player(this, scaleX(LEVEL2.PLAYER_START.x), scaleY(LEVEL2.PLAYER_START.y));
     this.setPlayer(this.player);
-    const platforms = this.physics.add.staticGroup();
-    const ground = platforms
-      .create(scaleX(LEVEL2.GROUND_X), scaleY(LEVEL2.GROUND_Y), "platform")
-      .setScale(LEVEL2.GROUND_SCALE_X * scaleX(SCALE.UNIT), LEVEL2.GROUND_SCALE_Y * scaleY(SCALE.UNIT))
-      .refreshBody();
-    this.liftPlatformColliderTop(ground as Phaser.Physics.Arcade.Image);
-    const shelfYs = LEVEL2.SHELF_YS.map(scaleY);
-    const shelfXs = LEVEL2.SHELF_XS.map(scaleX);
-    for (const y of shelfYs) {
-      for (const x of shelfXs) {
-        const shelf = platforms
-          .create(x, y, "platform")
-          .setScale(LEVEL2.SHELF_SCALE_X * scaleX(SCALE.UNIT), LEVEL2.SHELF_SCALE_Y * scaleY(SCALE.UNIT))
-          .refreshBody();
-        this.liftPlatformColliderTop(shelf as Phaser.Physics.Arcade.Image);
-      }
-    }
 
+    const platforms = this.createPlatforms();
+    this.leafPlatforms = this.physics.add.staticGroup();
     this.physics.add.collider(this.player, platforms);
 
-    createDialogText(this, scaleX(LEVEL2.TITLE_X), scaleY(LEVEL2.TITLE_Y), "BST Tower", {
+    createDialogText(this, scaleX(LEVEL2.TITLE_X), scaleY(LEVEL2.TITLE_Y), "BST Orchard", {
       maxWidth: LEVEL2.TITLE_MAX_WIDTH,
       fontSize: LEVEL2.TITLE_FONT_SIZE,
-      color: "#e8eef2"
+      color: "#f6f7d7"
     });
 
-    this.createCubeRow(targetValues);
+    this.createLeafRow(leafValues);
+    this.createSubmitButton();
+    this.createFeedbackText();
+    this.createRangeHint();
     this.createClock();
+    this.createObstacles();
+    this.spawnSideBug();
+    this.time.delayedCall(LEVEL2.NULL_INITIAL_DELAY_MS, () => this.spawnNullPointer());
+  }
+
+  private resetLevel2SceneState(): void {
+    if (this.transitionFallbackId !== undefined) {
+      window.clearTimeout(this.transitionFallbackId);
+      this.transitionFallbackId = undefined;
+    }
+    this.slots = [];
+    this.placedCount = 0;
+    this.requiredPlacements = LEVEL2.DEFAULT_REQUIRED_PLACEMENTS;
+    this.leaves = [];
+    this.carriedLeaf = undefined;
+    this.pileText = undefined;
+    this.rangeHint = undefined;
+    this.feedbackText = undefined;
+    this.submitLabel = undefined;
+    this.submitButton = undefined;
+    this.submitZone = undefined;
+    this.branchGraphics = undefined;
+    this.pathGraphics = undefined;
+    this.clockFace = undefined;
+    this.clockHands = undefined;
+    this.clockText = undefined;
+    this.obstacleGroup = undefined;
+    this.bugTimer = undefined;
+    this.nullTimer = undefined;
+    this.sideBugTimer = undefined;
+    this.nextSideBugFromLeft = true;
+    this.levelCompleted = false;
+    this.transitionStarted = false;
+    this.mistakeCountAtStart = 0;
+    this.obstacleSpeedMultiplier = 1;
   }
 
   update(_: number, delta: number): void {
     this.handlePauseToggle();
-    if (this.paused) {
+    if (this.paused || this.levelCompleted) {
       return;
     }
 
     this.player.updatePlatformer(this.inputManager, scale(PLAYER.PLATFORMER_SPEED), scale(PLAYER.JUMP_L2));
-    this.updateCarriedCube();
-    this.syncCubeLabels();
+    this.updateCarriedLeaf();
+    this.syncLeafLabels();
+    this.updateRangeHint();
 
     if (this.inputManager.justPressedPickup()) {
-      if (this.carriedCube) {
+      if (this.carriedLeaf) {
         this.tryPlaceCarried();
+      } else if (this.isPlayerNearSubmitButton()) {
+        this.animateSubmitButton();
+        this.trySubmitTree();
       } else {
-        this.tryPickupCube();
+        this.tryPickupLeaf();
       }
     }
 
+    this.updateObstacles();
     this.updateClock(delta);
     this.hud.updateAll();
     if (isDebug()) {
@@ -128,12 +184,52 @@ export class Level2Scene extends BaseLevelScene {
     }
   }
 
+  private addBackground(): void {
+    const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, "level2-bst-orchard-bg");
+    bg.setDisplaySize(this.scale.width, this.scale.height);
+    bg.setDepth(-20);
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, LEVEL2.BG_COLOR, 0.08).setDepth(-19);
+  }
+
+  private createPlatforms(): Phaser.Physics.Arcade.StaticGroup {
+    const platforms = this.physics.add.staticGroup();
+    const ground = platforms
+      .create(scaleX(LEVEL2.GROUND_X), scaleY(LEVEL2.GROUND_Y), "platform-smooth")
+      .setScale(
+        (LEVEL2.GROUND_SCALE_X * scaleX(SCALE.UNIT)) / TEXTURES.HIGH_RES_SCALE,
+        (LEVEL2.GROUND_SCALE_Y * scaleY(SCALE.UNIT)) / TEXTURES.HIGH_RES_SCALE
+      )
+      .refreshBody();
+    this.configureTopOnlyPlatform(ground as Phaser.Physics.Arcade.Image);
+    this.shrinkPlatformBody(ground as Phaser.Physics.Arcade.Image, 0.98);
+
+    const shelfYs = LEVEL2.SHELF_YS.map(scaleY);
+    const shelfXs = LEVEL2.SHELF_XS.map(scaleX);
+    for (const y of shelfYs) {
+      for (const x of shelfXs) {
+        const shelf = platforms
+          .create(x, y, "platform-smooth")
+          .setScale(
+            (LEVEL2.SHELF_SCALE_X * scaleX(SCALE.UNIT)) / TEXTURES.HIGH_RES_SCALE,
+            (LEVEL2.SHELF_SCALE_Y * scaleY(SCALE.UNIT)) / TEXTURES.HIGH_RES_SCALE
+          )
+          .refreshBody();
+        shelf.setAlpha(0.72);
+        this.configureTopOnlyPlatform(shelf as Phaser.Physics.Arcade.Image);
+        this.shrinkPlatformBody(shelf as Phaser.Physics.Arcade.Image, LEVEL2.PLATFORM_BODY_WIDTH_RATIO);
+      }
+    }
+    return platforms;
+  }
+
   private createSlots(): void {
+    this.branchGraphics = this.add.graphics().setDepth(DEPTH.LEVEL2_BRANCH);
+    this.pathGraphics = this.add.graphics().setDepth(DEPTH.LEVEL2_CUBE_LABEL);
     const makeSlot = (id: string, x: number, y: number, parent?: Slot, isLeft?: boolean): Slot => {
       const sx = scaleX(x);
       const sy = scaleY(y);
-      const image = this.add.image(sx, sy, "slot").setDepth(DEPTH.LEVEL2_SLOT);
-      image.setScale(scale(LEVEL2.SLOT_SIZE) / LEVEL2.SLOT_SIZE);
+      const image = this.add.image(sx, sy, "leaf-slot-smooth").setDepth(DEPTH.LEVEL2_SLOT);
+      image.setScale(scale(LEVEL2.LEAF_SLOT_SIZE) / (LEVEL2.LEAF_SLOT_SIZE * TEXTURES.HIGH_RES_SCALE));
       const slot: Slot = { id, x: sx, y: sy, parent, isLeft, image };
       if (isDebug()) {
         slot.debugText = createDialogText(this, sx, sy - scale(LEVEL2.SLOT_DEBUG_OFFSET_Y), "", {
@@ -146,6 +242,7 @@ export class Level2Scene extends BaseLevelScene {
       this.slots.push(slot);
       return slot;
     };
+
     const slotMap = new Map<string, Slot>();
     for (const def of LEVEL2_SLOTS) {
       const parent = def.parent ? slotMap.get(def.parent) : undefined;
@@ -155,54 +252,23 @@ export class Level2Scene extends BaseLevelScene {
   }
 
   private assignTargetValues(count: number): number[] {
-    const slotsToFill = this.slots.slice(0, Math.min(count, this.slots.length));
-    const maxAttempts = LEVEL2.MAX_ASSIGN_ATTEMPTS;
-
     for (const slot of this.slots) {
       slot.active = false;
-      slot.targetValue = undefined;
       slot.value = undefined;
-      slot.hintText?.destroy();
-      slot.hintText = undefined;
-    }
-    this.updateSlotVisibility();
-
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const used = new Set<number>();
-      let success = true;
-
-      for (const slot of slotsToFill) {
-        const range = this.getSlotTargetRange(slot);
-        const value = this.pickUniqueValue(range.min, range.max, used);
-        if (value === undefined) {
-          success = false;
-          break;
-        }
-        slot.active = true;
-        slot.targetValue = value;
-        used.add(value);
-      }
-
-      if (success) {
-        for (const slot of slotsToFill) {
-          if (slot.targetValue === undefined) {
-            continue;
-          }
-          slot.hintText?.destroy();
-          slot.hintText = createDialogText(this, slot.x, slot.y, String(slot.targetValue), {
-            maxWidth: LEVEL2.HINT_MAX_WIDTH,
-            fontSize: LEVEL2.HINT_FONT_SIZE,
-            color: "#94a3b8",
-            align: "center"
-          }).setDepth(DEPTH.LEVEL2_SLOT_HINT).setAlpha(LEVEL2.HINT_ALPHA);
-        }
-        this.updateSlotVisibility();
-        return this.shuffle(this.valuesFromSlots(slotsToFill));
-      }
     }
 
+    const slotsToUse = this.slots;
+    for (const slot of slotsToUse) {
+      slot.active = true;
+    }
     this.updateSlotVisibility();
-    return this.shuffle(this.valuesFromSlots(slotsToFill));
+    this.drawTreeBranches();
+
+    const values = new Set<number>();
+    while (values.size < Math.min(count, this.slots.length)) {
+      values.add(rngInt(LEVEL2.VALUE_MIN, LEVEL2.VALUE_MAX));
+    }
+    return this.shuffle([...values]);
   }
 
   private updateSlotVisibility(): void {
@@ -210,51 +276,52 @@ export class Level2Scene extends BaseLevelScene {
       const visible = Boolean(slot.active);
       slot.image.setVisible(visible);
       slot.debugText?.setVisible(visible);
+      slot.image.setAlpha(slot.value === undefined ? 0.86 : 0.38);
     }
   }
 
-  private liftPlatformColliderTop(platform: Phaser.Physics.Arcade.Image): void {
+  private drawTreeBranches(): void {
+    if (!this.branchGraphics) {
+      return;
+    }
+    this.branchGraphics.clear();
+    this.branchGraphics.lineStyle(scale(6), 0x3f2d1f, 0.76);
+    for (const slot of this.slots) {
+      if (!slot.active || !slot.parent?.active) {
+        continue;
+      }
+      this.branchGraphics.lineBetween(slot.parent.x, slot.parent.y, slot.x, slot.y);
+    }
+    this.branchGraphics.lineStyle(scale(2), 0x9ddf8f, 0.32);
+    for (const slot of this.slots) {
+      if (!slot.active || !slot.parent?.active) {
+        continue;
+      }
+      this.branchGraphics.lineBetween(slot.parent.x, slot.parent.y, slot.x, slot.y);
+    }
+  }
+
+  private configureTopOnlyPlatform(platform: Phaser.Physics.Arcade.Image): void {
     const body = platform.body as Phaser.Physics.Arcade.StaticBody | undefined;
     if (!body) {
       return;
     }
-    body.setOffset(body.offset.x, body.offset.y - this.platformTopLift);
+    body.checkCollision.up = true;
+    body.checkCollision.down = false;
+    body.checkCollision.left = false;
+    body.checkCollision.right = false;
+  }
+
+  private shrinkPlatformBody(platform: Phaser.Physics.Arcade.Image, widthRatio: number): void {
+    const body = platform.body as Phaser.Physics.Arcade.StaticBody | undefined;
+    if (!body) {
+      return;
+    }
+    const width = Math.max(8, platform.displayWidth * widthRatio);
+    const height = Math.max(4, platform.displayHeight * LEVEL2.PLATFORM_BODY_HEIGHT_RATIO);
     body.updateFromGameObject();
-  }
-
-  private getSlotTargetRange(slot: Slot): { min: number; max: number } {
-    let min = LEVEL2.VALUE_MIN;
-    let max = LEVEL2.VALUE_MAX;
-    let node: Slot | undefined = slot;
-    while (node?.parent) {
-      const parent = node.parent;
-      if (parent.targetValue === undefined) {
-        break;
-      }
-      if (node.isLeft) {
-        max = Math.min(max, parent.targetValue - 1);
-      } else {
-        min = Math.max(min, parent.targetValue + 1);
-      }
-      node = parent;
-    }
-    return { min, max };
-  }
-
-  private pickUniqueValue(min: number, max: number, used: Set<number>): number | undefined {
-    if (min > max) {
-      return undefined;
-    }
-    const available: number[] = [];
-    for (let value = min; value <= max; value += 1) {
-      if (!used.has(value)) {
-        available.push(value);
-      }
-    }
-    if (available.length === 0) {
-      return undefined;
-    }
-    return available[rngInt(0, available.length - 1)];
+    body.setSize(width, height);
+    body.setOffset((platform.displayWidth - width) / 2, platform.displayHeight - height);
   }
 
   private shuffle(values: number[]): number[] {
@@ -266,17 +333,7 @@ export class Level2Scene extends BaseLevelScene {
     return copy;
   }
 
-  private valuesFromSlots(slots: Slot[]): number[] {
-    const values: number[] = [];
-    for (const slot of slots) {
-      if (slot.targetValue !== undefined) {
-        values.push(slot.targetValue);
-      }
-    }
-    return values;
-  }
-
-  private createCubeRow(values: number[]): void {
+  private createLeafRow(values: number[]): void {
     const spacing = scaleX(LEVEL2.ROW_SPACING);
     const count = values.length;
     const totalWidth = (count - 1) * spacing;
@@ -286,112 +343,253 @@ export class Level2Scene extends BaseLevelScene {
     for (let i = 0; i < count; i += 1) {
       const value = values[i];
       const x = startX + i * spacing;
-      const cube = this.createCubeContainer(value, x, rowY);
-      this.cubes.push(cube);
+      const leaf = this.createLeafContainer(value, x, rowY);
+      this.leaves.push(leaf);
     }
 
-    this.pileText = createDialogText(this, scaleX(LEVEL2.PILE_TEXT_X), rowY - scale(LEVEL2.PILE_TEXT_OFFSET_Y), "Cubes: 0", {
+    this.pileText = createDialogText(this, scaleX(LEVEL2.PILE_TEXT_X), rowY - scale(LEVEL2.PILE_TEXT_OFFSET_Y), "Leaves: 0", {
       maxWidth: LEVEL2.PILE_TEXT_MAX_WIDTH,
       fontSize: LEVEL2.PILE_TEXT_FONT_SIZE,
-      color: "#e8eef2",
+      color: "#f8fafc",
       align: "left",
       originX: DOM_TEXT.ORIGIN_LEFT
     });
     this.updatePileText();
   }
 
-  private updatePileText(): void {
-    if (!this.pileText) {
-      return;
-    }
-    setDomText(this.pileText, `Cubes: ${this.getRemainingCubes()}`);
-  }
-
-  private findNearestCube(): Cube | null {
-    let best: Cube | null = null;
-    let bestDist = MATH.LARGE_NUMBER;
-    for (const cube of this.cubes) {
-      if (cube.placed || cube === this.carriedCube) {
-        continue;
-      }
-      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, cube.container.x, cube.container.y);
-      if (dist < scale(LEVEL2.INTERACT_RANGE) && dist < bestDist) {
-        bestDist = dist;
-        best = cube;
-      }
-    }
-    return best;
-  }
-
-  private tryPickupCube(): void {
-    if (this.carriedCube) {
-      return;
-    }
-    const cube = this.findNearestCube();
-    if (!cube) {
-      return;
-    }
-    this.pickUpCube(cube);
-  }
-
-  private createCubeContainer(value: number, x: number, y: number): Cube {
+  private createLeafContainer(value: number, x: number, y: number): LeafToken {
     const container = this.add.container(x, y);
-    const sprite = this.add.image(0, 0, "cube");
-    const cubeScale = scale(LEVEL2.CUBE_SIZE) / LEVEL2.CUBE_SIZE;
-    sprite.setScale(cubeScale);
-    container.add([sprite]);
-    container.setSize(scale(LEVEL2.CUBE_SIZE), scale(LEVEL2.CUBE_SIZE));
+    const sprite = this.add.image(0, 0, "leaf-token-smooth");
+    const leafScale = scale(LEVEL2.LEAF_SIZE) / (LEVEL2.LEAF_SIZE * TEXTURES.HIGH_RES_SCALE);
+    sprite.setScale(leafScale);
+    container.add(sprite);
+    container.setSize(scale(LEVEL2.LEAF_SIZE), scale(LEVEL2.LEAF_SIZE));
     container.setDepth(DEPTH.LEVEL2_CUBE);
     const label = createDialogText(this, x, y, String(value), {
       maxWidth: LEVEL2.CUBE_LABEL_MAX_WIDTH,
       fontSize: LEVEL2.CUBE_LABEL_FONT_SIZE,
-      color: "#0f172a",
+      color: "#142018",
       align: "center"
     }).setDepth(DEPTH.LEVEL2_CUBE_LABEL);
     return { container, value, placed: false, startX: x, startY: y, label };
   }
 
-  private updateCarriedCube(): void {
-    if (!this.carriedCube) {
-      return;
-    }
-    this.carriedCube.container.x = this.player.x;
-    this.carriedCube.container.y = this.player.y - scale(LEVEL2.CUBE_CARRY_OFFSET_Y);
-    this.carriedCube.label?.setPosition(this.carriedCube.container.x, this.carriedCube.container.y);
+  private createSubmitButton(): void {
+    const x = scaleX(LEVEL2.SUBMIT_BUTTON_X);
+    const y = scaleY(LEVEL2.SUBMIT_BUTTON_Y);
+    const poleHeight = scaleY(LEVEL2.SUBMIT_POLE_HEIGHT);
+    const radius = scale(LEVEL2.SUBMIT_BUTTON_RADIUS);
+
+    this.submitButton = this.add.graphics().setDepth(DEPTH.LEVEL2_CLOCK_FACE);
+    this.submitButton.lineStyle(scale(4), 0x1f2937, 1);
+    this.submitButton.lineBetween(x, y, x, y - poleHeight);
+    this.submitButton.fillStyle(0x334155, 1);
+    this.submitButton.fillRoundedRect(x - scaleX(18), y - scaleY(5), scaleX(36), scaleY(10), scale(4));
+    this.submitButton.fillStyle(0xef4444, 1);
+    this.submitButton.fillCircle(x, y - poleHeight - radius * 0.18, radius);
+    this.submitButton.lineStyle(scale(3), 0x7f1d1d, 1);
+    this.submitButton.strokeCircle(x, y - poleHeight - radius * 0.18, radius);
+    this.submitButton.fillStyle(0xfca5a5, 0.82);
+    this.submitButton.fillCircle(x - radius * 0.35, y - poleHeight - radius * 0.5, radius * 0.28);
+
+    this.submitZone = this.add
+      .zone(x, y - poleHeight * 0.5, scaleX(58), poleHeight + radius * 2)
+      .setInteractive({ useHandCursor: true });
+    this.submitZone.on("pointerdown", () => {
+      if (!this.carriedLeaf) {
+        this.animateSubmitButton();
+        this.trySubmitTree();
+      }
+    });
+
+    this.submitLabel = createDialogText(this, x, y - poleHeight - scaleY(28), "Submit", {
+      maxWidth: LEVEL2.SUBMIT_LABEL_MAX_WIDTH,
+      fontSize: LEVEL2.SUBMIT_LABEL_FONT_SIZE,
+      color: "#fecaca"
+    }).setDepth(DEPTH.LEVEL2_CLOCK_TEXT);
   }
 
-  private syncCubeLabels(): void {
-    for (const cube of this.cubes) {
-      cube.label?.setPosition(cube.container.x, cube.container.y);
+  private tryPressSubmitButton(): void {
+    if (!this.isPlayerNearSubmitButton()) {
+      this.showFeedback("Stand next to the red submit button.", "#facc15");
+      return;
     }
+    this.animateSubmitButton();
+    this.trySubmitTree();
+  }
+
+  private isPlayerNearSubmitButton(): boolean {
+    const x = scaleX(LEVEL2.SUBMIT_BUTTON_X);
+    const y = scaleY(LEVEL2.SUBMIT_BUTTON_Y - LEVEL2.SUBMIT_POLE_HEIGHT * 0.55);
+    return Phaser.Math.Distance.Between(this.player.x, this.player.y, x, y) <= scale(LEVEL2.SUBMIT_BUTTON_RANGE);
+  }
+
+  private animateSubmitButton(): void {
+    if (!this.submitButton) {
+      return;
+    }
+    this.tweens.add({
+      targets: this.submitButton,
+      y: scaleY(3),
+      duration: 90,
+      yoyo: true,
+      ease: "Sine.easeInOut"
+    });
+  }
+
+  private createFeedbackText(): void {
+    this.feedbackText = createDialogText(this, this.scale.width / 2, scaleY(58), "Place leaves by BST rules, then submit.", {
+      maxWidth: 360,
+      fontSize: 12,
+      color: "#eaf7bf"
+    }).setDepth(DEPTH.LEVEL2_RANGE_HINT);
+  }
+
+  private createRangeHint(): void {
+    this.rangeHint = createDialogText(this, this.scale.width / 2, this.scale.height / 2, "", {
+      maxWidth: LEVEL2.RANGE_HINT_MAX_WIDTH,
+      fontSize: LEVEL2.RANGE_HINT_FONT_SIZE,
+      color: "#eaf7bf"
+    })
+      .setDepth(DEPTH.LEVEL2_RANGE_HINT)
+      .setAlpha(LEVEL2.RANGE_HINT_ALPHA)
+      .setVisible(false);
+  }
+
+  private updatePileText(): void {
+    if (!this.pileText) {
+      return;
+    }
+    setDomText(this.pileText, `Leaves: ${this.getRemainingLeaves()}`);
+  }
+
+  private syncLeafLabels(): void {
+    for (const leaf of this.leaves) {
+      leaf.label?.setPosition(leaf.container.x, leaf.container.y);
+    }
+  }
+
+  private findNearestLeaf(): LeafToken | null {
+    let best: LeafToken | null = null;
+    let bestDist: number = MATH.LARGE_NUMBER;
+    for (const leaf of this.leaves) {
+      if (leaf.placed || leaf === this.carriedLeaf) {
+        continue;
+      }
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, leaf.container.x, leaf.container.y);
+      if (dist < scale(LEVEL2.INTERACT_RANGE) && dist < bestDist) {
+        bestDist = dist;
+        best = leaf;
+      }
+    }
+    return best;
+  }
+
+  private tryPickupLeaf(): void {
+    if (this.carriedLeaf) {
+      return;
+    }
+    const leaf = this.findNearestLeaf();
+    if (leaf) {
+      this.pickUpLeaf(leaf);
+      return;
+    }
+    const placedLeaf = this.findNearestPlacedLeaf();
+    if (placedLeaf) {
+      this.pickUpPlacedLeaf(placedLeaf);
+    }
+  }
+
+  private pickUpLeaf(leaf: LeafToken): void {
+    if (this.carriedLeaf || leaf.placed) {
+      return;
+    }
+    this.carriedLeaf = leaf;
+    this.player.setCarrying(true);
+    leaf.container.setDepth(DEPTH.LEVEL2_CUBE_LABEL);
+    this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT_LIGHT);
+  }
+
+  private findNearestPlacedLeaf(): LeafToken | null {
+    let best: LeafToken | null = null;
+    let bestDist: number = MATH.LARGE_NUMBER;
+    for (const leaf of this.leaves) {
+      if (!leaf.placed || leaf === this.carriedLeaf) {
+        continue;
+      }
+      const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, leaf.container.x, leaf.container.y);
+      if (dist < scale(LEVEL2.PLACED_PICKUP_RANGE) && dist < bestDist) {
+        bestDist = dist;
+        best = leaf;
+      }
+    }
+    return best;
+  }
+
+  private pickUpPlacedLeaf(leaf: LeafToken): void {
+    if (this.carriedLeaf || !leaf.placed) {
+      return;
+    }
+    if (leaf.slot) {
+      leaf.slot.value = undefined;
+      leaf.slot.image.setAlpha(0.86);
+      leaf.slot = undefined;
+    }
+    leaf.standPlatform?.destroy();
+    leaf.standPlatform = undefined;
+    leaf.placed = false;
+    this.placedCount = Math.max(0, this.placedCount - 1);
+    this.carriedLeaf = leaf;
+    this.player.setCarrying(true);
+    leaf.container.setDepth(DEPTH.LEVEL2_CUBE_LABEL);
+    this.showFeedback("Leaf lifted. Move it to a new branch.", "#bbf7d0");
+    this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT_LIGHT);
+    this.updatePileText();
+  }
+
+  private updateCarriedLeaf(): void {
+    if (!this.carriedLeaf) {
+      return;
+    }
+    this.carriedLeaf.container.x = this.player.x;
+    this.carriedLeaf.container.y = this.player.y - scale(LEVEL2.CUBE_CARRY_OFFSET_Y);
+    this.carriedLeaf.label?.setPosition(this.carriedLeaf.container.x, this.carriedLeaf.container.y);
   }
 
   private tryPlaceCarried(): void {
-    if (!this.carriedCube) {
+    if (!this.carriedLeaf) {
       return;
     }
-    this.tryPlaceCarriedAt(this.carriedCube.container.x, this.carriedCube.container.y);
+    this.tryPlaceCarriedAt(this.carriedLeaf.container.x, this.carriedLeaf.container.y);
   }
 
   private tryPlaceCarriedAt(x: number, y: number): void {
-    if (!this.carriedCube) {
+    if (!this.carriedLeaf) {
       return;
     }
     const slot = this.findClosestSlot(x, y);
     if (!slot) {
+      this.showFeedback("Move closer to a leaf slot.", "#facc15");
       return;
     }
-    if (!this.isPlacementValid(slot, this.carriedCube.value)) {
-      this.rejectCarriedCube();
+
+    const validation = this.getPlacementValidation(slot, this.carriedLeaf.value);
+    if (!validation.valid) {
+      this.highlightPathTo(slot, false);
+      this.rejectCarriedLeaf(validation.reason ?? "Wrong BST position.");
       return;
     }
-    const cube = this.carriedCube;
-    cube.container.x = slot.x;
-    cube.container.y = slot.y;
-    cube.container.setDepth(DEPTH.LEVEL2_CUBE_PLACED);
-    cube.placed = true;
-    slot.value = cube.value;
-    this.carriedCube = undefined;
+
+    const leaf = this.carriedLeaf;
+    leaf.container.x = slot.x;
+    leaf.container.y = slot.y;
+    leaf.container.setDepth(DEPTH.LEVEL2_CUBE_PLACED);
+    leaf.placed = true;
+    this.addLeafStandPlatform(leaf, slot.x, slot.y);
+    slot.value = leaf.value;
+    leaf.slot = slot;
+    slot.image.setAlpha(0.32);
+    this.carriedLeaf = undefined;
     this.player.setCarrying(false);
     this.placedCount += 1;
     this.scoreSystem.addSkill(LEVEL2.CUBE_SUCCESS_SCORE);
@@ -402,56 +600,71 @@ export class Level2Scene extends BaseLevelScene {
       `+${LEVEL2.CUBE_SUCCESS_SCORE}`,
       "#8fe388"
     );
+    this.highlightPathTo(slot, true);
+    this.showFeedback("Leaf placed. Submit checks the full BST.", "#8fe388");
     this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_MED);
     this.updatePileText();
-
-    if (this.placedCount >= this.requiredPlacements) {
-      this.completeLevel();
-    }
   }
 
-  private rejectCarriedCube(): void {
-    if (!this.carriedCube) {
+  private rejectCarriedLeaf(reason: string): void {
+    if (!this.carriedLeaf) {
       return;
     }
-    const cube = this.carriedCube;
-    this.carriedCube = undefined;
+    const leaf = this.carriedLeaf;
+    this.carriedLeaf = undefined;
     this.player.setCarrying(false);
     this.scoreSystem.addPenalty(LEVEL2.CUBE_REJECT_PENALTY);
     this.scoreSystem.breakCombo();
     runState.mistakes += 1;
     this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT_LIGHT);
-    cube.container.setDepth(DEPTH.LEVEL2_CUBE);
+    this.showFeedback(reason, "#fecaca");
+    leaf.container.setDepth(DEPTH.LEVEL2_CUBE);
     this.tweens.add({
-      targets: cube.container,
-      x: cube.startX,
-      y: cube.startY,
+      targets: leaf.container,
+      x: leaf.startX,
+      y: leaf.startY,
       duration: LEVEL2.CUBE_REJECT_TWEEN_MS,
       ease: "Sine.easeOut"
     });
     this.updatePileText();
   }
 
-  private pickUpCube(cube: Cube): void {
-    if (this.carriedCube || cube.placed) {
+  private returnCarriedLeafFromHazard(): void {
+    if (!this.carriedLeaf) {
       return;
     }
-    this.carriedCube = cube;
-    this.player.setCarrying(true);
-    cube.container.setDepth(DEPTH.LEVEL2_CUBE_LABEL);
-    this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT_LIGHT);
+    const leaf = this.carriedLeaf;
+    this.carriedLeaf = undefined;
+    this.player.setCarrying(false);
+    leaf.container.setDepth(DEPTH.LEVEL2_CUBE);
+    leaf.container.setPosition(leaf.startX, leaf.startY);
+    leaf.label?.setPosition(leaf.startX, leaf.startY);
+    this.updatePileText();
   }
 
-  private getRemainingCubes(): number {
-    return this.cubes.filter((cube) => !cube.placed).length;
+  private addLeafStandPlatform(leaf: LeafToken, x: number, y: number): void {
+    const platform = this.leafPlatforms
+      .create(x, y + scale(LEVEL2.LEAF_SLOT_SIZE * 0.25), "leaf-slot-smooth")
+      .setScale(scale(LEVEL2.LEAF_SLOT_SIZE) / (LEVEL2.LEAF_SLOT_SIZE * TEXTURES.HIGH_RES_SCALE))
+      .setVisible(false)
+      .refreshBody() as Phaser.Physics.Arcade.Image;
+    platform.disableBody(true, true);
+    leaf.standPlatform = platform;
   }
 
-  private findClosestSlot(x: number, y: number): Slot | null {
+  private getRemainingLeaves(): number {
+    return this.leaves.filter((leaf) => !leaf.placed).length;
+  }
+
+  private findClosestSlot(x: number, y: number, range: number = LEVEL2.INTERACT_RANGE): Slot | null {
     let best: Slot | null = null;
-    let bestDist = MATH.LARGE_NUMBER;
+    let bestDist: number = MATH.LARGE_NUMBER;
     for (const slot of this.slots) {
+      if (!slot.active) {
+        continue;
+      }
       const dist = Phaser.Math.Distance.Between(x, y, slot.x, slot.y);
-      if (dist < scale(LEVEL2.INTERACT_RANGE) && dist < bestDist) {
+      if (dist < scale(range) && dist < bestDist) {
         bestDist = dist;
         best = slot;
       }
@@ -459,14 +672,138 @@ export class Level2Scene extends BaseLevelScene {
     return best;
   }
 
-  private isPlacementValid(slot: Slot, value: number): boolean {
+  private getPlacementValidation(slot: Slot, value: number): PlacementValidation {
     if (slot.value !== undefined) {
-      return false;
+      return { valid: false, reason: "This branch already has a leaf." };
     }
-    if (!slot.active || slot.targetValue === undefined) {
-      return false;
+    if (!slot.active) {
+      return { valid: false, reason: "This branch is not part of the task." };
     }
-    return value === slot.targetValue;
+    const range = this.getAllowedRange(slot);
+    return { valid: true, min: range.min, max: range.max };
+  }
+
+  private getAllowedRange(slot: Slot): { min: number; max: number } {
+    let min = LEVEL2.VALUE_MIN - 1;
+    let max = LEVEL2.VALUE_MAX + 1;
+    let node: Slot | undefined = slot;
+    while (node?.parent) {
+      const parent: Slot = node.parent;
+      if (parent.value !== undefined) {
+        if (node.isLeft) {
+          max = Math.min(max, parent.value);
+        } else {
+          min = Math.max(min, parent.value);
+        }
+      }
+      node = parent;
+    }
+    return { min, max };
+  }
+
+  private updateRangeHint(): void {
+    if (!this.rangeHint) {
+      return;
+    }
+    if (!this.carriedLeaf) {
+      this.rangeHint.setVisible(false);
+      return;
+    }
+    const slot = this.findClosestSlot(this.carriedLeaf.container.x, this.carriedLeaf.container.y, LEVEL2.INTERACT_RANGE * 1.8);
+    if (!slot) {
+      this.rangeHint.setVisible(false);
+      return;
+    }
+
+    const validation = this.getPlacementValidation(slot, this.carriedLeaf.value);
+    const text = validation.reason && !validation.valid ? validation.reason : this.formatRangeHint(slot);
+    const color = validation.valid ? "#bbf7d0" : "#fecaca";
+    const node = this.rangeHint.node as HTMLDivElement;
+    node.style.color = color;
+    setDomText(this.rangeHint, text);
+    this.rangeHint.setPosition(slot.x, slot.y - scale(LEVEL2.RANGE_HINT_OFFSET_Y));
+    this.rangeHint.setVisible(true);
+  }
+
+  private formatRangeHint(slot: Slot): string {
+    if (!slot.parent) {
+      return "Root: any number";
+    }
+    const range = this.getAllowedRange(slot);
+    const min = range.min <= LEVEL2.VALUE_MIN - 1 ? "-" : String(range.min);
+    const max = range.max >= LEVEL2.VALUE_MAX + 1 ? "+" : String(range.max);
+    return `${min} < n < ${max}`;
+  }
+
+  private highlightPathTo(slot: Slot, success: boolean): void {
+    if (!this.pathGraphics) {
+      return;
+    }
+    this.pathGraphics.clear();
+    const path = this.getPathTo(slot);
+    const color = success ? 0x8fe388 : 0xff4d4d;
+    this.pathGraphics.lineStyle(scale(4), color, 0.9);
+    for (let i = 1; i < path.length; i += 1) {
+      this.pathGraphics.lineBetween(path[i - 1].x, path[i - 1].y, path[i].x, path[i].y);
+    }
+    for (const pathSlot of path) {
+      pathSlot.image.setTint(color);
+    }
+    this.time.delayedCall(LEVEL2.PATH_HIGHLIGHT_MS, () => {
+      this.pathGraphics?.clear();
+      for (const pathSlot of path) {
+        pathSlot.image.clearTint();
+      }
+    });
+  }
+
+  private getPathTo(slot: Slot): Slot[] {
+    const path: Slot[] = [];
+    let node: Slot | undefined = slot;
+    while (node) {
+      path.unshift(node);
+      node = node.parent;
+    }
+    return path;
+  }
+
+  private trySubmitTree(): void {
+    if (this.levelCompleted) {
+      return;
+    }
+    if (this.placedCount <= 0) {
+      this.showFeedback("Place at least one leaf before submitting.", "#facc15");
+      return;
+    }
+
+    const validation = this.validateCurrentTree();
+    if (!validation.valid) {
+      this.scoreSystem.addPenalty(LEVEL2.INVALID_SUBMIT_PENALTY);
+      this.scoreSystem.breakCombo();
+      runState.mistakes += 1;
+      this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT_LIGHT);
+      this.showFeedback(validation.reason ?? "Tree is not a valid BST yet.", "#fecaca");
+      return;
+    }
+
+    const isFull = this.placedCount >= this.requiredPlacements;
+    this.completeLevel(isFull);
+  }
+
+  private validateCurrentTree(): PlacementValidation {
+    for (const slot of this.slots) {
+      if (slot.value === undefined) {
+        continue;
+      }
+      const range = this.getAllowedRange(slot);
+      if (slot.value <= range.min) {
+        return { valid: false, reason: `${slot.value} must be greater than ${range.min}.` };
+      }
+      if (slot.value >= range.max) {
+        return { valid: false, reason: `${slot.value} must be smaller than ${range.max}.` };
+      }
+    }
+    return { valid: true };
   }
 
   private createClock(): void {
@@ -483,7 +820,7 @@ export class Level2Scene extends BaseLevelScene {
       this,
       this.clockCenterX + scaleX(LEVEL2.CLOCK_TEXT_OFFSET_X),
       this.clockCenterY - scaleY(LEVEL2.CLOCK_TEXT_OFFSET_Y),
-      "1:00",
+      "1:30",
       {
         maxWidth: LEVEL2.CLOCK_TEXT_MAX_WIDTH,
         fontSize: LEVEL2.CLOCK_TEXT_FONT_SIZE,
@@ -539,43 +876,278 @@ export class Level2Scene extends BaseLevelScene {
     }
   }
 
+  private createObstacles(): void {
+    this.obstacleGroup = this.physics.add.group();
+    this.physics.add.overlap(this.player, this.obstacleGroup, (_, obstacle) => this.handleObstacleHit(obstacle as Phaser.GameObjects.GameObject));
+    this.bugTimer = this.time.addEvent({
+      delay: Math.max(1700, LEVEL2.BUG_SPAWN_INTERVAL_MS / this.obstacleSpeedMultiplier),
+      loop: true,
+      callback: () => this.spawnFallingBug()
+    });
+    this.nullTimer = this.time.addEvent({
+      delay: Math.max(2400, LEVEL2.NULL_SPAWN_INTERVAL_MS / this.obstacleSpeedMultiplier),
+      loop: true,
+      callback: () => this.spawnNullPointer()
+    });
+    this.sideBugTimer = this.time.addEvent({
+      delay: Math.max(1200, LEVEL2.SIDE_BUG_SPAWN_INTERVAL_MS / this.obstacleSpeedMultiplier),
+      loop: true,
+      callback: () => this.spawnSideBug()
+    });
+  }
+
+  private spawnFallingBug(): void {
+    if (this.levelCompleted || !this.obstacleGroup) {
+      return;
+    }
+    const x = rngInt(scaleX(70), scaleX(570));
+    const warning = this.add.graphics().setDepth(DEPTH.LEVEL2_WARNING);
+    warning.lineStyle(scale(2), 0xef4444, 0.95);
+    warning.strokeCircle(x, scaleY(76), scale(LEVEL2.BUG_WARNING_RADIUS));
+    warning.lineBetween(x, scaleY(58), x, scaleY(94));
+    this.tweens.add({
+      targets: warning,
+      alpha: 0.2,
+      yoyo: true,
+      repeat: 2,
+      duration: LEVEL2.BUG_WARNING_MS / 3,
+      onComplete: () => warning.destroy()
+    });
+
+    this.time.delayedCall(LEVEL2.BUG_WARNING_MS, () => {
+      if (this.levelCompleted || !this.obstacleGroup) {
+        return;
+      }
+      const bug = this.physics.add.image(x, -scale(20), "bst-bug-smooth").setDepth(DEPTH.LEVEL2_OBSTACLE);
+      bug.setScale(scale(22) / (24 * TEXTURES.HIGH_RES_SCALE));
+      bug.setVelocityY(scaleY(LEVEL2.BUG_SPEED_Y) * this.obstacleSpeedMultiplier);
+      const body = bug.body as Phaser.Physics.Arcade.Body | null;
+      if (body) {
+        body.allowGravity = false;
+      }
+      this.obstacleGroup?.add(bug);
+    });
+  }
+
+  private spawnNullPointer(): void {
+    if (this.levelCompleted || !this.obstacleGroup) {
+      return;
+    }
+    const fromLeft = Phaser.Math.Between(0, 1) === 0;
+    const shelfY = LEVEL2.SHELF_YS[rngInt(0, LEVEL2.SHELF_YS.length - 1)] + LEVEL2.NULL_SHELF_OFFSET_Y;
+    const x = fromLeft ? -scaleX(LEVEL2.OBSTACLE_CULL_PAD) : this.scale.width + scaleX(LEVEL2.OBSTACLE_CULL_PAD);
+    const hazard = this.physics.add.image(x, scaleY(shelfY), "null-pointer-smooth").setDepth(DEPTH.LEVEL2_OBSTACLE);
+    hazard.setScale(scale(26) / (18 * TEXTURES.HIGH_RES_SCALE));
+    hazard.setFlipX(!fromLeft);
+    hazard.setVelocityX((fromLeft ? 1 : -1) * scaleX(LEVEL2.NULL_SPEED_X) * this.obstacleSpeedMultiplier);
+    const body = hazard.body as Phaser.Physics.Arcade.Body | null;
+    if (body) {
+      body.allowGravity = false;
+    }
+    this.obstacleGroup.add(hazard);
+  }
+
+  private spawnSideBug(): void {
+    if (this.levelCompleted || !this.obstacleGroup) {
+      return;
+    }
+    const fromLeft = this.nextSideBugFromLeft;
+    this.nextSideBugFromLeft = !this.nextSideBugFromLeft;
+    const lane = LEVEL2.SIDE_BUG_LANES[rngInt(0, LEVEL2.SIDE_BUG_LANES.length - 1)];
+    const y = scaleY(lane);
+    const x = fromLeft ? -scaleX(LEVEL2.SIDE_BUG_SIZE) : this.scale.width + scaleX(LEVEL2.SIDE_BUG_SIZE);
+    const targetX = fromLeft ? this.scale.width + scaleX(LEVEL2.SIDE_BUG_SIZE) : -scaleX(LEVEL2.SIDE_BUG_SIZE);
+    const texture = this.textures.exists("level2-beetle-fly-left") ? "level2-beetle-fly-left" : "bst-bug-smooth";
+    const bug = this.physics.add.image(x, y, texture).setDepth(DEPTH.LEVEL2_OBSTACLE);
+    bug.setDisplaySize(scale(LEVEL2.SIDE_BUG_SIZE), scale(LEVEL2.SIDE_BUG_SIZE));
+    bug.setFlipX(fromLeft);
+    const speed = scaleX(LEVEL2.SIDE_BUG_SPEED_X) * this.obstacleSpeedMultiplier;
+    bug.setVelocityX((fromLeft ? 1 : -1) * speed);
+    const body = bug.body as Phaser.Physics.Arcade.Body | null;
+    if (body) {
+      body.allowGravity = false;
+      body.setSize(bug.width * 0.62, bug.height * 0.62, true);
+    }
+    this.obstacleGroup.add(bug);
+    this.physics.add.overlap(this.player, bug, (_, obstacle) => this.handleObstacleHit(obstacle as Phaser.GameObjects.GameObject));
+    this.tweens.add({
+      targets: bug,
+      x: targetX,
+      duration: (Math.abs(targetX - x) / speed) * TIME.MS_PER_SEC,
+      ease: "Linear",
+      onComplete: () => bug.destroy()
+    });
+  }
+
+  private updateObstacles(): void {
+    if (!this.obstacleGroup) {
+      return;
+    }
+    const pad = scale(LEVEL2.OBSTACLE_CULL_PAD);
+    for (const child of this.obstacleGroup.getChildren()) {
+      const obstacle = child as Phaser.Physics.Arcade.Image;
+      if (obstacle.y > this.scale.height + pad || obstacle.x < -pad * 2 || obstacle.x > this.scale.width + pad * 2) {
+        obstacle.destroy();
+      }
+    }
+  }
+
+  private handleObstacleHit(obstacle: Phaser.GameObjects.GameObject): void {
+    if (this.invulnerable || this.levelCompleted) {
+      return;
+    }
+    obstacle.destroy();
+    this.scoreSystem.addPenalty(LEVEL2.OBSTACLE_HIT_PENALTY);
+    this.returnCarriedLeafFromHazard();
+    this.showFeedback("Obstacle hit: carried leaf returned.", "#fecaca");
+    this.applyDamage();
+  }
+
+  private showFeedback(text: string, color: string): void {
+    if (!this.feedbackText) {
+      return;
+    }
+    setDomText(this.feedbackText, text);
+    (this.feedbackText.node as HTMLDivElement).style.color = color;
+  }
+
   private updateDebugConstraints(): void {
     for (const slot of this.slots) {
       if (!slot.debugText) {
+        continue;
+      }
+      if (!slot.active) {
+        slot.debugText.setVisible(false);
         continue;
       }
       if (slot.parent && slot.parent.value === undefined) {
         setDomText(slot.debugText, "lock");
         continue;
       }
-      let min = -Infinity;
-      let max = Infinity;
-      let node: Slot | undefined = slot;
-      while (node?.parent) {
-        const parent = node.parent;
-        if (parent.value === undefined) {
-          break;
-        }
-        if (node.isLeft) {
-          max = Math.min(max, parent.value);
-        } else {
-          min = Math.max(min, parent.value);
-        }
-        node = parent;
-      }
-      setDomText(slot.debugText, `${min === -Infinity ? "-" : min}..${max === Infinity ? "+" : max}`);
+      const range = this.getAllowedRange(slot);
+      const min = range.min <= LEVEL2.VALUE_MIN - 1 ? "-" : String(range.min);
+      const max = range.max >= LEVEL2.VALUE_MAX + 1 ? "+" : String(range.max);
+      setDomText(slot.debugText, `${min}..${max}`);
     }
   }
 
-  private completeLevel(): void {
-    this.scoreSystem.addBase(LEVEL2.COMPLETE_SCORE);
-    if (runState.hearts === RUN.DEFAULT_HEARTS) {
-      this.scoreSystem.addBase(LEVEL2.PERFECT_HEARTS_BONUS);
+  private completeLevel(fullTree: boolean): void {
+    this.levelCompleted = true;
+    this.time.timeScale = 1;
+    this.physics.world.isPaused = false;
+    this.bugTimer?.remove(false);
+    this.nullTimer?.remove(false);
+    this.sideBugTimer?.remove(false);
+    this.clearActiveObstacles();
+    this.carriedLeaf = undefined;
+    this.player.setCarrying(false);
+
+    const ratio = Phaser.Math.Clamp(this.placedCount / this.requiredPlacements, 0, 1);
+    const baseScore = fullTree ? LEVEL2.COMPLETE_SCORE : Math.round(LEVEL2.COMPLETE_SCORE * ratio);
+    this.scoreSystem.addBase(baseScore);
+    if (runState.mistakes === this.mistakeCountAtStart) {
+      this.scoreSystem.addBase(fullTree ? LEVEL2.PERFECT_HEARTS_BONUS : LEVEL2.PARTIAL_BONUS_NO_MISTAKES);
     }
-    this.scoreSystem.applyTimeBonus(LEVEL2.TIME_BONUS_MS);
+    this.scoreSystem.applyTimeBonus(Math.round(LEVEL2.TIME_BONUS_MS * ratio));
     this.audio.playSfx("sfx-level-complete", AUDIO.SFX.LEVEL_COMPLETE);
-    FloatingText.spawn(this, scaleX(LEVEL2.COMPLETE_TEXT_X), scaleY(LEVEL2.COMPLETE_TEXT_Y), `+${LEVEL2.COMPLETE_SCORE}`, "#8fe388");
+    FloatingText.spawn(
+      this,
+      scaleX(LEVEL2.COMPLETE_TEXT_X),
+      scaleY(LEVEL2.COMPLETE_TEXT_Y),
+      fullTree ? `+${LEVEL2.COMPLETE_SCORE}` : `Partial +${baseScore}`,
+      "#8fe388"
+    );
     this.hud.updateAll();
-    this.time.delayedCall(LEVEL2.COMPLETE_DELAY_MS, () => this.scene.start("Level3Scene"));
+
+    if (fullTree) {
+      this.showFeedback("Full BST accepted.", "#bbf7d0");
+      this.scheduleLevel3(LEVEL2.COMPLETE_DELAY_MS);
+      return;
+    }
+
+    this.showFeedback("Valid partial BST accepted.", "#bbf7d0");
+    this.scheduleLevel3(LEVEL2.COMPLETE_DELAY_MS);
+  }
+
+  private playInOrderFlash(done: () => void): void {
+    const order = this.getInOrderPlacedSlots();
+    if (order.length === 0) {
+      this.time.delayedCall(LEVEL2.COMPLETE_DELAY_MS, done);
+      return;
+    }
+    order.forEach((slot, index) => {
+      this.time.delayedCall(index * (LEVEL2.INORDER_FLASH_MS + LEVEL2.INORDER_FLASH_GAP_MS), () => {
+        slot.image.setTint(0xffd166);
+        const leaf = this.leaves.find((candidate) => candidate.placed && candidate.value === slot.value);
+        leaf?.container.setScale(1.12);
+        this.time.delayedCall(LEVEL2.INORDER_FLASH_MS, () => {
+          slot.image.clearTint();
+          leaf?.container.setScale(1);
+        });
+      });
+    });
+    const totalDelay = order.length * (LEVEL2.INORDER_FLASH_MS + LEVEL2.INORDER_FLASH_GAP_MS) + LEVEL2.COMPLETE_DELAY_MS;
+    this.time.delayedCall(totalDelay, done);
+    this.transitionFallbackId = window.setTimeout(() => {
+      if (this.scene.isActive("Level2Scene")) {
+        done();
+      }
+    }, totalDelay + 500);
+  }
+
+  private getInOrderPlacedSlots(): Slot[] {
+    const result: Slot[] = [];
+    const visit = (slot?: Slot): void => {
+      if (!slot || slot.value === undefined) {
+        return;
+      }
+      const children = this.slots.filter((candidate) => candidate.parent === slot);
+      visit(children.find((candidate) => candidate.isLeft));
+      result.push(slot);
+      visit(children.find((candidate) => !candidate.isLeft));
+    };
+    visit(this.slots.find((slot) => slot.id === "root"));
+    return result;
+  }
+
+  private cleanup(): void {
+    this.bugTimer?.remove(false);
+    this.nullTimer?.remove(false);
+    this.sideBugTimer?.remove(false);
+    if (this.transitionFallbackId !== undefined) {
+      window.clearTimeout(this.transitionFallbackId);
+      this.transitionFallbackId = undefined;
+    }
+    this.obstacleGroup = undefined;
+    this.pathGraphics?.clear();
+  }
+
+  private clearActiveObstacles(): void {
+    if (!this.obstacleGroup) {
+      return;
+    }
+    for (const child of [...this.obstacleGroup.getChildren()]) {
+      child.destroy();
+    }
+    this.obstacleGroup = undefined;
+  }
+
+  private scheduleLevel3(delayMs: number): void {
+    this.time.timeScale = 1;
+    this.physics.world.isPaused = false;
+    this.time.delayedCall(delayMs, () => this.startLevel3());
+    this.transitionFallbackId = window.setTimeout(() => {
+      this.startLevel3();
+    }, delayMs + 250);
+  }
+
+  private startLevel3(): void {
+    if (this.transitionStarted) {
+      return;
+    }
+    this.transitionStarted = true;
+    this.physics.world.isPaused = false;
+    this.time.timeScale = 1;
+    this.scene.start("Level3Scene");
   }
 }

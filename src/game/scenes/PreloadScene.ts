@@ -39,6 +39,13 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("hr-walk-fast-left", new URL(`${hrBase}HR-walk-fast-left.png`, import.meta.url).href);
     this.load.image("hr-walk-slow-right", new URL(`${hrBase}HR-walk-slow-right.png`, import.meta.url).href);
     this.load.image("hr-walk-fast-right", new URL(`${hrBase}HR-walk-fast-right.png`, import.meta.url).href);
+    for (let i = 1; i <= 5; i += 1) {
+      this.load.image(`hr-v${i}-stand`, new URL(`${hrBase}HR-v${i}-stand.png`, import.meta.url).href);
+      this.load.image(`hr-v${i}-walk-slow-left`, new URL(`${hrBase}HR-v${i}-walk-slow-left.png`, import.meta.url).href);
+      this.load.image(`hr-v${i}-walk-fast-left`, new URL(`${hrBase}HR-v${i}-walk-fast-left.png`, import.meta.url).href);
+      this.load.image(`hr-v${i}-walk-slow-right`, new URL(`${hrBase}HR-v${i}-walk-slow-right.png`, import.meta.url).href);
+      this.load.image(`hr-v${i}-walk-fast-right`, new URL(`${hrBase}HR-v${i}-walk-fast-right.png`, import.meta.url).href);
+    }
 
     const npcBase = envBase;
     const loadNpc = (id: number, hasFast: boolean): void => {
@@ -56,6 +63,17 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("both2", new URL(`${envBase}both2.png`, import.meta.url).href);
     this.load.image("trash-empty", new URL(`${envBase}tresh-empty.png`, import.meta.url).href);
     this.load.image("trash-full", new URL(`${envBase}tresh-full.png`, import.meta.url).href);
+    this.load.image("level1-job-fair-bg", new URL(`${envBase}level1-job-fair-bg.png`, import.meta.url).href);
+    this.load.image("level2-bst-orchard-bg", new URL(`${envBase}level2-bst-orchard-bg.png`, import.meta.url).href);
+    this.load.image("level2-beetle-fly-left", new URL(`${envBase}level2-beetle-fly-left.png`, import.meta.url).href);
+    this.load.image("level2-beetle-fly-right", new URL(`${envBase}level2-beetle-fly-right.png`, import.meta.url).href);
+    this.load.image("level3-snake-bg", new URL(`${envBase}level3-snake-bg.png`, import.meta.url).href);
+    this.load.image("linked-snake-head", new URL(`${envBase}linked-snake-head.png`, import.meta.url).href);
+    this.load.image("linked-snake-head-hurt", new URL(`${envBase}linked-snake-head-hurt.png`, import.meta.url).href);
+    this.load.image("linked-snake-node", new URL(`${envBase}linked-snake-node.png`, import.meta.url).href);
+    this.load.image("linked-snake-tail", new URL(`${envBase}linked-snake-tail.png`, import.meta.url).href);
+    this.load.image("linked-snake-fireball", new URL(`${envBase}linked-snake-fireball.png`, import.meta.url).href);
+    this.load.image("linked-snake-burst", new URL(`${envBase}linked-snake-burst.png`, import.meta.url).href);
   }
 
   create(): void {
@@ -90,6 +108,7 @@ export class PreloadScene extends Phaser.Scene {
     for (const def of TEXTURES.RECTS) {
       rect(def.key, def.w, def.h, def.fill, def.stroke);
     }
+    this.createHighResolutionTextureVariants(g);
 
     g.clear();
     g.fillStyle(TEXTURES.WATER.TOP_COLOR, TEXTURES.ALPHA_FULL);
@@ -163,6 +182,32 @@ export class PreloadScene extends Phaser.Scene {
 
     this.createJobFairBackgroundTexture(g);
     this.createCrispTrashTextures(g);
+    this.createLevel2OrchardTextures(g);
+  }
+
+  private createHighResolutionTextureVariants(g: Phaser.GameObjects.Graphics): void {
+    const highResRect = (key: string, w: number, h: number, fill: number, stroke?: number): void => {
+      const textureScale = TEXTURES.HIGH_RES_SCALE;
+      const scaledW = w * textureScale;
+      const scaledH = h * textureScale;
+      g.clear();
+      if (stroke !== undefined) {
+        g.lineStyle(TEXTURES.RECT_STROKE_WIDTH * textureScale, stroke, TEXTURES.RECT_STROKE_ALPHA);
+      }
+      g.fillStyle(fill, TEXTURES.ALPHA_FULL);
+      g.fillRect(0, 0, scaledW, scaledH);
+      if (stroke !== undefined) {
+        g.strokeRect(0, 0, scaledW, scaledH);
+      }
+      g.generateTexture(`${key}-smooth`, scaledW, scaledH);
+    };
+
+    for (const key of ["cube", "slot", "platform"]) {
+      const def = TEXTURES.RECTS.find((rectDef) => rectDef.key === key);
+      if (def) {
+        highResRect(def.key, def.w, def.h, def.fill, def.stroke);
+      }
+    }
   }
 
   private createJobFairBackgroundTexture(g: Phaser.GameObjects.Graphics): void {
@@ -248,6 +293,63 @@ export class PreloadScene extends Phaser.Scene {
     g.generateTexture("trash-full-crisp", size, size);
   }
 
+  private createLevel2OrchardTextures(g: Phaser.GameObjects.Graphics): void {
+    const scale = TEXTURES.HIGH_RES_SCALE;
+    const leafW = 34 * scale;
+    const leafH = 26 * scale;
+
+    g.clear();
+    g.fillStyle(0x1f7a52, 1);
+    g.fillEllipse(leafW * 0.5, leafH * 0.54, leafW * 0.82, leafH * 0.72);
+    g.fillStyle(0x7bd774, 1);
+    g.fillEllipse(leafW * 0.43, leafH * 0.42, leafW * 0.48, leafH * 0.36);
+    g.fillStyle(0xffd166, 0.9);
+    g.fillCircle(leafW * 0.58, leafH * 0.53, leafH * 0.25);
+    g.lineStyle(2 * scale, 0x0f3d32, 1);
+    g.strokeEllipse(leafW * 0.5, leafH * 0.54, leafW * 0.82, leafH * 0.72);
+    g.lineStyle(1 * scale, 0xeaf7bf, 0.65);
+    g.lineBetween(leafW * 0.18, leafH * 0.62, leafW * 0.78, leafH * 0.38);
+    g.lineStyle(2 * scale, 0x6b3f1d, 1);
+    g.lineBetween(leafW * 0.12, leafH * 0.67, leafW * 0.28, leafH * 0.58);
+    g.generateTexture("leaf-token-smooth", leafW, leafH);
+
+    g.clear();
+    g.lineStyle(3 * scale, 0x8fe388, 0.95);
+    g.fillStyle(0x10251f, 0.58);
+    g.fillEllipse(leafW * 0.5, leafH * 0.54, leafW * 0.88, leafH * 0.78);
+    g.strokeEllipse(leafW * 0.5, leafH * 0.54, leafW * 0.88, leafH * 0.78);
+    g.lineStyle(1 * scale, 0x4ade80, 0.42);
+    g.lineBetween(leafW * 0.18, leafH * 0.62, leafW * 0.82, leafH * 0.38);
+    g.generateTexture("leaf-slot-smooth", leafW, leafH);
+
+    const bugSize = 24 * scale;
+    g.clear();
+    g.fillStyle(0x111827, 1);
+    g.fillEllipse(bugSize * 0.5, bugSize * 0.54, bugSize * 0.56, bugSize * 0.48);
+    g.fillStyle(0xef4444, 1);
+    g.fillCircle(bugSize * 0.38, bugSize * 0.42, 3 * scale);
+    g.fillCircle(bugSize * 0.62, bugSize * 0.42, 3 * scale);
+    g.lineStyle(2 * scale, 0xfacc15, 1);
+    for (const side of [-1, 1]) {
+      g.lineBetween(bugSize * 0.5, bugSize * 0.52, bugSize * (0.5 + side * 0.34), bugSize * 0.35);
+      g.lineBetween(bugSize * 0.5, bugSize * 0.58, bugSize * (0.5 + side * 0.36), bugSize * 0.68);
+    }
+    g.generateTexture("bst-bug-smooth", bugSize, bugSize);
+
+    const nullW = 46 * scale;
+    const nullH = 18 * scale;
+    g.clear();
+    g.fillStyle(0x221833, 0.92);
+    g.fillRoundedRect(0, 0, nullW, nullH, 5 * scale);
+    g.lineStyle(2 * scale, 0xc084fc, 1);
+    g.strokeRoundedRect(0, 0, nullW, nullH, 5 * scale);
+    g.fillStyle(0xf5d0fe, 1);
+    g.fillTriangle(nullW * 0.74, nullH * 0.18, nullW * 0.95, nullH * 0.5, nullW * 0.74, nullH * 0.82);
+    g.lineStyle(2 * scale, 0xf5d0fe, 1);
+    g.lineBetween(nullW * 0.14, nullH * 0.5, nullW * 0.78, nullH * 0.5);
+    g.generateTexture("null-pointer-smooth", nullW, nullH);
+  }
+
   private applyTextureFilter(): void {
     const textures = this.textures.list as Record<string, Phaser.Textures.Texture>;
     for (const key of Object.keys(textures)) {
@@ -279,8 +381,71 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     const makeLoop = (freq: number): AudioBuffer => makeTone(freq, AUDIO_TONES.MUSIC.LOOP_DURATION, AUDIO_TONES.MUSIC.LOOP_VOLUME);
-    this.cache.audio.add("music-menu", makeLoop(AUDIO_TONES.MUSIC.MENU_FREQ));
+    const makeMenuLoop = (): AudioBuffer => {
+      const sampleRate = ctx.sampleRate;
+      const duration = 4.8;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      const notes = [261.63, 329.63, 392.0, 329.63, 293.66, 349.23, 440.0, 392.0];
+      for (let i = 0; i < length; i += 1) {
+        const t = i / sampleRate;
+        const step = Math.floor(t / 0.6) % notes.length;
+        const local = t % 0.6;
+        const env = Math.min(1, local * 10) * Math.exp(-local * 1.8);
+        const base = notes[step];
+        const melody = Math.sin(2 * Math.PI * base * t) * env * 0.16;
+        const harmony = Math.sin(2 * Math.PI * (base * 0.5) * t) * 0.055;
+        const pad = Math.sin(2 * Math.PI * 130.81 * t) * 0.045 + Math.sin(2 * Math.PI * 196.0 * t) * 0.03;
+        data[i] = (melody + harmony + pad) * AUDIO_TONES.MUSIC.LOOP_VOLUME;
+      }
+      return buffer;
+    };
+    const makeActionLoop = (): AudioBuffer => {
+      const sampleRate = ctx.sampleRate;
+      const duration = 1.6;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      const beatInterval = 0.2;
+      for (let i = 0; i < length; i += 1) {
+        const t = i / sampleRate;
+        const beat = t % beatInterval;
+        const kick = Math.sin(2 * Math.PI * (95 - beat * 220) * t) * Math.exp(-beat * 26);
+        const hat = (Math.random() * 2 - 1) * Math.exp(-beat * 34) * 0.28;
+        const bass = Math.sin(2 * Math.PI * 110 * t) * 0.32 + Math.sin(2 * Math.PI * 165 * t) * 0.18;
+        const leadGate = Math.floor(t / 0.1) % 3 === 0 ? 1 : 0.42;
+        const lead = Math.sin(2 * Math.PI * 440 * t) * leadGate * 0.12;
+        data[i] = (kick * 0.42 + hat + bass + lead) * AUDIO_TONES.MUSIC.LOOP_VOLUME;
+      }
+      return buffer;
+    };
+    const makeFairLoop = (): AudioBuffer => {
+      const sampleRate = ctx.sampleRate;
+      const duration = 1.92;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      const chord = [261.63, 329.63, 392.0, 523.25];
+      for (let i = 0; i < length; i += 1) {
+        const t = i / sampleRate;
+        const beat = t % 0.24;
+        const beatGate = Math.exp(-beat * 18);
+        const chordIndex = Math.floor(t / 0.48) % chord.length;
+        const base = chord[chordIndex];
+        const pluck = Math.sin(2 * Math.PI * base * t) * beatGate * 0.22;
+        const harmony = Math.sin(2 * Math.PI * base * 1.5 * t) * beatGate * 0.11;
+        const bellGate = Math.exp(-(t % 0.96) * 8);
+        const bell = Math.sin(2 * Math.PI * 784 * t) * bellGate * 0.08;
+        const shaker = (Math.random() * 2 - 1) * Math.exp(beat * -34) * 0.07;
+        data[i] = (pluck + harmony + bell + shaker) * AUDIO_TONES.MUSIC.LOOP_VOLUME;
+      }
+      return buffer;
+    };
+    this.cache.audio.add("music-menu", makeMenuLoop());
+    this.cache.audio.add("music-level1-fair", makeFairLoop());
     this.cache.audio.add("music-gameplay", makeLoop(AUDIO_TONES.MUSIC.GAMEPLAY_FREQ));
+    this.cache.audio.add("music-level3-action", makeActionLoop());
     this.cache.audio.add("music-boss", makeLoop(AUDIO_TONES.MUSIC.BOSS_FREQ));
   }
 }

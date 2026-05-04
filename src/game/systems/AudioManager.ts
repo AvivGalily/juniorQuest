@@ -29,7 +29,10 @@ export class AudioManager {
     AudioManager.currentMusic = music;
   }
 
-  stopMusic(): void {
+  stopMusic(key?: string): void {
+    if (key && AudioManager.currentMusic?.key !== key) {
+      return;
+    }
     AudioManager.currentMusic?.stop();
     AudioManager.currentMusic = undefined;
   }
