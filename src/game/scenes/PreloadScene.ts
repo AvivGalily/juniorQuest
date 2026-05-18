@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { AUDIO_TONES, NPCS, PRELOAD, TEXTURES } from "../../config/physics";
-import { createDialogText } from "../utils/domText";
+import { createTranslatedText } from "../utils/domText";
 import { BASE_HEIGHT, BASE_WIDTH } from "../utils/resolution";
 
 export class PreloadScene extends Phaser.Scene {
@@ -61,8 +61,8 @@ export class PreloadScene extends Phaser.Scene {
     NPCS.VARIANTS.forEach((variant) => loadNpc(variant.id, variant.hasFast));
     this.load.image("both1", new URL(`${envBase}both1.png`, import.meta.url).href);
     this.load.image("both2", new URL(`${envBase}both2.png`, import.meta.url).href);
-    this.load.image("trash-empty", new URL(`${envBase}tresh-empty.png`, import.meta.url).href);
-    this.load.image("trash-full", new URL(`${envBase}tresh-full.png`, import.meta.url).href);
+    this.load.image("trash-empty", new URL(`${envBase}trash-bin-empty.png`, import.meta.url).href);
+    this.load.image("trash-full", new URL(`${envBase}trash-bin-with-cv.png`, import.meta.url).href);
     this.load.image("level1-job-fair-bg", new URL(`${envBase}level1-job-fair-bg.png`, import.meta.url).href);
     this.load.image("level2-bst-orchard-bg", new URL(`${envBase}level2-bst-orchard-bg.png`, import.meta.url).href);
     this.load.image("level2-beetle-fly-left", new URL(`${envBase}level2-beetle-fly-left.png`, import.meta.url).href);
@@ -77,7 +77,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
-    createDialogText(this, this.scale.width / 2, this.scale.height / 2, "Loading...", {
+    createTranslatedText(this, this.scale.width / 2, this.scale.height / 2, "common.loading", {
       maxWidth: PRELOAD.LOADING_MAX_WIDTH,
       fontSize: PRELOAD.LOADING_FONT_SIZE,
       color: "#e8eef2"

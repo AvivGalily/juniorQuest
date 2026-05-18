@@ -7,7 +7,8 @@ import { runState } from "../RunState";
 import { isDebug } from "../utils/debug";
 import { rngInt } from "../utils/rng";
 import { FloatingText } from "../entities/FloatingText";
-import { createDialogText, setDomText } from "../utils/domText";
+import { createDialogText, createTranslatedText, setDomText } from "../utils/domText";
+import { t } from "../i18n/i18n";
 import { scale, scaleX, scaleY } from "../utils/layout";
 
 interface Slot {
@@ -75,6 +76,7 @@ export class Level2Scene extends BaseLevelScene {
   private transitionFallbackId?: number;
   private mistakeCountAtStart = 0;
   private obstacleSpeedMultiplier = 1;
+  private elapsedScoreMs = 0;
 
   constructor() {
     super("Level2Scene");
@@ -92,8 +94,9 @@ export class Level2Scene extends BaseLevelScene {
     this.requiredPlacements = Math.min(diff.l2.requiredPlacements, LEVEL2_SLOTS.length);
     this.obstacleSpeedMultiplier = Phaser.Math.Clamp(diff.l2.waterRisePxPerSec / 4, 0.85, 1.25);
     this.timeLeftMs = this.timeLimitMs;
+    this.elapsedScoreMs = runState.level2ElapsedMs;
     this.mistakeCountAtStart = runState.mistakes;
-    this.nextSideBugFromLeft = true;
+    this.nextSideBugFromLeft = Phaser.Math.Between(0, 1) === 0;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanup());
 
     this.createSlots();
@@ -106,7 +109,7 @@ export class Level2Scene extends BaseLevelScene {
     this.leafPlatforms = this.physics.add.staticGroup();
     this.physics.add.collider(this.player, platforms);
 
-    createDialogText(this, scaleX(LEVEL2.TITLE_X), scaleY(LEVEL2.TITLE_Y), "BST Orchard", {
+    createTranslatedText(this, scaleX(LEVEL2.TITLE_X), scaleY(LEVEL2.TITLE_Y), "level2.title", {
       maxWidth: LEVEL2.TITLE_MAX_WIDTH,
       fontSize: LEVEL2.TITLE_FONT_SIZE,
       color: "#f6f7d7"
@@ -152,6 +155,7 @@ export class Level2Scene extends BaseLevelScene {
     this.transitionStarted = false;
     this.mistakeCountAtStart = 0;
     this.obstacleSpeedMultiplier = 1;
+    this.elapsedScoreMs = 0;
   }
 
   update(_: number, delta: number): void {
@@ -236,7 +240,8 @@ export class Level2Scene extends BaseLevelScene {
           maxWidth: LEVEL2.SLOT_DEBUG_MAX_WIDTH,
           fontSize: LEVEL2.SLOT_DEBUG_FONT_SIZE,
           color: "#8fe388",
-          align: "center"
+          align: "center",
+          direction: "ltr"
         }).setDepth(DEPTH.LEVEL2_SLOT_HINT);
       }
       this.slots.push(slot);
@@ -347,7 +352,8 @@ export class Level2Scene extends BaseLevelScene {
       this.leaves.push(leaf);
     }
 
-    this.pileText = createDialogText(this, scaleX(LEVEL2.PILE_TEXT_X), rowY - scale(LEVEL2.PILE_TEXT_OFFSET_Y), "Leaves: 0", {
+    this.pileText = createTranslatedText(this, scaleX(LEVEL2.PILE_TEXT_X), rowY - scale(LEVEL2.PILE_TEXT_OFFSET_Y), "level2.leaves", {
+      params: { count: 0 },
       maxWidth: LEVEL2.PILE_TEXT_MAX_WIDTH,
       fontSize: LEVEL2.PILE_TEXT_FONT_SIZE,
       color: "#f8fafc",
@@ -369,7 +375,8 @@ export class Level2Scene extends BaseLevelScene {
       maxWidth: LEVEL2.CUBE_LABEL_MAX_WIDTH,
       fontSize: LEVEL2.CUBE_LABEL_FONT_SIZE,
       color: "#142018",
-      align: "center"
+      align: "center",
+      direction: "ltr"
     }).setDepth(DEPTH.LEVEL2_CUBE_LABEL);
     return { container, value, placed: false, startX: x, startY: y, label };
   }
@@ -393,7 +400,7 @@ export class Level2Scene extends BaseLevelScene {
     this.submitButton.fillCircle(x - radius * 0.35, y - poleHeight - radius * 0.5, radius * 0.28);
 
     this.submitZone = this.add
-      .zone(x, y - poleHeight * 0.5, scaleX(58), poleHeight + radius * 2)
+      .zone(x, y - poleHeight * 0.5, scaleX(76), poleHeight + radius * 2)
       .setInteractive({ useHandCursor: true });
     this.submitZone.on("pointerdown", () => {
       if (!this.carriedLeaf) {
@@ -402,7 +409,7 @@ export class Level2Scene extends BaseLevelScene {
       }
     });
 
-    this.submitLabel = createDialogText(this, x, y - poleHeight - scaleY(28), "Submit", {
+    this.submitLabel = createTranslatedText(this, x, y - poleHeight - scaleY(28), "level2.submit", {
       maxWidth: LEVEL2.SUBMIT_LABEL_MAX_WIDTH,
       fontSize: LEVEL2.SUBMIT_LABEL_FONT_SIZE,
       color: "#fecaca"
@@ -411,7 +418,7 @@ export class Level2Scene extends BaseLevelScene {
 
   private tryPressSubmitButton(): void {
     if (!this.isPlayerNearSubmitButton()) {
-      this.showFeedback("Stand next to the red submit button.", "#facc15");
+      this.showFeedback(t("level2.standNearSubmit"), "#facc15");
       return;
     }
     this.animateSubmitButton();
@@ -438,7 +445,7 @@ export class Level2Scene extends BaseLevelScene {
   }
 
   private createFeedbackText(): void {
-    this.feedbackText = createDialogText(this, this.scale.width / 2, scaleY(58), "Place leaves by BST rules, then submit.", {
+    this.feedbackText = createTranslatedText(this, this.scale.width / 2, scaleY(58), "level2.initialFeedback", {
       maxWidth: 360,
       fontSize: 12,
       color: "#eaf7bf"
@@ -460,7 +467,7 @@ export class Level2Scene extends BaseLevelScene {
     if (!this.pileText) {
       return;
     }
-    setDomText(this.pileText, `Leaves: ${this.getRemainingLeaves()}`);
+    setDomText(this.pileText, t("level2.leaves", { count: this.getRemainingLeaves() }));
   }
 
   private syncLeafLabels(): void {
@@ -542,7 +549,7 @@ export class Level2Scene extends BaseLevelScene {
     this.carriedLeaf = leaf;
     this.player.setCarrying(true);
     leaf.container.setDepth(DEPTH.LEVEL2_CUBE_LABEL);
-    this.showFeedback("Leaf lifted. Move it to a new branch.", "#bbf7d0");
+    this.showFeedback(t("level2.leafLifted"), "#bbf7d0");
     this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT_LIGHT);
     this.updatePileText();
   }
@@ -569,14 +576,14 @@ export class Level2Scene extends BaseLevelScene {
     }
     const slot = this.findClosestSlot(x, y);
     if (!slot) {
-      this.showFeedback("Move closer to a leaf slot.", "#facc15");
+      this.placeCarriedOnFloor();
       return;
     }
 
     const validation = this.getPlacementValidation(slot, this.carriedLeaf.value);
     if (!validation.valid) {
       this.highlightPathTo(slot, false);
-      this.rejectCarriedLeaf(validation.reason ?? "Wrong BST position.");
+      this.placeCarriedOnFloor(validation.reason ?? t("level2.wrongPosition"));
       return;
     }
 
@@ -592,18 +599,39 @@ export class Level2Scene extends BaseLevelScene {
     this.carriedLeaf = undefined;
     this.player.setCarrying(false);
     this.placedCount += 1;
-    this.scoreSystem.addSkill(LEVEL2.CUBE_SUCCESS_SCORE);
-    FloatingText.spawn(
-      this,
-      slot.x,
-      slot.y - scale(LEVEL2.SCORE_FLOAT_OFFSET_Y),
-      `+${LEVEL2.CUBE_SUCCESS_SCORE}`,
-      "#8fe388"
-    );
     this.highlightPathTo(slot, true);
-    this.showFeedback("Leaf placed. Submit checks the full BST.", "#8fe388");
+    this.showFeedback(t("level2.leafPlaced"), "#8fe388");
     this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_MED);
     this.updatePileText();
+  }
+
+  private placeCarriedOnFloor(reason?: string): void {
+    if (!this.carriedLeaf) {
+      return;
+    }
+    const leaf = this.carriedLeaf;
+    const floorY = this.getNearestFloorDropY();
+    leaf.container.setPosition(this.player.x, floorY);
+    leaf.label?.setPosition(leaf.container.x, leaf.container.y);
+    leaf.container.setDepth(DEPTH.LEVEL2_CUBE);
+    leaf.placed = false;
+    leaf.slot = undefined;
+    leaf.startX = leaf.container.x;
+    leaf.startY = leaf.container.y;
+    leaf.standPlatform?.destroy();
+    leaf.standPlatform = undefined;
+    this.carriedLeaf = undefined;
+    this.player.setCarrying(false);
+    this.showFeedback(reason ?? t("level2.leafDropped"), "#facc15");
+    this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT_LIGHT);
+    this.updatePileText();
+  }
+
+  private getNearestFloorDropY(): number {
+    const candidates = [LEVEL2.GROUND_Y, ...LEVEL2.SHELF_YS].map((y) => scaleY(y - LEVEL2.LEAF_SLOT_SIZE * 0.5));
+    return candidates.reduce((best, candidate) =>
+      Math.abs(candidate - this.player.y) < Math.abs(best - this.player.y) ? candidate : best
+    );
   }
 
   private rejectCarriedLeaf(reason: string): void {
@@ -613,8 +641,6 @@ export class Level2Scene extends BaseLevelScene {
     const leaf = this.carriedLeaf;
     this.carriedLeaf = undefined;
     this.player.setCarrying(false);
-    this.scoreSystem.addPenalty(LEVEL2.CUBE_REJECT_PENALTY);
-    this.scoreSystem.breakCombo();
     runState.mistakes += 1;
     this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT_LIGHT);
     this.showFeedback(reason, "#fecaca");
@@ -674,10 +700,10 @@ export class Level2Scene extends BaseLevelScene {
 
   private getPlacementValidation(slot: Slot, value: number): PlacementValidation {
     if (slot.value !== undefined) {
-      return { valid: false, reason: "This branch already has a leaf." };
+      return { valid: false, reason: t("level2.branchOccupied") };
     }
     if (!slot.active) {
-      return { valid: false, reason: "This branch is not part of the task." };
+      return { valid: false, reason: t("level2.branchInactive") };
     }
     const range = this.getAllowedRange(slot);
     return { valid: true, min: range.min, max: range.max };
@@ -727,7 +753,7 @@ export class Level2Scene extends BaseLevelScene {
 
   private formatRangeHint(slot: Slot): string {
     if (!slot.parent) {
-      return "Root: any number";
+      return t("level2.rootAny");
     }
     const range = this.getAllowedRange(slot);
     const min = range.min <= LEVEL2.VALUE_MIN - 1 ? "-" : String(range.min);
@@ -772,17 +798,15 @@ export class Level2Scene extends BaseLevelScene {
       return;
     }
     if (this.placedCount <= 0) {
-      this.showFeedback("Place at least one leaf before submitting.", "#facc15");
+      this.showFeedback(t("level2.placeOne"), "#facc15");
       return;
     }
 
     const validation = this.validateCurrentTree();
     if (!validation.valid) {
-      this.scoreSystem.addPenalty(LEVEL2.INVALID_SUBMIT_PENALTY);
-      this.scoreSystem.breakCombo();
       runState.mistakes += 1;
       this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT_LIGHT);
-      this.showFeedback(validation.reason ?? "Tree is not a valid BST yet.", "#fecaca");
+      this.showFeedback(validation.reason ?? t("level2.invalidTree"), "#fecaca");
       return;
     }
 
@@ -797,10 +821,10 @@ export class Level2Scene extends BaseLevelScene {
       }
       const range = this.getAllowedRange(slot);
       if (slot.value <= range.min) {
-        return { valid: false, reason: `${slot.value} must be greater than ${range.min}.` };
+        return { valid: false, reason: t("level2.mustBeGreater", { value: slot.value, min: range.min }) };
       }
       if (slot.value >= range.max) {
-        return { valid: false, reason: `${slot.value} must be smaller than ${range.max}.` };
+        return { valid: false, reason: t("level2.mustBeSmaller", { value: slot.value, max: range.max }) };
       }
     }
     return { valid: true };
@@ -826,6 +850,7 @@ export class Level2Scene extends BaseLevelScene {
         fontSize: LEVEL2.CLOCK_TEXT_FONT_SIZE,
         color: "#e8eef2",
         align: "left",
+        direction: "ltr",
         originX: DOM_TEXT.ORIGIN_LEFT,
         originY: DOM_TEXT.ORIGIN_MIDDLE
       }
@@ -833,6 +858,8 @@ export class Level2Scene extends BaseLevelScene {
   }
 
   private updateClock(delta: number): void {
+    this.elapsedScoreMs += delta;
+    runState.level2ElapsedMs = this.elapsedScoreMs;
     this.timeLeftMs = Math.max(0, this.timeLeftMs - delta);
     const secondsLeft = Math.ceil(this.timeLeftMs / TIME.MS_PER_SEC);
     const mins = Math.floor(secondsLeft / TIME.SEC_PER_MIN);
@@ -951,8 +978,7 @@ export class Level2Scene extends BaseLevelScene {
     if (this.levelCompleted || !this.obstacleGroup) {
       return;
     }
-    const fromLeft = this.nextSideBugFromLeft;
-    this.nextSideBugFromLeft = !this.nextSideBugFromLeft;
+    const fromLeft = Phaser.Math.Between(0, 1) === 0;
     const lane = LEVEL2.SIDE_BUG_LANES[rngInt(0, LEVEL2.SIDE_BUG_LANES.length - 1)];
     const y = scaleY(lane);
     const x = fromLeft ? -scaleX(LEVEL2.SIDE_BUG_SIZE) : this.scale.width + scaleX(LEVEL2.SIDE_BUG_SIZE);
@@ -997,9 +1023,8 @@ export class Level2Scene extends BaseLevelScene {
       return;
     }
     obstacle.destroy();
-    this.scoreSystem.addPenalty(LEVEL2.OBSTACLE_HIT_PENALTY);
     this.returnCarriedLeafFromHazard();
-    this.showFeedback("Obstacle hit: carried leaf returned.", "#fecaca");
+    this.showFeedback(t("level2.obstacleHit"), "#fecaca");
     this.applyDamage();
   }
 
@@ -1021,7 +1046,7 @@ export class Level2Scene extends BaseLevelScene {
         continue;
       }
       if (slot.parent && slot.parent.value === undefined) {
-        setDomText(slot.debugText, "lock");
+        setDomText(slot.debugText, t("level2.lock"));
         continue;
       }
       const range = this.getAllowedRange(slot);
@@ -1042,30 +1067,30 @@ export class Level2Scene extends BaseLevelScene {
     this.carriedLeaf = undefined;
     this.player.setCarrying(false);
 
-    const ratio = Phaser.Math.Clamp(this.placedCount / this.requiredPlacements, 0, 1);
-    const baseScore = fullTree ? LEVEL2.COMPLETE_SCORE : Math.round(LEVEL2.COMPLETE_SCORE * ratio);
+    runState.level2ElapsedMs = this.elapsedScoreMs;
+    const elapsedSeconds = Math.floor(this.elapsedScoreMs / TIME.MS_PER_SEC);
+    const baseScore = Math.max(
+      0,
+      this.placedCount * LEVEL2.SCORE_PER_PLACED_LEAF - elapsedSeconds * LEVEL2.SCORE_TIME_PENALTY_PER_SEC
+    );
     this.scoreSystem.addBase(baseScore);
-    if (runState.mistakes === this.mistakeCountAtStart) {
-      this.scoreSystem.addBase(fullTree ? LEVEL2.PERFECT_HEARTS_BONUS : LEVEL2.PARTIAL_BONUS_NO_MISTAKES);
-    }
-    this.scoreSystem.applyTimeBonus(Math.round(LEVEL2.TIME_BONUS_MS * ratio));
     this.audio.playSfx("sfx-level-complete", AUDIO.SFX.LEVEL_COMPLETE);
     FloatingText.spawn(
       this,
       scaleX(LEVEL2.COMPLETE_TEXT_X),
       scaleY(LEVEL2.COMPLETE_TEXT_Y),
-      fullTree ? `+${LEVEL2.COMPLETE_SCORE}` : `Partial +${baseScore}`,
+      fullTree ? t("common.points", { points: baseScore }) : t("common.partialPoints", { points: baseScore }),
       "#8fe388"
     );
     this.hud.updateAll();
 
     if (fullTree) {
-      this.showFeedback("Full BST accepted.", "#bbf7d0");
+      this.showFeedback(t("level2.fullAccepted"), "#bbf7d0");
       this.scheduleLevel3(LEVEL2.COMPLETE_DELAY_MS);
       return;
     }
 
-    this.showFeedback("Valid partial BST accepted.", "#bbf7d0");
+    this.showFeedback(t("level2.partialAccepted"), "#bbf7d0");
     this.scheduleLevel3(LEVEL2.COMPLETE_DELAY_MS);
   }
 

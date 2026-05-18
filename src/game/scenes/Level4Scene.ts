@@ -6,6 +6,7 @@ import { difficultyPresets } from "../../config/difficulty";
 import { AUDIO, FLOATING_TEXT, LEVEL4, MATH, PLAYER, RUN, SCALE, STAGE } from "../../config/physics";
 import { runState } from "../RunState";
 import { FloatingText } from "../entities/FloatingText";
+import { t } from "../i18n/i18n";
 import { scale, scaleX, scaleY } from "../utils/layout";
 
 export class Level4Scene extends BaseLevelScene {
@@ -101,7 +102,7 @@ export class Level4Scene extends BaseLevelScene {
           this,
           rival.x,
           rival.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM),
-          `+${LEVEL4.RIVAL_OVERTAKE_SCORE}`,
+          t("common.points", { points: LEVEL4.RIVAL_OVERTAKE_SCORE }),
           "#8fe388"
         );
       }
@@ -162,7 +163,7 @@ export class Level4Scene extends BaseLevelScene {
       this,
       scaleX(LEVEL4.COMPLETE_TEXT_X),
       this.cameras.main.scrollY + scaleY(LEVEL4.COMPLETE_TEXT_Y_OFFSET),
-      `+${LEVEL4.COMPLETE_SCORE}`,
+      t("common.points", { points: LEVEL4.COMPLETE_SCORE }),
       "#8fe388"
     );
     this.hud.updateAll();

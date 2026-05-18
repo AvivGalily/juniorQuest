@@ -5,7 +5,8 @@ import { difficultyPresets } from "../../config/difficulty";
 import { ALPHA, AUDIO, FLOATING_TEXT, LEVEL3, PLAYER, RUN, SCALE, STAGE, TEXTURES, TIME } from "../../config/physics";
 import { runState } from "../RunState";
 import { FloatingText } from "../entities/FloatingText";
-import { createDialogText } from "../utils/domText";
+import { createTranslatedText } from "../utils/domText";
+import { t } from "../i18n/i18n";
 import { scale, scaleX, scaleY } from "../utils/layout";
 
 type SnakeSegment = {
@@ -129,12 +130,12 @@ export class Level3Scene extends BaseLevelScene {
     this.links = this.add.graphics().setDepth(8);
     this.createSnake();
 
-    createDialogText(this, scaleX(LEVEL3.TITLE_X), scaleY(LEVEL3.TITLE_Y), "Reverse Linked List Snake", {
+    createTranslatedText(this, scaleX(LEVEL3.TITLE_X), scaleY(LEVEL3.TITLE_Y), "level3.title", {
       maxWidth: LEVEL3.TITLE_MAX_WIDTH,
       fontSize: LEVEL3.TITLE_FONT_SIZE,
       color: "#e8eef2"
     });
-    createDialogText(this, scaleX(LEVEL3.TITLE_X), scaleY(LEVEL3.SUBTITLE_Y), "Jump on the glowing node, press E, dodge fire and falling spikes.", {
+    createTranslatedText(this, scaleX(LEVEL3.TITLE_X), scaleY(LEVEL3.SUBTITLE_Y), "level3.subtitle", {
       maxWidth: LEVEL3.SUBTITLE_MAX_WIDTH,
       fontSize: LEVEL3.SUBTITLE_FONT_SIZE,
       color: "#cbd5e1"
@@ -147,7 +148,7 @@ export class Level3Scene extends BaseLevelScene {
       if (runState.hearts <= 0 || !this.isLevel3Active()) {
         return;
       }
-      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), "FIRE", "#ff6b6b");
+      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), t("level3.fire"), "#ff6b6b");
     });
 
     this.ensureStalactiteTexture();
@@ -162,7 +163,7 @@ export class Level3Scene extends BaseLevelScene {
       if (runState.hearts <= 0 || !this.isLevel3Active()) {
         return;
       }
-      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), "SPIKE", "#ff6b6b");
+      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), t("level3.spike"), "#ff6b6b");
     });
 
     this.scheduleNextAttack(850);
@@ -502,7 +503,7 @@ export class Level3Scene extends BaseLevelScene {
   private tryFlipMountedSegment(): void {
     const mountedIndex = this.getMountedSegmentIndex();
     if (mountedIndex === undefined) {
-      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), "LAND ON A NODE", "#ffd166");
+      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), t("level3.landOnNode"), "#ffd166");
       return;
     }
 
@@ -511,7 +512,7 @@ export class Level3Scene extends BaseLevelScene {
       this.scoreSystem.breakCombo();
       this.applyDamage();
       this.throwPlayerDown(mountedIndex);
-      FloatingText.spawn(this, this.segments[mountedIndex].x, this.segments[mountedIndex].y - scale(24), "WRONG NODE", "#ff6b6b");
+      FloatingText.spawn(this, this.segments[mountedIndex].x, this.segments[mountedIndex].y - scale(24), t("level3.wrongNode"), "#ff6b6b");
       return;
     }
 
@@ -520,7 +521,7 @@ export class Level3Scene extends BaseLevelScene {
     this.triggerPainFace();
     this.scoreSystem.addSkill(LEVEL3.COMBO_SKILL_SCORE);
     this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_MED);
-    FloatingText.spawn(this, segment.x, segment.y - scale(24), "next = prev", "#8fe388");
+    FloatingText.spawn(this, segment.x, segment.y - scale(24), t("level3.nextPrev"), "#8fe388");
     this.throwPlayerDown(mountedIndex);
     this.activeSegmentIndex += 1;
     this.drawLinks();
@@ -542,7 +543,7 @@ export class Level3Scene extends BaseLevelScene {
         this.head.clearTint();
       }
     });
-    FloatingText.spawn(this, this.head.x, this.head.y - this.headDisplayHeight * 0.42, "OUCH", "#ff8a66");
+    FloatingText.spawn(this, this.head.x, this.head.y - this.headDisplayHeight * 0.42, t("level3.ouch"), "#ff8a66");
   }
 
   private updatePainFace(): void {
@@ -860,7 +861,7 @@ export class Level3Scene extends BaseLevelScene {
         hazard.damageApplied = true;
         this.applyDamage();
         if (runState.hearts > 0 && this.isLevel3Active()) {
-          FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), "BURN", "#ff6b6b");
+          FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), t("level3.burn"), "#ff6b6b");
         }
       }
       return true;
@@ -990,7 +991,7 @@ export class Level3Scene extends BaseLevelScene {
     this.audio.playSfx("sfx-level-complete", AUDIO.SFX.LEVEL_COMPLETE);
 
     const burst = this.add.image(this.head.x - scaleX(28), this.head.y + scaleY(14), "linked-snake-burst").setDisplaySize(scaleX(110), scaleY(74)).setDepth(40);
-    FloatingText.spawn(this, scaleX(LEVEL3.COMPLETE_TEXT_X), scaleY(LEVEL3.COMPLETE_TEXT_Y), `+${LEVEL3.LEVEL_COMPLETE_SCORE}`, "#8fe388");
+    FloatingText.spawn(this, scaleX(LEVEL3.COMPLETE_TEXT_X), scaleY(LEVEL3.COMPLETE_TEXT_Y), t("common.points", { points: LEVEL3.LEVEL_COMPLETE_SCORE }), "#8fe388");
 
     const fadeTargets = [
       this.head,

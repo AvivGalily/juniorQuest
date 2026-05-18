@@ -8,6 +8,7 @@ class RunState {
   comboSteps: number = RUN.DEFAULT_COMBO_STEPS;
   difficulty: Difficulty = "bootcamp";
   levelStartTimeMs: number = 0;
+  level2ElapsedMs: number = 0;
   mistakes: number = RUN.DEFAULT_MISTAKES;
 
   resetRun(): void {
@@ -17,6 +18,7 @@ class RunState {
     this.comboSteps = RUN.DEFAULT_COMBO_STEPS;
     this.mistakes = RUN.DEFAULT_MISTAKES;
     this.levelStartTimeMs = Date.now();
+    this.level2ElapsedMs = 0;
   }
 
   resetLevel(): void {

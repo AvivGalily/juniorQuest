@@ -8,7 +8,7 @@ import { ScoreSystem } from "../systems/ScoreSystem";
 import { UIHud } from "../systems/UIHud";
 import { flashTween } from "../utils/tween";
 import { Player } from "../entities/player/Player";
-import { createDialogText } from "../utils/domText";
+import { createTranslatedText } from "../utils/domText";
 
 export class BaseLevelScene extends Phaser.Scene {
   protected inputManager!: InputManager;
@@ -19,9 +19,7 @@ export class BaseLevelScene extends Phaser.Scene {
   protected player?: Player;
   protected invulnerable = false;
   protected paused = false;
-  private pauseText?: Phaser.GameObjects.DOMElement;
-  private lastEscPressMs = 0;
-  private escDoubleWindowMs = BASE_LEVEL.ESC_DOUBLE_PRESS_MS;
+  private pauseOverlayObjects: Phaser.GameObjects.GameObject[] = [];
 
   protected initLevel(stageNumber: number): void {
     this.paused = false;
@@ -48,23 +46,28 @@ export class BaseLevelScene extends Phaser.Scene {
       return;
     }
     if (this.inputManager.justPressedPause()) {
-      const now = Date.now();
-      if (now - this.lastEscPressMs <= this.escDoubleWindowMs) {
+      if (this.paused) {
+        this.setPaused(false);
         this.scene.start("MenuScene");
         return;
       }
-      this.lastEscPressMs = now;
-      this.togglePause();
+      this.setPaused(true);
+      return;
+    }
+    if (this.paused && Phaser.Input.Keyboard.JustDown(this.inputManager.keys.ENTER)) {
+      this.setPaused(false);
     }
   }
 
   protected togglePause(): void {
-    this.paused = !this.paused;
+    this.setPaused(!this.paused);
+  }
+
+  protected setPaused(paused: boolean): void {
+    this.paused = paused;
     this.physics.world.isPaused = this.paused;
     this.time.timeScale = this.paused ? 0 : 1;
-    if (this.pauseText) {
-      this.pauseText.setVisible(this.paused);
-    }
+    this.pauseOverlayObjects.forEach((object) => object.setVisible(this.paused));
   }
 
   protected applyDamage(respawn?: () => void): void {
@@ -90,10 +93,88 @@ export class BaseLevelScene extends Phaser.Scene {
   }
 
   protected createPauseOverlay(): void {
-    this.pauseText = createDialogText(this, this.scale.width / 2, this.scale.height / 2, "PAUSED", {
+    this.pauseOverlayObjects.forEach((object) => object.destroy());
+    this.pauseOverlayObjects = [];
+
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+    const panelWidth = 340;
+    const panelHeight = 142;
+    const buttonWidth = 252;
+    const buttonHeight = 28;
+    const baseDepth = DEPTH.PAUSE_OVERLAY + 50;
+
+    const panel = this.add
+      .rectangle(centerX, centerY, panelWidth, panelHeight, 0x0f172a, 0.94)
+      .setStrokeStyle(2, 0x38bdf8, 0.95)
+      .setScrollFactor(0)
+      .setDepth(baseDepth)
+      .setVisible(false);
+
+    const title = createTranslatedText(this, centerX, centerY - 48, "common.paused", {
       maxWidth: BASE_LEVEL.PAUSE_MAX_WIDTH,
       fontSize: BASE_LEVEL.PAUSE_FONT_SIZE,
-      color: "#ffd166"
-    }).setScrollFactor(0).setDepth(DEPTH.PAUSE_OVERLAY).setVisible(false);
+      color: "#ffd166",
+      weight: 800
+    })
+      .setScrollFactor(0)
+      .setDepth(baseDepth + 2)
+      .setVisible(false);
+
+    const exitButton = this.createPauseButton(centerX, centerY - 10, buttonWidth, buttonHeight, () => {
+      if (!this.paused) {
+        return;
+      }
+      this.setPaused(false);
+      this.scene.start("MenuScene");
+    });
+    const exitLabel = createTranslatedText(this, centerX, centerY - 10, "common.pauseExit", {
+      maxWidth: buttonWidth - 20,
+      fontSize: 15,
+      color: "#f8fafc",
+      weight: 700
+    })
+      .setScrollFactor(0)
+      .setDepth(baseDepth + 2)
+      .setVisible(false);
+
+    const continueButton = this.createPauseButton(centerX, centerY + 30, buttonWidth, buttonHeight, () => {
+      if (this.paused) {
+        this.setPaused(false);
+      }
+    });
+    const continueLabel = createTranslatedText(this, centerX, centerY + 30, "common.pauseContinue", {
+      maxWidth: buttonWidth - 20,
+      fontSize: 15,
+      color: "#f8fafc",
+      weight: 700
+    })
+      .setScrollFactor(0)
+      .setDepth(baseDepth + 2)
+      .setVisible(false);
+
+    this.pauseOverlayObjects.push(panel, title, exitButton, exitLabel, continueButton, continueLabel);
+  }
+
+  private createPauseButton(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    onClick: () => void
+  ): Phaser.GameObjects.Rectangle {
+    const button = this.add
+      .rectangle(x, y, width, height, 0x1f2937, 0.96)
+      .setStrokeStyle(1, 0x94a3b8, 0.9)
+      .setScrollFactor(0)
+      .setDepth(DEPTH.PAUSE_OVERLAY + 51)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+
+    button.on("pointerover", () => button.setFillStyle(0x334155, 0.98));
+    button.on("pointerout", () => button.setFillStyle(0x1f2937, 0.96));
+    button.on("pointerdown", onClick);
+
+    return button;
   }
 }

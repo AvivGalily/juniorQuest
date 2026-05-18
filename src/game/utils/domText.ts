@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { DOM_TEXT } from "../../config/physics";
+import { getDirection, t, TranslateParams } from "../i18n/i18n";
 import { getUiScale } from "./resolution";
 
 const scaleCssValue = (value: string, scale: number): string =>
@@ -16,6 +17,7 @@ const buildStyle = (
   [
     `width:${maxWidth}px`,
     `padding:${padding}`,
+    "box-sizing:border-box",
     "font-family:\"Courier New\", Courier, monospace",
     `font-size:${fontSize}px`,
     `font-weight:${weight}`,
@@ -24,24 +26,40 @@ const buildStyle = (
     `color:${color}`,
     "background:transparent",
     "white-space:normal",
+    "overflow-wrap:break-word",
     "user-select:none"
   ].join(";");
+
+type DialogTextOptions = {
+  maxWidth?: number;
+  fontSize?: number;
+  color?: string;
+  padding?: string;
+  weight?: number;
+  align?: "left" | "center" | "right";
+  originX?: number;
+  originY?: number;
+  direction?: "ltr" | "rtl";
+};
+
+type TranslatedTextOptions = DialogTextOptions & {
+  params?: TranslateParams;
+};
+
+const applyDirection = (element: Phaser.GameObjects.DOMElement, direction?: "ltr" | "rtl"): void => {
+  const node = element.node as HTMLDivElement;
+  const stored = node.dataset.direction;
+  const resolved = direction ?? (stored === "ltr" || stored === "rtl" ? stored : getDirection());
+  node.dir = resolved;
+  node.style.direction = resolved;
+};
 
 export const createDialogText = (
   scene: Phaser.Scene,
   x: number,
   y: number,
   text: string,
-  options?: {
-    maxWidth?: number;
-    fontSize?: number;
-    color?: string;
-    padding?: string;
-    weight?: number;
-    align?: "left" | "center" | "right";
-    originX?: number;
-    originY?: number;
-  }
+  options?: DialogTextOptions
 ): Phaser.GameObjects.DOMElement => {
   const uiScale = getUiScale();
   const maxWidth = options?.maxWidth ?? DOM_TEXT.DEFAULT_MAX_WIDTH;
@@ -66,11 +84,31 @@ export const createDialogText = (
     text
   );
   element.setOrigin(options?.originX ?? DOM_TEXT.DEFAULT_ORIGIN, options?.originY ?? DOM_TEXT.DEFAULT_ORIGIN);
-  (element.node as HTMLDivElement).style.pointerEvents = "none";
+  const node = element.node as HTMLDivElement;
+  node.style.pointerEvents = "none";
+  node.dataset.direction = options?.direction ?? "auto";
+  applyDirection(element);
 
   return element;
 };
 
 export const setDomText = (element: Phaser.GameObjects.DOMElement, text: string): void => {
   (element.node as HTMLDivElement).textContent = text;
+  applyDirection(element);
+};
+
+export const createTranslatedText = (
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  key: string,
+  options?: TranslatedTextOptions
+): Phaser.GameObjects.DOMElement => createDialogText(scene, x, y, t(key, options?.params), options);
+
+export const setTranslatedText = (
+  element: Phaser.GameObjects.DOMElement,
+  key: string,
+  params?: TranslateParams
+): void => {
+  setDomText(element, t(key, params));
 };

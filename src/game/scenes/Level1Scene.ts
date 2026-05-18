@@ -4,12 +4,14 @@ import { Player } from "../entities/player/Player";
 import { Recruiter } from "../entities/recruiter/Recruiter";
 import { Guard } from "../entities/guard/Guard";
 import { Npc } from "../entities/npc/Npc";
+import { Level2IntroScene } from "./Level2IntroScene";
 import { difficultyPresets } from "../../config/difficulty";
-import { AUDIO, DEPTH, DOM_TEXT, FLOATING_TEXT, LEVEL1, MATH, PLAYER, RUN, STAGE } from "../../config/physics";
+import { AUDIO, DEPTH, DOM_TEXT, FLOATING_TEXT, LEVEL1, MATH, PLAYER, RUN, STAGE, TEXTURES } from "../../config/physics";
 import { runState } from "../RunState";
 import { rngInt, rngPick } from "../utils/rng";
 import { FloatingText } from "../entities/FloatingText";
-import { createDialogText, setDomText } from "../utils/domText";
+import { createDialogText, createTranslatedText, setDomText } from "../utils/domText";
+import { t } from "../i18n/i18n";
 import { BASE_HEIGHT, getUiScale } from "../utils/resolution";
 import { scale, scaleX, scaleY } from "../utils/layout";
 import { scaleSpriteToHeight } from "../utils/spriteScale";
@@ -43,6 +45,19 @@ type TrashBinState = {
   full: boolean;
 };
 
+type SpeechAnchor = {
+  x: number;
+  y: number;
+  displayHeight: number;
+  depth: number;
+};
+
+type SpeechLayout = {
+  bubbleScale: number;
+  maxWidth: number;
+  fontSize: number;
+};
+
 type VisionBlocker = Phaser.Geom.Rectangle;
 
 export class Level1Scene extends BaseLevelScene {
@@ -53,7 +68,6 @@ export class Level1Scene extends BaseLevelScene {
   private npcCouriers: NpcCourierState[] = [];
   private targetRecruiter?: Recruiter;
   private targetCompany = "";
-  private targetNoticeText?: Phaser.GameObjects.DOMElement;
   private detectionTimer = 0;
   private exposureHeat = 0;
   private exposureMeter?: {
@@ -62,7 +76,11 @@ export class Level1Scene extends BaseLevelScene {
     bulb: Phaser.GameObjects.Ellipse;
     outline: Phaser.GameObjects.Rectangle;
   };
-  private dialog?: { bubble: Phaser.GameObjects.Image; label: Phaser.GameObjects.DOMElement };
+  private dialog?: {
+    bubble: Phaser.GameObjects.Image;
+    label: Phaser.GameObjects.DOMElement;
+    tail?: Phaser.GameObjects.Triangle;
+  };
   private wrongInteractions = 0;
   private hasCV = false;
   private levelCompleted = false;
@@ -88,6 +106,22 @@ export class Level1Scene extends BaseLevelScene {
 
   create(data?: Level1RestartData): void {
     this.initLevel(STAGE.LEVEL1);
+    this.guards = [];
+    this.guardFovs = [];
+    this.recruiterStates = [];
+    this.npcCouriers = [];
+    this.trashBins = [];
+    this.targetRecruiter = undefined;
+    this.targetCompany = "";
+    this.detectionTimer = 0;
+    this.exposureHeat = 0;
+    this.wrongInteractions = 0;
+    this.hasCV = true;
+    this.levelCompleted = false;
+    this.cvItem = undefined;
+    this.cvLabel = undefined;
+    this.cvTrashWarning = undefined;
+    this.dialog = undefined;
     if (typeof data?.heartsOverride === "number") {
       runState.hearts = data.heartsOverride;
       this.hud.updateAll();
@@ -129,7 +163,7 @@ export class Level1Scene extends BaseLevelScene {
       const safe = this.getSafeFloorPoint(scaleX(pos.x), scaleY(pos.y));
       const x = safe.x;
       const y = safe.y;
-      const sprite = trashGroup.create(x, y, "trash-empty-crisp") as Phaser.Physics.Arcade.Image;
+      const sprite = trashGroup.create(x, y, "trash-empty") as Phaser.Physics.Arcade.Image;
       scaleSpriteToHeight(sprite, trashHeight);
       sprite.setDepth(y);
       sprite.refreshBody();
@@ -139,8 +173,8 @@ export class Level1Scene extends BaseLevelScene {
     const playerStart = this.getSafeFloorPoint(scaleX(LEVEL1.PLAYER_START.x), scaleY(LEVEL1.PLAYER_START.y));
     this.player = new Player(this, playerStart.x, playerStart.y);
     this.player.body.allowGravity = false;
-    this.player.setCarrying(false);
     this.player.setCarryStyle("cv");
+    this.player.setCarrying(true);
     this.setPlayer(this.player);
 
     const cvStart = this.getSafeFloorPoint(scaleX(LEVEL1.CV_START.x), scaleY(LEVEL1.CV_START.y));
@@ -185,15 +219,6 @@ export class Level1Scene extends BaseLevelScene {
       this.physics.add.collider(this.player, npc);
     }
 
-    const notice = this.add
-      .image(scaleX(LEVEL1.NOTICE_X), scaleY(LEVEL1.NOTICE_Y), "notice_board")
-      .setDisplaySize(scaleX(152), scaleY(40))
-      .setDepth(90);
-    this.targetNoticeText = createDialogText(this, scaleX(LEVEL1.NOTICE_X), scaleY(LEVEL1.NOTICE_Y), "", {
-      maxWidth: LEVEL1.NOTICE_MAX_WIDTH,
-      fontSize: LEVEL1.NOTICE_FONT_SIZE,
-      color: "#e8eef2"
-    }).setDepth(91);
     const initialTarget = rngPick(this.getActiveRecruiterStates());
     this.setTargetRecruiter(initialTarget?.recruiter);
 
@@ -212,7 +237,6 @@ export class Level1Scene extends BaseLevelScene {
       this.physics.add.collider(guard, obstacles);
     });
 
-    this.spawnCv();
     this.updateActorDepths();
   }
 
@@ -453,7 +477,8 @@ export class Level1Scene extends BaseLevelScene {
       {
         maxWidth: LEVEL1.RECRUITER_BAR_WIDTH + 30,
         fontSize: 11,
-        color: "#e8eef2"
+        color: "#e8eef2",
+        direction: "ltr"
       }
     ).setDepth(22);
 
@@ -626,14 +651,15 @@ export class Level1Scene extends BaseLevelScene {
       }
     });
 
-    this.showRecruiterSpeech(state.recruiter, "Finished for today!");
+    this.showRecruiterSpeech(state.recruiter, t("level1.finishedForToday"));
     if (this.targetRecruiter === state.recruiter) {
       const nextTarget = rngPick(this.getActiveRecruiterStates());
       this.setTargetRecruiter(nextTarget?.recruiter);
       this.showDialog(
         nextTarget
-          ? `Target moved to ${nextTarget.recruiter.companyTag}.`
-          : "All recruiters are done for today. Bring CV faster."
+          ? t("level1.targetMoved", { company: nextTarget.recruiter.companyTag })
+          : t("level1.allRecruitersGone"),
+        nextTarget?.recruiter ?? state.recruiter
       );
     }
 
@@ -664,11 +690,12 @@ export class Level1Scene extends BaseLevelScene {
 
   private showRecruiterSpeech(recruiter: Recruiter, text: string): void {
     const bubbleY = recruiter.y - scaleY(LEVEL1.RECRUITER_RETIRE_DIALOG_OFFSET_Y);
+    const layout = this.getSpeechLayout(text, 0.84);
     const bubble = this.add.image(recruiter.x, bubbleY, "speech_bubble");
-    bubble.setScale(getUiScale() * 0.8);
+    bubble.setScale(layout.bubbleScale);
     const label = createDialogText(this, recruiter.x, bubbleY, text, {
-      maxWidth: LEVEL1.DIALOG_MAX_WIDTH,
-      fontSize: LEVEL1.DIALOG_FONT_SIZE - 1,
+      maxWidth: layout.maxWidth,
+      fontSize: layout.fontSize,
       color: "#1b1f24",
       padding: `${LEVEL1.DIALOG_PADDING_Y}px ${LEVEL1.DIALOG_PADDING_X}px`,
       align: "center"
@@ -696,9 +723,6 @@ export class Level1Scene extends BaseLevelScene {
     } else {
       this.targetCompany = "None";
     }
-    if (this.targetNoticeText) {
-      setDomText(this.targetNoticeText, `Target: ${this.targetCompany}`);
-    }
   }
 
   private onAllRecruitersGone(): void {
@@ -712,7 +736,7 @@ export class Level1Scene extends BaseLevelScene {
       this,
       scaleX(LEVEL1.COMPLETE_TEXT_X),
       scaleY(LEVEL1.COMPLETE_TEXT_Y),
-      "-1 HEART",
+      t("common.heartLost"),
       "#ff6b6b"
     );
 
@@ -750,26 +774,26 @@ export class Level1Scene extends BaseLevelScene {
       return;
     }
     if (!this.targetRecruiter) {
-      this.showDialog("No open target at the moment.");
+      this.showDialog(t("level1.noOpenTarget"), recruiter);
       return;
     }
     if (!this.hasCV) {
-      this.showDialog("Pick up your CV first.");
+      this.showDialog(t("level1.pickUpCvFirst"), recruiter);
       return;
     }
     if (this.targetRecruiter === recruiter) {
-      this.showDialog("Thank you for applying, but you still don't have enough experience.");
+      this.showDialog(t("level1.acceptedNoExperience"), recruiter);
       this.hasCV = false;
       this.player.setCarrying(false);
       this.completeLevel();
     } else {
       this.wrongInteractions += 1;
       const line = rngPick([
-        "Send it by email.",
-        "We're hiring seniors.",
-        "Try the booth next door."
+        t("level1.wrongEmail"),
+        t("level1.wrongSeniors"),
+        t("level1.wrongNextDoor")
       ]);
-      this.showDialog(line);
+      this.showDialog(line, recruiter);
       this.scoreSystem.addPenalty(LEVEL1.WRONG_INTERACTION_PENALTY);
       this.scoreSystem.breakCombo();
       this.hasCV = false;
@@ -784,7 +808,7 @@ export class Level1Scene extends BaseLevelScene {
     this.cvItem = this.physics.add.staticImage(this.cvStartX, this.cvStartY, "cv");
     this.cvItem.setScale(scale(LEVEL1.CV_ICON_SIZE) / LEVEL1.CV_ICON_SIZE);
     this.cvItem.refreshBody();
-    this.cvLabel = createDialogText(this, this.cvStartX + scaleX(LEVEL1.CV_LABEL_OFFSET_X), this.cvStartY, "Pick up CV", {
+    this.cvLabel = createTranslatedText(this, this.cvStartX + scaleX(LEVEL1.CV_LABEL_OFFSET_X), this.cvStartY, "level1.pickUpCv", {
       maxWidth: LEVEL1.CV_LABEL_MAX_WIDTH,
       fontSize: LEVEL1.CV_LABEL_FONT_SIZE,
       color: "#e8eef2",
@@ -804,7 +828,7 @@ export class Level1Scene extends BaseLevelScene {
     this.cvLabel?.destroy();
     this.cvLabel = undefined;
     this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_LIGHT);
-    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), "CV COLLECTED", "#8fe388");
+    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), t("level1.cvCollected"), "#8fe388");
   }
 
   private tryPickupCvOrTrash(): boolean {
@@ -844,22 +868,22 @@ export class Level1Scene extends BaseLevelScene {
       return;
     }
     bin.full = false;
-    bin.sprite.setTexture("trash-empty-crisp");
+    bin.sprite.setTexture("trash-empty");
     this.hideTrashWarning(bin);
     this.hasCV = true;
     this.player.setCarrying(true);
     this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_LIGHT);
-    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), "CV RECOVERED", "#8fe388");
+    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), t("level1.cvRecovered"), "#8fe388");
   }
 
   private placeCvInTrash(): void {
-    const emptyBin = this.trashBins.find((bin) => !bin.full);
-    const target = emptyBin ?? this.trashBins[0];
+    const emptyBins = this.trashBins.filter((bin) => !bin.full);
+    const target = rngPick(emptyBins) ?? rngPick(this.trashBins);
     if (!target) {
       return;
     }
     target.full = true;
-    target.sprite.setTexture("trash-full-crisp");
+    target.sprite.setTexture("trash-full");
     this.showTrashWarning(target);
   }
 
@@ -881,11 +905,11 @@ export class Level1Scene extends BaseLevelScene {
       )
       .setOrigin(0.5)
       .setDepth(120);
-    const message = createDialogText(
+    const message = createTranslatedText(
       this,
       bin.sprite.x,
       messageY,
-      "אוי לא, זרקו את קורות החיים שלך. אנא אסוף אותם בחזרה",
+      "level1.trashWarning",
       {
         maxWidth: LEVEL1.TRASH_WARNING_MAX_WIDTH,
         fontSize: LEVEL1.TRASH_WARNING_FONT_SIZE,
@@ -919,29 +943,79 @@ export class Level1Scene extends BaseLevelScene {
     return dist <= range;
   }
 
-  private showDialog(text: string): void {
-    if (this.dialog) {
-      this.dialog.bubble.destroy();
-      this.dialog.label.destroy();
-      this.dialog = undefined;
-    }
-    const bubble = this.add.image(scaleX(LEVEL1.DIALOG_X), scaleY(LEVEL1.DIALOG_Y), "speech_bubble");
-    bubble.setScale(getUiScale());
-    const label = createDialogText(this, scaleX(LEVEL1.DIALOG_X), scaleY(LEVEL1.DIALOG_Y), text, {
-      maxWidth: LEVEL1.DIALOG_MAX_WIDTH,
-      fontSize: LEVEL1.DIALOG_FONT_SIZE,
+  private showDialog(text: string, speaker?: SpeechAnchor): void {
+    this.destroyDialog();
+    const layout = this.getSpeechLayout(text, speaker ? 0.92 : 1);
+    const position = this.getSpeechPosition(speaker, layout.bubbleScale);
+    const depth = DEPTH.FLOATING_TEXT + 20;
+    const bubble = this.add.image(position.x, position.y, "speech_bubble").setScale(layout.bubbleScale).setDepth(depth);
+    const tail = speaker
+      ? this.add
+          .triangle(
+            position.x,
+            position.y + (TEXTURES.SPEECH_BUBBLE.HEIGHT * layout.bubbleScale) / 2 - scaleY(1),
+            0,
+            0,
+            scaleX(18),
+            0,
+            scaleX(9),
+            scaleY(13),
+            TEXTURES.SPEECH_BUBBLE.FILL_COLOR
+          )
+          .setOrigin(0.5, 0)
+          .setDepth(depth + 1)
+      : undefined;
+    tail?.setStrokeStyle(scale(1), TEXTURES.SPEECH_BUBBLE.STROKE_COLOR, 1);
+    const label = createDialogText(this, position.x, position.y, text, {
+      maxWidth: layout.maxWidth,
+      fontSize: layout.fontSize,
       color: "#1b1f24",
       padding: `${LEVEL1.DIALOG_PADDING_Y}px ${LEVEL1.DIALOG_PADDING_X}px`,
       align: "center"
-    });
-    this.dialog = { bubble, label };
+    }).setDepth(depth + 2);
+    const dialog = { bubble, label, tail };
+    this.dialog = dialog;
     this.time.delayedCall(LEVEL1.DIALOG_DURATION_MS, () => {
-      if (this.dialog) {
-        this.dialog.bubble.destroy();
-        this.dialog.label.destroy();
-        this.dialog = undefined;
+      if (this.dialog === dialog) {
+        this.destroyDialog();
       }
     });
+  }
+
+  private destroyDialog(): void {
+    if (!this.dialog) {
+      return;
+    }
+    this.dialog.bubble.destroy();
+    this.dialog.label.destroy();
+    this.dialog.tail?.destroy();
+    this.dialog = undefined;
+  }
+
+  private getSpeechPosition(speaker: SpeechAnchor | undefined, bubbleScale: number): Phaser.Math.Vector2 {
+    if (!speaker) {
+      return new Phaser.Math.Vector2(scaleX(LEVEL1.DIALOG_X), scaleY(LEVEL1.DIALOG_Y));
+    }
+    const halfWidth = (TEXTURES.SPEECH_BUBBLE.WIDTH * bubbleScale) / 2;
+    const halfHeight = (TEXTURES.SPEECH_BUBBLE.HEIGHT * bubbleScale) / 2;
+    const offsetY = Math.max(speaker.displayHeight * 0.8, scaleY(54));
+    return new Phaser.Math.Vector2(
+      Phaser.Math.Clamp(speaker.x, halfWidth + scaleX(8), this.scale.width - halfWidth - scaleX(8)),
+      Phaser.Math.Clamp(speaker.y - offsetY, halfHeight + scaleY(8), this.scale.height - halfHeight - scaleY(8))
+    );
+  }
+
+  private getSpeechLayout(text: string, minBaseScale: number): SpeechLayout {
+    const textLength = text.length;
+    const baseScale = textLength > 64 ? 1.18 : textLength > 42 ? 1.06 : minBaseScale;
+    const maxWidth = Math.max(130, Math.round(TEXTURES.SPEECH_BUBBLE.WIDTH * baseScale - 22));
+    const fontSize = textLength > 64 ? 11 : textLength > 42 ? 12 : Math.max(12, LEVEL1.DIALOG_FONT_SIZE - 1);
+
+    return {
+      bubbleScale: getUiScale() * baseScale,
+      maxWidth,
+      fontSize
+    };
   }
 
   private checkGuardDetection(delta: number): void {
@@ -986,7 +1060,7 @@ export class Level1Scene extends BaseLevelScene {
         const respawn = this.getSafeFloorPoint(scaleX(LEVEL1.PLAYER_START.x), scaleY(LEVEL1.PLAYER_START.y));
         this.player.setPosition(respawn.x, respawn.y);
       });
-      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), "-1 HEART", "#ff6b6b");
+      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), t("common.heartLost"), "#ff6b6b");
     }
   }
 
@@ -1037,7 +1111,7 @@ export class Level1Scene extends BaseLevelScene {
     const bubbleY = guard.y - scaleY(LEVEL1.RECRUITER_RETIRE_DIALOG_OFFSET_Y);
     const bubble = this.add.image(guard.x, bubbleY, "speech_bubble").setDepth(220);
     bubble.setScale(getUiScale() * 0.9);
-    const label = createDialogText(this, guard.x, bubbleY, "היי אתה לא שייך לכאן, תעוף מפה", {
+    const label = createTranslatedText(this, guard.x, bubbleY, "level1.guardCaught", {
       maxWidth: LEVEL1.DIALOG_MAX_WIDTH,
       fontSize: LEVEL1.DIALOG_FONT_SIZE - 1,
       color: "#1b1f24",
@@ -1173,13 +1247,20 @@ export class Level1Scene extends BaseLevelScene {
       this,
       scaleX(LEVEL1.COMPLETE_TEXT_X),
       scaleY(LEVEL1.COMPLETE_TEXT_Y),
-      `+${LEVEL1.LEVEL_COMPLETE_SCORE}`,
+      t("common.points", { points: LEVEL1.LEVEL_COMPLETE_SCORE }),
       "#8fe388"
     );
     this.hud.updateAll();
 
     this.time.delayedCall(LEVEL1.LEVEL_COMPLETE_DELAY_MS, () => {
-      this.scene.start("Level2Scene");
+      this.startLevel2Intro();
     });
+  }
+
+  private startLevel2Intro(): void {
+    if (!this.scene.get("Level2IntroScene")) {
+      this.scene.add("Level2IntroScene", Level2IntroScene, false);
+    }
+    this.scene.start("Level2IntroScene");
   }
 }

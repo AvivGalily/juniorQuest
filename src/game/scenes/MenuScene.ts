@@ -1,8 +1,10 @@
 import Phaser from "phaser";
-import { AUDIO, MENU, RUN } from "../../config/physics";
+import { AUDIO, MENU, RUN, STAGE } from "../../config/physics";
+import { Level2IntroScene } from "./Level2IntroScene";
 import { runState } from "../RunState";
 import { AudioManager } from "../systems/AudioManager";
-import { createDialogText, setDomText } from "../utils/domText";
+import { createDialogText, createTranslatedText, setDomText } from "../utils/domText";
+import { t, toggleLocale } from "../i18n/i18n";
 import { scaleX, scaleY } from "../utils/layout";
 import { getUiScale } from "../utils/resolution";
 
@@ -16,6 +18,12 @@ export class MenuScene extends Phaser.Scene {
     super("MenuScene");
   }
 
+  init(data?: { selectedLevel?: number }): void {
+    if (typeof data?.selectedLevel === "number") {
+      this.selectedLevel = Phaser.Math.Clamp(Math.round(data.selectedLevel), RUN.DEFAULT_LEVEL, RUN.TOTAL_LEVELS);
+    }
+  }
+
   create(): void {
     this.audio = new AudioManager(this);
     this.audio.playMusic("music-menu", AUDIO.MUSIC.MENU);
@@ -24,23 +32,23 @@ export class MenuScene extends Phaser.Scene {
     });
 
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, MENU.BG_COLOR);
-    createDialogText(this, scaleX(MENU.TITLE_X), scaleY(MENU.TITLE_Y), "Junior Quest", {
+    createTranslatedText(this, scaleX(MENU.TITLE_X), scaleY(MENU.TITLE_Y), "menu.title", {
       maxWidth: MENU.TITLE_MAX_WIDTH,
       fontSize: MENU.TITLE_FONT_SIZE,
       color: "#ffd166"
     });
 
-    createDialogText(this, scaleX(MENU.TITLE_X), scaleY(MENU.SUBTITLE_Y), "The Job Hunt", {
+    createTranslatedText(this, scaleX(MENU.TITLE_X), scaleY(MENU.SUBTITLE_Y), "menu.subtitle", {
       maxWidth: MENU.SUBTITLE_MAX_WIDTH,
       fontSize: MENU.SUBTITLE_FONT_SIZE,
       color: "#9aa7b1"
     });
 
-    this.createButton(scaleX(MENU.TITLE_X), scaleY(MENU.START_BUTTON_Y), "Start Game", true, () => {
+    this.createButton(scaleX(MENU.TITLE_X), scaleY(MENU.START_BUTTON_Y), t("menu.startGame"), true, () => {
       this.startGame();
     });
 
-    createDialogText(this, scaleX(MENU.TITLE_X), scaleY(MENU.LEVEL_LABEL_Y), "Select Level", {
+    createTranslatedText(this, scaleX(MENU.TITLE_X), scaleY(MENU.LEVEL_LABEL_Y), "menu.selectLevel", {
       maxWidth: MENU.BUTTON_MAX_WIDTH,
       fontSize: MENU.FOOTER_FONT_SIZE,
       color: "#9aa7b1"
@@ -54,20 +62,22 @@ export class MenuScene extends Phaser.Scene {
     );
     this.levelButtonLabel = levelButton.text;
 
-    this.createButton(scaleX(MENU.TITLE_X), scaleY(MENU.ABOUT_BUTTON_Y), "About", false, () => this.showModal("Coming soon"));
+    this.createButton(scaleX(MENU.TITLE_X), scaleY(MENU.ABOUT_BUTTON_Y), t("menu.about"), false, () => this.showModal("menu.comingSoon"));
     this.createButton(
       scaleX(MENU.TITLE_X),
       scaleY(MENU.LEADERBOARD_BUTTON_Y),
-      "Leaderboard",
+      t("menu.leaderboard"),
       false,
-      () => this.showModal("Coming soon")
+      () => this.showModal("menu.comingSoon")
     );
 
-    createDialogText(this, scaleX(MENU.TITLE_X), scaleY(MENU.FOOTER_Y), "WASD / Arrows to move. Space/Enter or click to confirm.", {
+    createTranslatedText(this, scaleX(MENU.TITLE_X), scaleY(MENU.FOOTER_Y), "menu.footer", {
       maxWidth: MENU.FOOTER_MAX_WIDTH,
       fontSize: MENU.FOOTER_FONT_SIZE,
       color: "#9aa7b1"
     });
+
+    this.createLanguageButton();
 
     this.input.keyboard.on("keydown-ENTER", () => this.startGame());
     this.input.keyboard.on("keydown-SPACE", () => this.startGame());
@@ -79,7 +89,20 @@ export class MenuScene extends Phaser.Scene {
     this.audio.stopMusic("music-menu");
     runState.resetRun();
     const level = Math.min(Math.max(this.selectedLevel, RUN.DEFAULT_LEVEL), RUN.TOTAL_LEVELS);
-    this.scene.start(`Level${level}Scene`);
+    this.scene.start(this.getLevelStartScene(level));
+  }
+
+  private getLevelStartScene(level: number): string {
+    if (level === STAGE.LEVEL1) {
+      return "Level1IntroScene";
+    }
+    if (level === STAGE.LEVEL2) {
+      if (!this.scene.get("Level2IntroScene")) {
+        this.scene.add("Level2IntroScene", Level2IntroScene, false);
+      }
+      return "Level2IntroScene";
+    }
+    return `Level${level}Scene`;
   }
 
   private cycleSelectedLevel(): void {
@@ -91,7 +114,36 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private getLevelButtonLabel(): string {
-    return `Level: ${this.selectedLevel}`;
+    return t("menu.level", { level: this.selectedLevel });
+  }
+
+  private createLanguageButton(): void {
+    const x = scaleX(560);
+    const y = scaleY(42);
+    const radius = scaleX(15);
+    const hit = this.add.rectangle(x, y, scaleX(82), scaleY(32), 0x1f2937, 0.88).setInteractive({ useHandCursor: true });
+    hit.setStrokeStyle(scaleX(1), 0x38bdf8, 0.75);
+
+    const globe = this.add.graphics();
+    globe.lineStyle(scaleX(1), 0x9bdcff, 1);
+    globe.strokeCircle(x - scaleX(22), y, radius * 0.58);
+    globe.lineBetween(x - scaleX(22) - radius * 0.58, y, x - scaleX(22) + radius * 0.58, y);
+    globe.strokeEllipse(x - scaleX(22), y, radius * 0.5, radius * 1.16);
+    globe.strokeEllipse(x - scaleX(22), y, radius * 1.16, radius * 0.5);
+
+    createTranslatedText(this, x + scaleX(12), y, "menu.languageButton", {
+      maxWidth: 38,
+      fontSize: 13,
+      color: "#e8eef2",
+      weight: 800,
+      direction: "ltr"
+    });
+
+    hit.on("pointerdown", () => {
+      this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT);
+      toggleLocale();
+      this.scene.restart({ selectedLevel: this.selectedLevel });
+    });
   }
 
   private createButton(
@@ -125,7 +177,7 @@ export class MenuScene extends Phaser.Scene {
     return { button: btn, text };
   }
 
-private showModal(message: string): void {
+private showModal(messageKey: string): void {
   if (this.modal) {
     this.modal.bg?.destroy();
     this.modal.panel.destroy();
@@ -153,7 +205,7 @@ const bg = this.add.rectangle(
   panel.setAlpha(1);
   panel.setDepth(depth + 1);
 
-  const text = createDialogText(this, x, y, message, {
+  const text = createTranslatedText(this, x, y, messageKey, {
     maxWidth: MENU.MODAL_MAX_WIDTH,
     fontSize: MENU.MODAL_FONT_SIZE,
     color: "#1b1f24",

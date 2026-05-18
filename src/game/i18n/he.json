@@ -1,0 +1,124 @@
+{
+  "common": {
+    "loading": "טוען...",
+    "paused": "מושהה",
+    "pauseExit": "לחץ ESC ליציאה",
+    "pauseContinue": "לחץ ENTER להמשך",
+    "backToMenu": "חזרה לתפריט",
+    "score": "ניקוד: {score}",
+    "finalScore": "ניקוד סופי: {score}",
+    "heartLost": "-1 לב",
+    "points": "+{points}",
+    "partialPoints": "חלקי +{points}"
+  },
+  "menu": {
+    "title": "Junior Quest",
+    "subtitle": "מסע חיפוש העבודה",
+    "startGame": "התחל משחק",
+    "selectLevel": "בחירת שלב",
+    "level": "שלב: {level}",
+    "about": "אודות",
+    "leaderboard": "טבלת שיאים",
+    "comingSoon": "בקרוב",
+    "footer": "WASD / חצים לתנועה. רווח/Enter או קליק לאישור.",
+    "languageButton": "עב"
+  },
+  "hud": {
+    "stage": "שלב {current}/{total}",
+    "score": "ניקוד {score}",
+    "flow": "רצף x{mult}",
+    "time": "זמן {seconds}"
+  },
+  "level1Intro": {
+    "appTitle": "Inbox / מרכז קריירה",
+    "from": "מאת: מדור קריירה <career@juniorquest.dev>",
+    "to": "אל: בוגר/ת מדעי המחשב",
+    "subject": "נושא: ברכות על סיום התואר במדעי המחשב",
+    "greeting": "ברכות על סיום התואר במדעי המחשב.",
+    "body1": "השלב הראשון בדרך למשרה הוא יריד התעסוקה. מצא את המגייסת שתהיה מוכנה לקבל אותך והגש לה את קורות החיים שלך.",
+    "body2": "שים לב: השומרים בודקים מי שייך לאירוע. אל תיתן להם לזהות שאתה לא שייך.",
+    "continue": "לחץ X כדי להמשיך"
+  },
+  "level2Intro": {
+    "appTitle": "Inbox / ראיון טכני",
+    "from": "מאת: צוות הראיון הטכני <tech@juniorquest.dev>",
+    "to": "אל: מועמד/ת",
+    "subject": "נושא: הראיון הטכני הראשון שלך",
+    "greeting": "ברכות על ההתקדמות בתהליך וברוך הבא לראיון הטכני הראשון.",
+    "body1": "המשימה שלך היא לבנות את עץ החיפוש הבינארי שלנו בצורה כמה שיותר מלאה.",
+    "body2": "בכל עלה, הערך בצד שמאל חייב להיות קטן ממנו, והערך בצד ימין חייב להיות גדול ממנו. הניקוד ייקבע לפי מספר העלים שתצליח לשבץ נכון.",
+    "body3": "שים לב להשלים את המשימה בזמן, ותיזהר מבאגים שיגיעו בדרך.",
+    "continue": "לחץ X כדי להמשיך"
+  },
+  "level1": {
+    "targetMoved": "המטרה עברה אל {company}.",
+    "allRecruitersGone": "כל המגייסות סיימו להיום. צריך להביא CV מהר יותר.",
+    "finishedForToday": "סיימתי להיום!",
+    "noOpenTarget": "אין כרגע מגייסת זמינה.",
+    "pickUpCvFirst": "קודם צריך לאסוף את ה-CV.",
+    "acceptedNoExperience": "תודה שהגשת מועמדות, אבל עדיין אין לך מספיק ניסיון.",
+    "wrongEmail": "שלח את זה במייל.",
+    "wrongSeniors": "אנחנו מגייסים סניורים.",
+    "wrongNextDoor": "נסה בדוכן ליד.",
+    "pickUpCv": "אסוף CV",
+    "cvCollected": "CV נאסף",
+    "cvRecovered": "CV הוחזר",
+    "trashWarning": "אוי לא, זרקו את קורות החיים שלך. אנא אסוף אותם בחזרה.",
+    "guardCaught": "היי, אתה לא שייך לכאן. צא מפה."
+  },
+  "level2": {
+    "title": "BST Orchard / מטע BST",
+    "leaves": "עלים: {count}",
+    "submit": "שלח",
+    "initialFeedback": "מקם עלים לפי חוקי BST ואז שלח.",
+    "standNearSubmit": "עמוד ליד כפתור השליחה האדום.",
+    "leafLifted": "עלה נאסף. הזז אותו לענף חדש.",
+    "leafDropped": "העלה הונח על הרצפה.",
+    "moveCloserSlot": "התקרב למקום פנוי לעלה.",
+    "wrongPosition": "מיקום BST שגוי.",
+    "leafPlaced": "עלה הונח. השליחה בודקת את כל ה-BST.",
+    "branchOccupied": "כבר יש עלה בענף הזה.",
+    "branchInactive": "הענף הזה לא חלק מהמשימה.",
+    "rootAny": "שורש: כל מספר",
+    "placeOne": "מקם לפחות עלה אחד לפני השליחה.",
+    "invalidTree": "העץ עדיין אינו BST תקין.",
+    "mustBeGreater": "{value} חייב להיות גדול מ-{min}.",
+    "mustBeSmaller": "{value} חייב להיות קטן מ-{max}.",
+    "obstacleHit": "פגיעה במכשול: העלה שהחזקת חזר למקום.",
+    "lock": "נעול",
+    "fullAccepted": "BST מלא התקבל.",
+    "partialAccepted": "BST חלקי תקין התקבל."
+  },
+  "level3": {
+    "title": "Reverse Linked List Snake / נחש Linked List",
+    "subtitle": "קפוץ על הצומת הזוהר, לחץ E, והתחמק מאש ומקוצים נופלים.",
+    "fire": "אש",
+    "spike": "קוץ",
+    "landOnNode": "נחת על צומת",
+    "wrongNode": "צומת שגוי",
+    "nextPrev": "next = prev",
+    "ouch": "אאוץ'",
+    "burn": "נשרפת"
+  },
+  "level5": {
+    "hp": "HP {hp}",
+    "intro": "היית הכי טוב בראיונות, אבל התפקיד כבר לא נחוץ בגלל AI.",
+    "clear": "נוקה",
+    "damageHp": "-{damage} HP",
+    "failed": "נכשל",
+    "congratsShutdown": "ברכות על העבודה החדשה! אבל החברה נסגרה.",
+    "goodLuck": "בהצלחה בחיפוש."
+  },
+  "gameOver": {
+    "title": "נגמר המשחק"
+  },
+  "victory": {
+    "title": "ניצחון",
+    "blurb": "ברכות על העבודה החדשה! אבל החברה נסגרה.",
+    "subtitle": "בהצלחה בחיפוש.",
+    "namePlaceholder": "שם",
+    "defaultName": "אנונימי",
+    "submitScore": "שלח ניקוד",
+    "noScores": "אין עדיין שיאים מקומיים"
+  }
+}

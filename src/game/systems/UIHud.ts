@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { COMBO, DEPTH, DOM_TEXT, HUD, RUN, TIME } from "../../config/physics";
 import { runState } from "../RunState";
-import { createDialogText, setDomText } from "../utils/domText";
+import { createTranslatedText, setTranslatedText } from "../utils/domText";
 import { getUiScale } from "../utils/resolution";
 
 export class UIHud {
@@ -25,12 +25,13 @@ export class UIHud {
       this.hearts.push(heart);
     }
 
-    this.stageText = createDialogText(
+    this.stageText = createTranslatedText(
       scene,
       scene.scale.width / 2,
       HUD.STAGE_Y * uiScale,
-      `Stage ${stageNumber}/${RUN.TOTAL_LEVELS}`,
+      "hud.stage",
       {
+      params: { current: stageNumber, total: RUN.TOTAL_LEVELS },
       maxWidth: HUD.STAGE_MAX_WIDTH,
       fontSize: HUD.STAGE_FONT_SIZE,
       color: "#e8eef2",
@@ -39,7 +40,8 @@ export class UIHud {
       }
     ).setScrollFactor(0).setDepth(DEPTH.HUD);
 
-    this.scoreText = createDialogText(scene, rightX, HUD.SCORE_Y * uiScale, "SCORE 0", {
+    this.scoreText = createTranslatedText(scene, rightX, HUD.SCORE_Y * uiScale, "hud.score", {
+      params: { score: 0 },
       maxWidth: HUD.SCORE_MAX_WIDTH,
       fontSize: HUD.SCORE_FONT_SIZE,
       color: "#e8eef2",
@@ -48,7 +50,8 @@ export class UIHud {
       originY: DOM_TEXT.ORIGIN_TOP
     }).setScrollFactor(0).setDepth(DEPTH.HUD);
 
-    this.comboText = createDialogText(scene, rightX, HUD.COMBO_Y * uiScale, "FLOW x1.0", {
+    this.comboText = createTranslatedText(scene, rightX, HUD.COMBO_Y * uiScale, "hud.flow", {
+      params: { mult: "1.0" },
       maxWidth: HUD.COMBO_MAX_WIDTH,
       fontSize: HUD.COMBO_FONT_SIZE,
       color: "#8fe388",
@@ -57,7 +60,8 @@ export class UIHud {
       originY: DOM_TEXT.ORIGIN_TOP
     }).setScrollFactor(0).setDepth(DEPTH.HUD);
 
-    this.timerText = createDialogText(scene, rightX, HUD.TIMER_Y * uiScale, "TIME 0", {
+    this.timerText = createTranslatedText(scene, rightX, HUD.TIMER_Y * uiScale, "hud.time", {
+      params: { seconds: 0 },
       maxWidth: HUD.TIMER_MAX_WIDTH,
       fontSize: HUD.TIMER_FONT_SIZE,
       color: "#9aa7b1",
@@ -76,10 +80,10 @@ export class UIHud {
 
   updateAll(): void {
     this.updateHearts();
-    setDomText(this.scoreText, `SCORE ${runState.runScore}`);
+    setTranslatedText(this.scoreText, "hud.score", { score: runState.runScore });
     const mult = COMBO.BASE_MULTIPLIER + Math.min(runState.comboSteps, COMBO.MAX_STEPS) * COMBO.STEP_MULTIPLIER;
-    setDomText(this.comboText, `FLOW x${mult.toFixed(COMBO.DISPLAY_DECIMALS)}`);
+    setTranslatedText(this.comboText, "hud.flow", { mult: mult.toFixed(COMBO.DISPLAY_DECIMALS) });
     const elapsed = Math.floor((Date.now() - runState.levelStartTimeMs) / TIME.MS_PER_SEC);
-    setDomText(this.timerText, `TIME ${elapsed}`);
+    setTranslatedText(this.timerText, "hud.time", { seconds: elapsed });
   }
 }

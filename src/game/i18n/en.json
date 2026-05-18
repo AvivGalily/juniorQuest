@@ -1,0 +1,124 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "paused": "PAUSED",
+    "pauseExit": "Press ESC to exit",
+    "pauseContinue": "Press ENTER to continue",
+    "backToMenu": "Back to Menu",
+    "score": "Score: {score}",
+    "finalScore": "Final Score: {score}",
+    "heartLost": "-1 HEART",
+    "points": "+{points}",
+    "partialPoints": "Partial +{points}"
+  },
+  "menu": {
+    "title": "Junior Quest",
+    "subtitle": "The Job Hunt",
+    "startGame": "Start Game",
+    "selectLevel": "Select Level",
+    "level": "Level: {level}",
+    "about": "About",
+    "leaderboard": "Leaderboard",
+    "comingSoon": "Coming soon",
+    "footer": "WASD / Arrows to move. Space/Enter or click to confirm.",
+    "languageButton": "EN"
+  },
+  "hud": {
+    "stage": "Stage {current}/{total}",
+    "score": "SCORE {score}",
+    "flow": "FLOW x{mult}",
+    "time": "TIME {seconds}"
+  },
+  "level1Intro": {
+    "appTitle": "Inbox / Career Center",
+    "from": "From: Career Center <career@juniorquest.dev>",
+    "to": "To: Computer Science Graduate",
+    "subject": "Subject: Congratulations on completing your Computer Science degree",
+    "greeting": "Congratulations on completing your Computer Science degree.",
+    "body1": "The first step toward a job is the career fair. Find the recruiter who is willing to accept you and hand her your CV.",
+    "body2": "Heads up: the guards are checking who belongs at the event. Do not let them identify you as an outsider.",
+    "continue": "Press X to continue"
+  },
+  "level2Intro": {
+    "appTitle": "Inbox / Technical Interview",
+    "from": "From: Technical Interview Team <tech@juniorquest.dev>",
+    "to": "To: Candidate",
+    "subject": "Subject: Your first technical interview",
+    "greeting": "Congratulations on moving forward. Welcome to your first technical interview.",
+    "body1": "Your task is to build our Binary Search Tree as completely as possible.",
+    "body2": "For every leaf, values placed to the left must be smaller, and values placed to the right must be larger. Your score is based on how many leaves you place correctly.",
+    "body3": "Finish before time runs out, and watch out for incoming bugs.",
+    "continue": "Press X to continue"
+  },
+  "level1": {
+    "targetMoved": "Target moved to {company}.",
+    "allRecruitersGone": "All recruiters are done for today. Bring CV faster.",
+    "finishedForToday": "Finished for today!",
+    "noOpenTarget": "No open target at the moment.",
+    "pickUpCvFirst": "Pick up your CV first.",
+    "acceptedNoExperience": "Thank you for applying, but you still don't have enough experience.",
+    "wrongEmail": "Send it by email.",
+    "wrongSeniors": "We're hiring seniors.",
+    "wrongNextDoor": "Try the booth next door.",
+    "pickUpCv": "Pick up CV",
+    "cvCollected": "CV COLLECTED",
+    "cvRecovered": "CV RECOVERED",
+    "trashWarning": "Oh no, they threw away your CV. Please pick it back up.",
+    "guardCaught": "Hey, you don't belong here. Get out."
+  },
+  "level2": {
+    "title": "BST Orchard",
+    "leaves": "Leaves: {count}",
+    "submit": "Submit",
+    "initialFeedback": "Place leaves by BST rules, then submit.",
+    "standNearSubmit": "Stand next to the red submit button.",
+    "leafLifted": "Leaf lifted. Move it to a new branch.",
+    "leafDropped": "Leaf dropped on the floor.",
+    "moveCloserSlot": "Move closer to a leaf slot.",
+    "wrongPosition": "Wrong BST position.",
+    "leafPlaced": "Leaf placed. Submit checks the full BST.",
+    "branchOccupied": "This branch already has a leaf.",
+    "branchInactive": "This branch is not part of the task.",
+    "rootAny": "Root: any number",
+    "placeOne": "Place at least one leaf before submitting.",
+    "invalidTree": "Tree is not a valid BST yet.",
+    "mustBeGreater": "{value} must be greater than {min}.",
+    "mustBeSmaller": "{value} must be smaller than {max}.",
+    "obstacleHit": "Obstacle hit: carried leaf returned.",
+    "lock": "lock",
+    "fullAccepted": "Full BST accepted.",
+    "partialAccepted": "Valid partial BST accepted."
+  },
+  "level3": {
+    "title": "Reverse Linked List Snake",
+    "subtitle": "Jump on the glowing node, press E, dodge fire and falling spikes.",
+    "fire": "FIRE",
+    "spike": "SPIKE",
+    "landOnNode": "LAND ON A NODE",
+    "wrongNode": "WRONG NODE",
+    "nextPrev": "next = prev",
+    "ouch": "OUCH",
+    "burn": "BURN"
+  },
+  "level5": {
+    "hp": "HP {hp}",
+    "intro": "You were the best in interviews, but the role is no longer needed because of AI.",
+    "clear": "CLEAR",
+    "damageHp": "-{damage} HP",
+    "failed": "FAILED",
+    "congratsShutdown": "Congrats on the new job! But the company shut down.",
+    "goodLuck": "Good luck searching."
+  },
+  "gameOver": {
+    "title": "GAME OVER"
+  },
+  "victory": {
+    "title": "Victory",
+    "blurb": "Congrats on the new job! But the company shut down.",
+    "subtitle": "Good luck searching.",
+    "namePlaceholder": "NAME",
+    "defaultName": "ANON",
+    "submitScore": "Submit Score",
+    "noScores": "No local scores yet"
+  }
+}

@@ -7,7 +7,8 @@ import { AUDIO, FLOATING_TEXT, LEVEL5, MATH, PLAYER, RUN, SCALE, STAGE } from ".
 import { runState } from "../RunState";
 import { FloatingText } from "../entities/FloatingText";
 import { rngPick } from "../utils/rng";
-import { createDialogText, setDomText } from "../utils/domText";
+import { createDialogText, createTranslatedText, setDomText } from "../utils/domText";
+import { t } from "../i18n/i18n";
 import { getUiScale } from "../utils/resolution";
 import { scale, scaleX, scaleY } from "../utils/layout";
 
@@ -57,7 +58,8 @@ export class Level5Scene extends BaseLevelScene {
     this.boss = new BossAISpider(this, scaleX(LEVEL5.BOSS_X), scaleY(LEVEL5.BOSS_Y), diff.l5.bossHP);
     this.boss.body.allowGravity = false;
 
-    this.hpText = createDialogText(this, scaleX(LEVEL5.HP_X), scaleY(LEVEL5.HP_Y), `HP ${this.boss.hp}`, {
+    this.hpText = createTranslatedText(this, scaleX(LEVEL5.HP_X), scaleY(LEVEL5.HP_Y), "level5.hp", {
+      params: { hp: this.boss.hp },
       maxWidth: LEVEL5.HP_MAX_WIDTH,
       fontSize: LEVEL5.HP_FONT_SIZE,
       color: "#ffd166"
@@ -66,12 +68,13 @@ export class Level5Scene extends BaseLevelScene {
     this.patternText = createDialogText(this, scaleX(LEVEL5.PATTERN_X), scaleY(LEVEL5.PATTERN_Y), "", {
       maxWidth: LEVEL5.PATTERN_MAX_WIDTH,
       fontSize: LEVEL5.PATTERN_FONT_SIZE,
-      color: "#8fe388"
+      color: "#8fe388",
+      direction: "ltr"
     });
 
     this.bugGroup = this.physics.add.group();
 
-    this.showDialog("You were the best in interviews, but the role is no longer needed because of AI.", () => {
+    this.showDialog(t("level5.intro"), () => {
       this.startFight();
     });
 
@@ -109,7 +112,7 @@ export class Level5Scene extends BaseLevelScene {
       const bug = this.getNearestBug();
       if (bug) {
         bug.destroy();
-        FloatingText.spawn(this, bug.x, bug.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), "CLEAR", "#8fe388");
+        FloatingText.spawn(this, bug.x, bug.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), t("level5.clear"), "#8fe388");
       }
     }
 
@@ -191,12 +194,12 @@ export class Level5Scene extends BaseLevelScene {
     this.scoreSystem.addSkill(LEVEL5.PATTERN_SUCCESS_SCORE);
     this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS);
     this.boss.damage(LEVEL5.BOSS_DAMAGE);
-    setDomText(this.hpText, `HP ${this.boss.hp}`);
+    setDomText(this.hpText, t("level5.hp", { hp: this.boss.hp }));
     FloatingText.spawn(
       this,
       this.boss.x,
       this.boss.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM),
-      `-${LEVEL5.BOSS_DAMAGE} HP`,
+      t("level5.damageHp", { damage: LEVEL5.BOSS_DAMAGE }),
       "#ffd166"
     );
 
@@ -214,7 +217,7 @@ export class Level5Scene extends BaseLevelScene {
     this.scoreSystem.addPenalty(LEVEL5.PATTERN_FAIL_PENALTY);
     this.scoreSystem.breakCombo();
     this.applyDamage();
-    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), "FAILED", "#ff6b6b");
+    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), t("level5.failed"), "#ff6b6b");
   }
 
   private triggerAttack(): void {
@@ -328,13 +331,13 @@ export class Level5Scene extends BaseLevelScene {
       this,
       scaleX(LEVEL5.COMPLETE_TEXT_X),
       scaleY(LEVEL5.COMPLETE_TEXT_Y),
-      `+${LEVEL5.LEVEL_COMPLETE_SCORE}`,
+      t("common.points", { points: LEVEL5.LEVEL_COMPLETE_SCORE }),
       "#8fe388"
     );
     this.hud.updateAll();
 
-    this.showDialog("Congrats on the new job! But the company shut down.", () => {
-      this.showDialog("Good luck searching.", () => {
+    this.showDialog(t("level5.congratsShutdown"), () => {
+      this.showDialog(t("level5.goodLuck"), () => {
         this.scene.start("VictoryScene");
       });
     });

@@ -3,7 +3,8 @@ import { AUDIO, DOM_TEXT, LEADERBOARD, VICTORY } from "../../config/physics";
 import { runState } from "../RunState";
 import { AudioManager } from "../systems/AudioManager";
 import { addLeaderboardEntry, loadLeaderboard, LeaderboardEntry } from "../systems/SaveSystem";
-import { createDialogText, setDomText } from "../utils/domText";
+import { createTranslatedText, setDomText } from "../utils/domText";
+import { t } from "../i18n/i18n";
 import { scaleX, scaleY } from "../utils/layout";
 import { getUiScale } from "../utils/resolution";
 
@@ -21,25 +22,26 @@ export class VictoryScene extends Phaser.Scene {
     this.audio.playMusic("music-menu", AUDIO.MUSIC.MENU);
 
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, VICTORY.BG_COLOR);
-    createDialogText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.TITLE_Y), "Victory", {
+    createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.TITLE_Y), "victory.title", {
       maxWidth: VICTORY.TITLE_MAX_WIDTH,
       fontSize: VICTORY.TITLE_FONT_SIZE,
       color: "#8fe388"
     });
 
-    createDialogText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.BLURB_Y), "Congrats on the new job! But the company shut down.", {
+    createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.BLURB_Y), "victory.blurb", {
       maxWidth: VICTORY.BLURB_MAX_WIDTH,
       fontSize: VICTORY.BLURB_FONT_SIZE,
       color: "#e8eef2"
     });
 
-    createDialogText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.SUBTITLE_Y), "Good luck searching.", {
+    createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.SUBTITLE_Y), "victory.subtitle", {
       maxWidth: VICTORY.SUBTITLE_MAX_WIDTH,
       fontSize: VICTORY.SUBTITLE_FONT_SIZE,
       color: "#e8eef2"
     });
 
-    createDialogText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.SCORE_Y), `Final Score: ${runState.runScore}`, {
+    createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.SCORE_Y), "common.finalScore", {
+      params: { score: runState.runScore },
       maxWidth: VICTORY.SCORE_MAX_WIDTH,
       fontSize: VICTORY.SCORE_FONT_SIZE,
       color: "#ffd166"
@@ -54,7 +56,7 @@ export class VictoryScene extends Phaser.Scene {
     const input = this.add.dom(scaleX(VICTORY.TITLE_X), scaleY(VICTORY.INPUT_Y), "input", inputStyle) as Phaser.GameObjects.DOMElement;
     const inputNode = input.node as HTMLInputElement;
     inputNode.setAttribute("maxlength", String(LEADERBOARD.NAME_MAX_LEN));
-    inputNode.placeholder = "NAME";
+    inputNode.placeholder = t("victory.namePlaceholder");
 
     inputNode.addEventListener("input", () => {
       inputNode.value = inputNode.value.replace(/[^A-Za-z0-9\u0590-\u05FF]/g, "").toUpperCase();
@@ -62,7 +64,7 @@ export class VictoryScene extends Phaser.Scene {
 
     const submitBtn = this.add.image(scaleX(VICTORY.TITLE_X), scaleY(VICTORY.SUBMIT_Y), "button").setInteractive();
     submitBtn.setScale(uiScale);
-    createDialogText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.SUBMIT_Y), "Submit Score", {
+    createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.SUBMIT_Y), "victory.submitScore", {
       maxWidth: VICTORY.BUTTON_MAX_WIDTH,
       fontSize: VICTORY.BUTTON_FONT_SIZE,
       color: "#e8eef2"
@@ -73,7 +75,7 @@ export class VictoryScene extends Phaser.Scene {
         return;
       }
       this.submitted = true;
-      const name = inputNode.value.trim() || "ANON";
+      const name = inputNode.value.trim() || t("victory.defaultName");
       const entries = addLeaderboardEntry(name, runState.runScore);
       this.refreshLeaderboard(entries);
       this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS);
@@ -84,7 +86,7 @@ export class VictoryScene extends Phaser.Scene {
 
     const backBtn = this.add.image(scaleX(VICTORY.TITLE_X), scaleY(VICTORY.BACK_Y), "button").setInteractive();
     backBtn.setScale(uiScale);
-    createDialogText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.BACK_Y), "Back to Menu", {
+    createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.BACK_Y), "common.backToMenu", {
       maxWidth: VICTORY.BUTTON_MAX_WIDTH,
       fontSize: VICTORY.BUTTON_FONT_SIZE,
       color: "#e8eef2"
@@ -101,12 +103,12 @@ export class VictoryScene extends Phaser.Scene {
     const lines = entries.slice(0, LEADERBOARD.DISPLAY_COUNT).map((entry, index) => {
       return `${index + 1}. ${entry.name} - ${entry.score}`;
     });
-    const body = lines.length > 0 ? lines.join("\n") : "No local scores yet";
+    const body = lines.length > 0 ? lines.join("\n") : t("victory.noScores");
     if (this.leaderboardText) {
       setDomText(this.leaderboardText, body);
       return;
     }
-    this.leaderboardText = createDialogText(this, scaleX(VICTORY.LEADERBOARD_X), scaleY(VICTORY.LEADERBOARD_Y), body, {
+    this.leaderboardText = createTranslatedText(this, scaleX(VICTORY.LEADERBOARD_X), scaleY(VICTORY.LEADERBOARD_Y), "victory.noScores", {
       maxWidth: VICTORY.LEADERBOARD_MAX_WIDTH,
       fontSize: VICTORY.LEADERBOARD_FONT_SIZE,
       color: "#9aa7b1",
@@ -114,5 +116,6 @@ export class VictoryScene extends Phaser.Scene {
       originX: DOM_TEXT.ORIGIN_LEFT,
       originY: DOM_TEXT.ORIGIN_TOP
     });
+    setDomText(this.leaderboardText, body);
   }
 }
