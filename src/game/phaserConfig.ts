@@ -8,6 +8,7 @@ import { Level2IntroScene } from "./scenes/Level2IntroScene";
 import { Level2Scene } from "./scenes/Level2Scene";
 import { Level3IntroScene } from "./scenes/Level3IntroScene";
 import { Level3Scene } from "./scenes/Level3Scene";
+import { Level4IntroScene } from "./scenes/Level4IntroScene";
 import { Level4Scene } from "./scenes/Level4Scene";
 import { Level5Scene } from "./scenes/Level5Scene";
 import { GameOverScene } from "./scenes/GameOverScene";
@@ -58,6 +59,7 @@ export const phaserConfig: Phaser.Types.Core.GameConfig = {
     Level2Scene,
     Level3IntroScene,
     Level3Scene,
+    Level4IntroScene,
     Level4Scene,
     Level5Scene,
     GameOverScene,

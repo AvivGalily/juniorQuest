@@ -1017,7 +1017,7 @@ export class Level3Scene extends BaseLevelScene {
     this.hud.updateAll();
     this.completeTimer = this.time.delayedCall(LEVEL3.LEVEL_COMPLETE_DELAY_MS, () => {
       if (this.isLevel3Active()) {
-        this.scene.start("Level4Scene");
+        this.scene.start("Level4IntroScene");
       }
     });
   }

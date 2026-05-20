@@ -17,6 +17,7 @@ export class Level3IntroScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.dismissed = false;
     this.audio = new AudioManager(this);
     this.add.image(this.scale.width / 2, this.scale.height / 2, "level3-snake-bg").setDisplaySize(this.scale.width, this.scale.height);
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.66);
@@ -26,13 +27,13 @@ export class Level3IntroScene extends Phaser.Scene {
   }
 
   private createEmailCard(): void {
-    const interviewerSrc = new URL("../img/linked-list-interviewer-avatar.png", import.meta.url).href;
+    const interviewerSrc = new URL("../img/panicked-senior-engineer-avatar.png", import.meta.url).href;
     const cardW = Math.round(scaleX(548));
     const cardH = Math.round(scaleY(318));
     const headerH = Math.round(scaleY(42));
     const pad = Math.round(scaleX(24));
     const smallFont = Math.round(scaleY(10));
-    const bodyFont = Math.round(scaleY(10.2));
+    const bodyFont = Math.round(scaleY(10.4));
     const subjectFont = Math.round(scaleY(12.2));
     const ctaFont = Math.round(scaleY(12));
     const direction = getDirection();
@@ -127,16 +128,14 @@ export class Level3IntroScene extends Phaser.Scene {
             min-height:0;
             overflow:hidden;
             font-size:${bodyFont}px;
-            line-height:1.22;
+            line-height:1.25;
             color:#1e293b;
             font-weight:700;
             text-align:${textAlign};
           ">
-            <p style="margin:0 0 ${Math.round(scaleY(8))}px 0;">${escapeHtml(t("level3Intro.greeting"))}</p>
-            <p style="margin:0 0 ${Math.round(scaleY(8))}px 0;">${escapeHtml(t("level3Intro.body1"))}</p>
-            <p style="margin:0;">${escapeHtml(t("level3Intro.body2"))}</p>
+            <p style="margin:0;">${escapeHtml(t("level3Intro.body"))}</p>
           </div>
-          <div style="
+          <div data-action="continue" style="
             height:${Math.round(scaleY(30))}px;
             flex:0 0 ${Math.round(scaleY(30))}px;
             box-sizing:border-box;
@@ -149,12 +148,27 @@ export class Level3IntroScene extends Phaser.Scene {
             font-size:${ctaFont}px;
             font-weight:800;
             text-align:center;
+            cursor:pointer;
           ">${escapeHtml(t("level3Intro.continue"))}</div>
         </div>
       </div>
     `;
 
-    this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromHTML(html).setOrigin(0.5);
+    const card = this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromHTML(html).setOrigin(0.5);
+    card.addListener("click");
+    card.on("click", (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-action='continue']")) {
+        this.continueToLevel();
+      }
+    });
+
+    const ctaH = Math.round(scaleY(30));
+    this.add
+      .zone(this.scale.width / 2, this.scale.height / 2 + cardH / 2 - Math.round(scaleY(12)) - ctaH / 2, cardW - pad * 2, ctaH)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(10000)
+      .on("pointerdown", () => this.continueToLevel());
   }
 
   private continueToLevel(): void {

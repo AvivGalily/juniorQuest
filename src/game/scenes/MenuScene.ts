@@ -102,6 +102,12 @@ export class MenuScene extends Phaser.Scene {
       }
       return "Level2IntroScene";
     }
+    if (level === STAGE.LEVEL3) {
+      return "Level3IntroScene";
+    }
+    if (level === STAGE.LEVEL4) {
+      return "Level4IntroScene";
+    }
     return `Level${level}Scene`;
   }
 

@@ -60,6 +60,8 @@ type SpeechLayout = {
 
 type VisionBlocker = Phaser.Geom.Rectangle;
 
+const LEVEL1_DIALOG_DEPTH = DEPTH.HUD + 220;
+
 export class Level1Scene extends BaseLevelScene {
   private player!: Player;
   private guards: Guard[] = [];
@@ -691,7 +693,7 @@ export class Level1Scene extends BaseLevelScene {
   private showRecruiterSpeech(recruiter: Recruiter, text: string): void {
     const bubbleY = recruiter.y - scaleY(LEVEL1.RECRUITER_RETIRE_DIALOG_OFFSET_Y);
     const layout = this.getSpeechLayout(text, 0.84);
-    const bubble = this.add.image(recruiter.x, bubbleY, "speech_bubble");
+    const bubble = this.add.image(recruiter.x, bubbleY, "speech_bubble").setDepth(LEVEL1_DIALOG_DEPTH);
     bubble.setScale(layout.bubbleScale);
     const label = createDialogText(this, recruiter.x, bubbleY, text, {
       maxWidth: layout.maxWidth,
@@ -699,7 +701,7 @@ export class Level1Scene extends BaseLevelScene {
       color: "#1b1f24",
       padding: `${LEVEL1.DIALOG_PADDING_Y}px ${LEVEL1.DIALOG_PADDING_X}px`,
       align: "center"
-    });
+    }).setDepth(LEVEL1_DIALOG_DEPTH + 2);
     this.time.delayedCall(LEVEL1.RECRUITER_RETIRE_DIALOG_DURATION_MS, () => {
       bubble.destroy();
       label.destroy();
@@ -947,7 +949,7 @@ export class Level1Scene extends BaseLevelScene {
     this.destroyDialog();
     const layout = this.getSpeechLayout(text, speaker ? 0.92 : 1);
     const position = this.getSpeechPosition(speaker, layout.bubbleScale);
-    const depth = DEPTH.FLOATING_TEXT + 20;
+    const depth = LEVEL1_DIALOG_DEPTH;
     const bubble = this.add.image(position.x, position.y, "speech_bubble").setScale(layout.bubbleScale).setDepth(depth);
     const tail = speaker
       ? this.add
@@ -1109,7 +1111,7 @@ export class Level1Scene extends BaseLevelScene {
 
   private showGuardCaughtSpeech(guard: Guard): void {
     const bubbleY = guard.y - scaleY(LEVEL1.RECRUITER_RETIRE_DIALOG_OFFSET_Y);
-    const bubble = this.add.image(guard.x, bubbleY, "speech_bubble").setDepth(220);
+    const bubble = this.add.image(guard.x, bubbleY, "speech_bubble").setDepth(LEVEL1_DIALOG_DEPTH);
     bubble.setScale(getUiScale() * 0.9);
     const label = createTranslatedText(this, guard.x, bubbleY, "level1.guardCaught", {
       maxWidth: LEVEL1.DIALOG_MAX_WIDTH,
@@ -1117,7 +1119,7 @@ export class Level1Scene extends BaseLevelScene {
       color: "#1b1f24",
       padding: `${LEVEL1.DIALOG_PADDING_Y}px ${LEVEL1.DIALOG_PADDING_X}px`,
       align: "center"
-    }).setDepth(221);
+    }).setDepth(LEVEL1_DIALOG_DEPTH + 2);
     this.time.delayedCall(LEVEL1.CAUGHT_DIALOG_DURATION_MS, () => {
       bubble.destroy();
       label.destroy();

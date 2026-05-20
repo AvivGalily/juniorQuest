@@ -37,7 +37,7 @@
     "greeting": "ברכות על סיום התואר במדעי המחשב.",
     "body1": "השלב הראשון בדרך למשרה הוא יריד התעסוקה. מצא את המגייסת שתהיה מוכנה לקבל אותך והגש לה את קורות החיים שלך.",
     "body2": "שים לב: השומרים בודקים מי שייך לאירוע. אל תיתן להם לזהות שאתה לא שייך.",
-    "continue": "לחץ X כדי להמשיך"
+    "continue": "Press X or click to continue"
   },
   "level2Intro": {
     "appTitle": "Inbox / ראיון טכני",
@@ -48,7 +48,23 @@
     "body1": "המשימה שלך היא לבנות את עץ החיפוש הבינארי שלנו בצורה כמה שיותר מלאה.",
     "body2": "בכל עלה, הערך בצד שמאל חייב להיות קטן ממנו, והערך בצד ימין חייב להיות גדול ממנו. הניקוד ייקבע לפי מספר העלים שתצליח לשבץ נכון.",
     "body3": "שים לב להשלים את המשימה בזמן, ותיזהר מבאגים שיגיעו בדרך.",
-    "continue": "לחץ X כדי להמשיך"
+    "continue": "Press X or click to continue"
+  },
+  "level3Intro": {
+    "appTitle": "Inbox / Production Incident",
+    "from": "From: Senior Software Engineer <senior@juniorquest.dev>",
+    "to": "To: Candidate",
+    "subject": "Subject: Linked list database incident",
+    "body": "Oh no! Our linked list has spiraled out of control and is destroying the database! Your mission is to reverse the linked list. You must jump on each node one by one to reverse its direction, starting from the Head all the way to the Tail. But be careful\u2014it won't go down without a fight!",
+    "continue": "Press X or click to continue"
+  },
+  "level4Intro": {
+    "appTitle": "Inbox / Talent Team",
+    "from": "From: Corporate Recruiter <recruiting@juniorquest.dev>",
+    "to": "To: Candidate",
+    "subject": "Subject: Technical assessment update",
+    "body": "Congratulations on passing the technical assessments! While your performance was impressive, we currently have many strong candidates under consideration. We need to evaluate each profile and we will be in touch with you shortly. Thank you for your interest.",
+    "continue": "Press X or click to continue"
   },
   "level1": {
     "targetMoved": "המטרה עברה אל {company}.",
@@ -99,6 +115,16 @@
     "nextPrev": "next = prev",
     "ouch": "אאוץ'",
     "burn": "נשרפת"
+  },
+  "level4": {
+    "title": "Candidate Stack",
+    "finish": "Offer Loop",
+    "referralBoost": "REFERRAL BOOST",
+    "dockerBoost": "DOCKER BOOST",
+    "mergeConflict": "MERGE CONFLICT",
+    "indentationError": "INDENTATION ERROR",
+    "push": "PUSH",
+    "trip": "TRIP HAZARD"
   },
   "level5": {
     "hp": "HP {hp}",

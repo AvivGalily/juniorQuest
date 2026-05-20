@@ -37,7 +37,7 @@
     "greeting": "Congratulations on completing your Computer Science degree.",
     "body1": "The first step toward a job is the career fair. Find the recruiter who is willing to accept you and hand her your CV.",
     "body2": "Heads up: the guards are checking who belongs at the event. Do not let them identify you as an outsider.",
-    "continue": "Press X to continue"
+    "continue": "Press X or click to continue"
   },
   "level2Intro": {
     "appTitle": "Inbox / Technical Interview",
@@ -48,7 +48,23 @@
     "body1": "Your task is to build our Binary Search Tree as completely as possible.",
     "body2": "For every leaf, values placed to the left must be smaller, and values placed to the right must be larger. Your score is based on how many leaves you place correctly.",
     "body3": "Finish before time runs out, and watch out for incoming bugs.",
-    "continue": "Press X to continue"
+    "continue": "Press X or click to continue"
+  },
+  "level3Intro": {
+    "appTitle": "Inbox / Production Incident",
+    "from": "From: Senior Software Engineer <senior@juniorquest.dev>",
+    "to": "To: Candidate",
+    "subject": "Subject: Linked list database incident",
+    "body": "Oh no! Our linked list has spiraled out of control and is destroying the database! Your mission is to reverse the linked list. You must jump on each node one by one to reverse its direction, starting from the Head all the way to the Tail. But be careful\u2014it won't go down without a fight!",
+    "continue": "Press X or click to continue"
+  },
+  "level4Intro": {
+    "appTitle": "Inbox / Talent Team",
+    "from": "From: Corporate Recruiter <recruiting@juniorquest.dev>",
+    "to": "To: Candidate",
+    "subject": "Subject: Technical assessment update",
+    "body": "Congratulations on passing the technical assessments! While your performance was impressive, we currently have many strong candidates under consideration. We need to evaluate each profile and we will be in touch with you shortly. Thank you for your interest.",
+    "continue": "Press X or click to continue"
   },
   "level1": {
     "targetMoved": "Target moved to {company}.",
@@ -99,6 +115,16 @@
     "nextPrev": "next = prev",
     "ouch": "OUCH",
     "burn": "BURN"
+  },
+  "level4": {
+    "title": "Candidate Stack",
+    "finish": "Offer Loop",
+    "referralBoost": "REFERRAL BOOST",
+    "dockerBoost": "DOCKER BOOST",
+    "mergeConflict": "MERGE CONFLICT",
+    "indentationError": "INDENTATION ERROR",
+    "push": "PUSH",
+    "trip": "TRIP HAZARD"
   },
   "level5": {
     "hp": "HP {hp}",

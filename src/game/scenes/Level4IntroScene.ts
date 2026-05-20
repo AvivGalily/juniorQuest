@@ -8,22 +8,43 @@ import { scaleX, scaleY } from "../utils/layout";
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-export class Level1IntroScene extends Phaser.Scene {
+export class Level4IntroScene extends Phaser.Scene {
   private audio!: AudioManager;
   private dismissed = false;
 
   constructor() {
-    super("Level1IntroScene");
+    super("Level4IntroScene");
   }
 
   create(): void {
     this.dismissed = false;
     this.audio = new AudioManager(this);
-    this.add.image(this.scale.width / 2, this.scale.height / 2, "level1-job-fair-bg").setDisplaySize(this.scale.width, this.scale.height);
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.64);
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 1);
+    this.createRecruiterBackdrop();
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.58);
 
     this.createEmailCard();
     this.input.keyboard.on("keydown-X", () => this.continueToLevel());
+  }
+
+  private createRecruiterBackdrop(): void {
+    const g = this.add.graphics();
+    g.fillStyle(0x102332, 1);
+    g.fillRect(0, 0, this.scale.width, this.scale.height);
+    g.lineStyle(scaleX(2), 0x38bdf8, 0.16);
+    for (let i = 0; i < 12; i += 1) {
+      const y = scaleY(36 + i * 28);
+      g.lineBetween(scaleX(42), y, scaleX(598), y);
+    }
+    g.fillStyle(0xf8fafc, 0.08);
+    g.fillRoundedRect(scaleX(70), scaleY(72), scaleX(500), scaleY(220), scaleX(8));
+    g.fillStyle(0x38bdf8, 0.12);
+    g.fillRoundedRect(scaleX(110), scaleY(112), scaleX(420), scaleY(18), scaleX(4));
+    g.fillStyle(0x8fe388, 0.1);
+    g.fillRoundedRect(scaleX(110), scaleY(154), scaleX(180), scaleY(18), scaleX(4));
+    g.fillRoundedRect(scaleX(330), scaleY(154), scaleX(200), scaleY(18), scaleX(4));
+    g.fillStyle(0xffd166, 0.1);
+    g.fillRoundedRect(scaleX(110), scaleY(196), scaleX(420), scaleY(18), scaleX(4));
   }
 
   private createEmailCard(): void {
@@ -33,8 +54,8 @@ export class Level1IntroScene extends Phaser.Scene {
     const headerH = Math.round(scaleY(42));
     const pad = Math.round(scaleX(24));
     const smallFont = Math.round(scaleY(10));
-    const bodyFont = Math.round(scaleY(10.2));
-    const subjectFont = Math.round(scaleY(12.4));
+    const bodyFont = Math.round(scaleY(10.6));
+    const subjectFont = Math.round(scaleY(12.2));
     const ctaFont = Math.round(scaleY(12));
     const direction = getDirection();
     const textAlign = direction === "rtl" ? "right" : "left";
@@ -65,7 +86,7 @@ export class Level1IntroScene extends Phaser.Scene {
           font-size:${smallFont}px;
           font-weight:700;
         ">
-          <span>${escapeHtml(t("level1Intro.appTitle"))}</span>
+          <span>${escapeHtml(t("level4Intro.appTitle"))}</span>
           <span style="display:flex;gap:${Math.round(scaleX(5))}px;">
             <i style="width:${Math.round(scaleX(5))}px;height:${Math.round(scaleX(5))}px;border-radius:50%;background:#ef4444;display:block;"></i>
             <i style="width:${Math.round(scaleX(5))}px;height:${Math.round(scaleX(5))}px;border-radius:50%;background:#facc15;display:block;"></i>
@@ -80,7 +101,7 @@ export class Level1IntroScene extends Phaser.Scene {
           flex-direction:column;
           gap:${Math.round(scaleY(7))}px;
         ">
-          <div data-action="continue" style="
+          <div style="
             display:grid;
             grid-template-columns:${Math.round(scaleX(58))}px 1fr;
             column-gap:${Math.round(scaleX(14))}px;
@@ -107,8 +128,8 @@ export class Level1IntroScene extends Phaser.Scene {
               " />
             </div>
             <div style="direction:${direction};text-align:${textAlign};font-size:${smallFont}px;line-height:1.35;color:#475569;font-weight:700;overflow:hidden;">
-              <div>${escapeHtml(t("level1Intro.from"))}</div>
-              <div>${escapeHtml(t("level1Intro.to"))}</div>
+              <div>${escapeHtml(t("level4Intro.from"))}</div>
+              <div>${escapeHtml(t("level4Intro.to"))}</div>
             </div>
           </div>
           <div style="height:3px;background:#cbd5e1;"></div>
@@ -117,27 +138,25 @@ export class Level1IntroScene extends Phaser.Scene {
             line-height:1.2;
             color:#0f172a;
             font-weight:800;
-            text-align:right;
+            text-align:${textAlign};
             white-space:nowrap;
             overflow:hidden;
             text-overflow:ellipsis;
-          ">${escapeHtml(t("level1Intro.subject"))}</div>
+          ">${escapeHtml(t("level4Intro.subject"))}</div>
           <div style="height:3px;background:#e2e8f0;"></div>
           <div style="
             flex:1;
             min-height:0;
             overflow:hidden;
             font-size:${bodyFont}px;
-            line-height:1.22;
+            line-height:1.25;
             color:#1e293b;
             font-weight:700;
             text-align:${textAlign};
           ">
-            <p style="margin:0 0 ${Math.round(scaleY(8))}px 0;">${escapeHtml(t("level1Intro.greeting"))}</p>
-            <p style="margin:0 0 ${Math.round(scaleY(8))}px 0;">${escapeHtml(t("level1Intro.body1"))}</p>
-            <p style="margin:0;">${escapeHtml(t("level1Intro.body2"))}</p>
+            <p style="margin:0;">${escapeHtml(t("level4Intro.body"))}</p>
           </div>
-          <div style="
+          <div data-action="continue" style="
             height:${Math.round(scaleY(30))}px;
             flex:0 0 ${Math.round(scaleY(30))}px;
             box-sizing:border-box;
@@ -151,7 +170,7 @@ export class Level1IntroScene extends Phaser.Scene {
             font-weight:800;
             text-align:center;
             cursor:pointer;
-          ">${escapeHtml(t("level1Intro.continue"))}</div>
+          ">${escapeHtml(t("level4Intro.continue"))}</div>
         </div>
       </div>
     `;
@@ -180,6 +199,6 @@ export class Level1IntroScene extends Phaser.Scene {
     this.dismissed = true;
     this.audio.playSfx("sfx-confirm", AUDIO.SFX.CONFIRM);
     runState.levelStartTimeMs = Date.now();
-    this.scene.start("Level1Scene");
+    this.scene.start("Level4Scene");
   }
 }

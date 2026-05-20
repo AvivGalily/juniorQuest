@@ -103,6 +103,7 @@ export class Level2Scene extends BaseLevelScene {
     const leafValues = this.assignTargetValues(this.requiredPlacements);
 
     this.player = new Player(this, scaleX(LEVEL2.PLAYER_START.x), scaleY(LEVEL2.PLAYER_START.y));
+    this.player.setDepth(DEPTH.LEVEL2_PLAYER);
     this.setPlayer(this.player);
 
     const platforms = this.createPlatforms();
@@ -164,6 +165,7 @@ export class Level2Scene extends BaseLevelScene {
       return;
     }
 
+    this.player.setDepth(DEPTH.LEVEL2_PLAYER);
     this.player.updatePlatformer(this.inputManager, scale(PLAYER.PLATFORMER_SPEED), scale(PLAYER.JUMP_L2));
     this.updateCarriedLeaf();
     this.syncLeafLabels();
@@ -191,8 +193,46 @@ export class Level2Scene extends BaseLevelScene {
   private addBackground(): void {
     const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, "level2-bst-orchard-bg");
     bg.setDisplaySize(this.scale.width, this.scale.height);
-    bg.setDepth(-20);
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, LEVEL2.BG_COLOR, 0.08).setDepth(-19);
+    bg.setDepth(-30);
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, LEVEL2.BG_COLOR, 0.08).setDepth(-29);
+    this.addLevel2BackgroundPolish();
+  }
+
+  private addLevel2BackgroundPolish(): void {
+    const g = this.add.graphics().setDepth(-28);
+    g.fillStyle(0x0f172a, 0.28);
+    g.fillRoundedRect(scaleX(35), scaleY(25), scaleX(570), scaleY(314), scale(8));
+    g.lineStyle(scale(2), 0xffffff, 0.1);
+    g.strokeRoundedRect(scaleX(35), scaleY(25), scaleX(570), scaleY(314), scale(8));
+
+    g.fillStyle(0x38bdf8, 0.06);
+    g.fillRoundedRect(scaleX(74), scaleY(54), scaleX(492), scaleY(36), scale(5));
+    g.fillStyle(0xffffff, 0.08);
+    g.fillRoundedRect(scaleX(104), scaleY(70), scaleX(432), scaleY(4), scale(2));
+    g.fillRoundedRect(scaleX(78), scaleY(294), scaleX(484), scaleY(5), scale(3));
+
+    for (const x of [78, 488]) {
+      g.fillStyle(0x102332, 0.72);
+      g.fillRoundedRect(scaleX(x), scaleY(104), scaleX(74), scaleY(82), scale(5));
+      g.lineStyle(scale(1), 0x38bdf8, 0.22);
+      g.strokeRoundedRect(scaleX(x), scaleY(104), scaleX(74), scaleY(82), scale(5));
+      g.fillStyle(0xfacc15, 0.7);
+      g.fillCircle(scaleX(x + 14), scaleY(122), scale(3));
+      g.fillStyle(0x22c55e, 0.58);
+      g.fillCircle(scaleX(x + 28), scaleY(122), scale(3));
+      g.lineStyle(scale(2), 0x8fe388, 0.26);
+      for (let i = 0; i < 4; i += 1) {
+        g.lineBetween(scaleX(x + 14), scaleY(142 + i * 10), scaleX(x + 60), scaleY(142 + i * 10));
+      }
+    }
+
+    g.lineStyle(scale(2), 0xffd166, 0.18);
+    for (let i = 0; i < 5; i += 1) {
+      const y = scaleY(112 + i * 38);
+      g.lineBetween(scaleX(72), y, scaleX(568), y);
+    }
+    g.fillStyle(0x2dd4bf, 0.1);
+    g.fillRoundedRect(scaleX(82), scaleY(306), scaleX(476), scaleY(18), scale(5));
   }
 
   private createPlatforms(): Phaser.Physics.Arcade.StaticGroup {
@@ -204,6 +244,7 @@ export class Level2Scene extends BaseLevelScene {
         (LEVEL2.GROUND_SCALE_Y * scaleY(SCALE.UNIT)) / TEXTURES.HIGH_RES_SCALE
       )
       .refreshBody();
+    (ground as Phaser.Physics.Arcade.Image).setDepth(DEPTH.LEVEL2_STAIRS);
     this.configureTopOnlyPlatform(ground as Phaser.Physics.Arcade.Image);
     this.shrinkPlatformBody(ground as Phaser.Physics.Arcade.Image, 0.98);
 
@@ -218,12 +259,34 @@ export class Level2Scene extends BaseLevelScene {
             (LEVEL2.SHELF_SCALE_Y * scaleY(SCALE.UNIT)) / TEXTURES.HIGH_RES_SCALE
           )
           .refreshBody();
+        (shelf as Phaser.Physics.Arcade.Image).setDepth(DEPTH.LEVEL2_STAIRS);
         shelf.setAlpha(0.72);
         this.configureTopOnlyPlatform(shelf as Phaser.Physics.Arcade.Image);
         this.shrinkPlatformBody(shelf as Phaser.Physics.Arcade.Image, LEVEL2.PLATFORM_BODY_WIDTH_RATIO);
       }
     }
+    this.addLevel2AccessRails();
     return platforms;
+  }
+
+  private addLevel2AccessRails(): void {
+    const rails = this.add.graphics().setDepth(DEPTH.LEVEL2_STAIRS + 1);
+    rails.lineStyle(scale(5), 0x475569, 0.82);
+    rails.lineBetween(scaleX(184), scaleY(136), scaleX(184), scaleY(286));
+    rails.lineBetween(scaleX(196), scaleY(136), scaleX(196), scaleY(286));
+    rails.lineBetween(scaleX(444), scaleY(136), scaleX(444), scaleY(286));
+    rails.lineBetween(scaleX(456), scaleY(136), scaleX(456), scaleY(286));
+    rails.lineStyle(scale(2), 0xe2e8f0, 0.42);
+    for (const x of [190, 450]) {
+      for (const y of LEVEL2.SHELF_YS) {
+        rails.lineBetween(scaleX(x - 15), scaleY(y), scaleX(x + 15), scaleY(y));
+      }
+    }
+    rails.fillStyle(0xffd166, 0.66);
+    for (const x of [190, 450]) {
+      rails.fillCircle(scaleX(x), scaleY(136), scale(4));
+      rails.fillCircle(scaleX(x), scaleY(286), scale(4));
+    }
   }
 
   private createSlots(): void {
@@ -1173,6 +1236,6 @@ export class Level2Scene extends BaseLevelScene {
     this.transitionStarted = true;
     this.physics.world.isPaused = false;
     this.time.timeScale = 1;
-    this.scene.start("Level3Scene");
+    this.scene.start("Level3IntroScene");
   }
 }

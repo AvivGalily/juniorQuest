@@ -17,6 +17,7 @@ export class Level2IntroScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.dismissed = false;
     this.audio = new AudioManager(this);
     this.add.image(this.scale.width / 2, this.scale.height / 2, "level2-bst-orchard-bg").setDisplaySize(this.scale.width, this.scale.height);
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.64);
@@ -79,7 +80,7 @@ export class Level2IntroScene extends Phaser.Scene {
           flex-direction:column;
           gap:${Math.round(scaleY(7))}px;
         ">
-          <div style="
+          <div data-action="continue" style="
             display:grid;
             grid-template-columns:${Math.round(scaleX(58))}px 1fr;
             column-gap:${Math.round(scaleX(14))}px;
@@ -150,12 +151,27 @@ export class Level2IntroScene extends Phaser.Scene {
             font-size:${ctaFont}px;
             font-weight:800;
             text-align:center;
+            cursor:pointer;
           ">${escapeHtml(t("level2Intro.continue"))}</div>
         </div>
       </div>
     `;
 
-    this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromHTML(html).setOrigin(0.5);
+    const card = this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromHTML(html).setOrigin(0.5);
+    card.addListener("click");
+    card.on("click", (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-action='continue']")) {
+        this.continueToLevel();
+      }
+    });
+
+    const ctaH = Math.round(scaleY(30));
+    this.add
+      .zone(this.scale.width / 2, this.scale.height / 2 + cardH / 2 - Math.round(scaleY(12)) - ctaH / 2, cardW - pad * 2, ctaH)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(10000)
+      .on("pointerdown", () => this.continueToLevel());
   }
 
   private continueToLevel(): void {

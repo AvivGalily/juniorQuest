@@ -68,6 +68,8 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("level2-beetle-fly-left", new URL(`${envBase}level2-beetle-fly-left.png`, import.meta.url).href);
     this.load.image("level2-beetle-fly-right", new URL(`${envBase}level2-beetle-fly-right.png`, import.meta.url).href);
     this.load.image("level3-snake-bg", new URL(`${envBase}level3-snake-bg.png`, import.meta.url).href);
+    this.load.image("level4-hitech-tower-bg", new URL("../img/level4-hitech-tower-bg.png", import.meta.url).href);
+    this.load.image("level4-platform", new URL("../img/level4-platform.png", import.meta.url).href);
     this.load.image("linked-snake-head", new URL(`${envBase}linked-snake-head.png`, import.meta.url).href);
     this.load.image("linked-snake-head-hurt", new URL(`${envBase}linked-snake-head-hurt.png`, import.meta.url).href);
     this.load.image("linked-snake-node", new URL(`${envBase}linked-snake-node.png`, import.meta.url).href);
