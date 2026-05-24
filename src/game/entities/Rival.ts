@@ -25,11 +25,12 @@ export class Rival extends Phaser.Physics.Arcade.Sprite {
     this.updateTexture(true);
   }
 
-  updateAI(targetX: number): void {
+  updateAI(targetX: number, options?: { speedMultiplier?: number; jump?: boolean; jumpMultiplier?: number; stopDistance?: number }): void {
     const dir = targetX - this.x;
-    this.setVelocityX(Math.sign(dir) * this.speed);
-    if (this.body.blocked.down) {
-      this.setVelocityY(-scale(ENTITIES.RIVAL_JUMP_VELOCITY));
+    const stopDistance = options?.stopDistance ?? 0;
+    this.setVelocityX(Math.abs(dir) <= stopDistance ? 0 : Math.sign(dir) * this.speed * (options?.speedMultiplier ?? 1));
+    if ((options?.jump ?? true) && this.body.blocked.down) {
+      this.setVelocityY(-scale(ENTITIES.RIVAL_JUMP_VELOCITY) * (options?.jumpMultiplier ?? 1));
     }
     const prevFacing = this.facing;
     if (Math.abs(this.body.velocity.x) > INPUT.AXIS_EPSILON) {

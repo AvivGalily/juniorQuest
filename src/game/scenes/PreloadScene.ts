@@ -70,6 +70,14 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("level3-snake-bg", new URL(`${envBase}level3-snake-bg.png`, import.meta.url).href);
     this.load.image("level4-hitech-tower-bg", new URL("../img/level4-hitech-tower-bg.png", import.meta.url).href);
     this.load.image("level4-platform", new URL("../img/level4-platform.png", import.meta.url).href);
+    this.load.image("level4-docker-whale", new URL("../img/level4-docker-whale.png", import.meta.url).href);
+    this.load.image("level4-octocat", new URL("../img/level4-octocat.png", import.meta.url).href);
+    this.load.image("level4-python-snake", new URL("../img/level4-python-snake.png", import.meta.url).href);
+    this.load.image("level4-jetpack", new URL("../img/level4-jetpack.png", import.meta.url).href);
+    this.load.image("level4-player-jetpack", new URL("../img/level4-player-jetpack.png", import.meta.url).href);
+    this.load.image("level4-jetpack-smoke", new URL("../img/level4-jetpack-smoke.png", import.meta.url).href);
+    this.load.image("level4-java-coffee", new URL("../img/level4-java-coffee.png", import.meta.url).href);
+    this.load.image("level4-finish-door", new URL("../img/level4-finish-door.png", import.meta.url).href);
     this.load.image("linked-snake-head", new URL(`${envBase}linked-snake-head.png`, import.meta.url).href);
     this.load.image("linked-snake-head-hurt", new URL(`${envBase}linked-snake-head-hurt.png`, import.meta.url).href);
     this.load.image("linked-snake-node", new URL(`${envBase}linked-snake-node.png`, import.meta.url).href);
@@ -422,6 +430,28 @@ export class PreloadScene extends Phaser.Scene {
       }
       return buffer;
     };
+    const makeLevel4RaceLoop = (): AudioBuffer => {
+      const sampleRate = ctx.sampleRate;
+      const duration = 1.28;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      const notes = [329.63, 392.0, 493.88, 587.33, 493.88, 440.0, 392.0, 523.25];
+      for (let i = 0; i < length; i += 1) {
+        const t = i / sampleRate;
+        const beat = t % 0.16;
+        const step = Math.floor(t / 0.16) % notes.length;
+        const gate = Math.exp(-beat * 18);
+        const kickBeat = t % 0.32;
+        const kick = Math.sin(2 * Math.PI * (105 - kickBeat * 210) * t) * Math.exp(-kickBeat * 32) * 0.45;
+        const bass = Math.sin(2 * Math.PI * 130.81 * t) * 0.22 + Math.sin(2 * Math.PI * 196.0 * t) * 0.12;
+        const lead = Math.sin(2 * Math.PI * notes[step] * t) * gate * 0.2;
+        const pulse = Math.sin(2 * Math.PI * notes[(step + 2) % notes.length] * t) * gate * 0.08;
+        const hat = (Math.random() * 2 - 1) * Math.exp(-beat * 45) * 0.12;
+        data[i] = (kick + bass + lead + pulse + hat) * AUDIO_TONES.MUSIC.LOOP_VOLUME;
+      }
+      return buffer;
+    };
     const makeFairLoop = (): AudioBuffer => {
       const sampleRate = ctx.sampleRate;
       const duration = 1.92;
@@ -448,6 +478,7 @@ export class PreloadScene extends Phaser.Scene {
     this.cache.audio.add("music-level1-fair", makeFairLoop());
     this.cache.audio.add("music-gameplay", makeLoop(AUDIO_TONES.MUSIC.GAMEPLAY_FREQ));
     this.cache.audio.add("music-level3-action", makeActionLoop());
+    this.cache.audio.add("music-level4-race", makeLevel4RaceLoop());
     this.cache.audio.add("music-boss", makeLoop(AUDIO_TONES.MUSIC.BOSS_FREQ));
   }
 }

@@ -124,7 +124,13 @@
     "mergeConflict": "MERGE CONFLICT",
     "indentationError": "INDENTATION ERROR",
     "push": "PUSH",
-    "trip": "TRIP HAZARD"
+    "trip": "TRIP HAZARD",
+    "rank": "Place {rank}/{total}",
+    "attackTaunt1": "I'm better at LeetCode.",
+    "attackTaunt2": "I scored higher than you in college.",
+    "attackTaunt3": "My GitHub has more stars.",
+    "attackTaunt4": "I already know the hiring manager.",
+    "rivalFinished": "We moved forward with other candidates."
   },
   "level5": {
     "hp": "HP {hp}",

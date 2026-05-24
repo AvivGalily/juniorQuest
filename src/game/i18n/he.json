@@ -124,7 +124,13 @@
     "mergeConflict": "MERGE CONFLICT",
     "indentationError": "INDENTATION ERROR",
     "push": "PUSH",
-    "trip": "TRIP HAZARD"
+    "trip": "TRIP HAZARD",
+    "rank": "מקום {rank}/{total}",
+    "attackTaunt1": "אני יותר טוב בליטקוד.",
+    "attackTaunt2": "קיבלתי יותר ממך בתואר.",
+    "attackTaunt3": "יש לי יותר כוכבים בגיטהאב.",
+    "attackTaunt4": "אני כבר מכיר את המנהל המגייס.",
+    "rivalFinished": "המשכנו עם מועמדים אחרים."
   },
   "level5": {
     "hp": "HP {hp}",
