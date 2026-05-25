@@ -137,7 +137,11 @@
     "intro": "You were the best in interviews, but the role is no longer needed because of AI.",
     "clear": "CLEAR",
     "damageHp": "-{damage} HP",
+    "heartPickup": "+1 HEART",
     "failed": "FAILED",
+    "tauntFired": "You're fired.",
+    "tauntLayoffs": "Time for layoffs.",
+    "tauntProgrammersOver": "The age of programmers is over.",
     "congratsShutdown": "Congrats on the new job! But the company shut down.",
     "goodLuck": "Good luck searching."
   },

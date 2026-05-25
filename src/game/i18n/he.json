@@ -137,7 +137,11 @@
     "intro": "היית הכי טוב בראיונות, אבל התפקיד כבר לא נחוץ בגלל AI.",
     "clear": "נוקה",
     "damageHp": "-{damage} HP",
+    "heartPickup": "+1 לב",
     "failed": "נכשל",
+    "tauntFired": "אתה מפוטר",
+    "tauntLayoffs": "הגיע זמן הקיצוצים",
+    "tauntProgrammersOver": "נגמר עידן המתכנתים",
     "congratsShutdown": "ברכות על העבודה החדשה! אבל החברה נסגרה.",
     "goodLuck": "בהצלחה בחיפוש."
   },
