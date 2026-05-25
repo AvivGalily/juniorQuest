@@ -1406,6 +1406,6 @@ export class Level4Scene extends BaseLevelScene {
       "#8fe388"
     );
     this.hud.updateAll();
-    this.time.delayedCall(LEVEL4.COMPLETE_DELAY_MS, () => this.scene.start("Level5Scene"));
+    this.time.delayedCall(LEVEL4.COMPLETE_DELAY_MS, () => this.scene.start("Level5IntroScene"));
   }
 }

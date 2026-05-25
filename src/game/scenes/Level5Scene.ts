@@ -10,9 +10,10 @@ import { getUiScale } from "../utils/resolution";
 import { scale, scaleX, scaleY } from "../utils/layout";
 
 type BossProjectileKind = "energy" | "electric";
-type BossHazardKind = BossProjectileKind | "wave";
+type BossHazardKind = BossProjectileKind | "wave" | "fire";
 type PlayerFacingDirection = "left" | "right" | "up" | "down";
 type PlayerProjectile = Phaser.GameObjects.Text | Phaser.GameObjects.Image;
+type ShotMultiplier = 2 | 3;
 type BossBodyTextureKey =
   | "level5-computer-spider-body-angry"
   | "level5-computer-spider-body-scared"
@@ -26,6 +27,23 @@ type BossLeg = {
   offsetY: number;
   baseAngle: number;
   phase: number;
+};
+type PowerPylon = {
+  sprite: Phaser.GameObjects.Image;
+  hpBarBg: Phaser.GameObjects.Rectangle;
+  hpBarFill: Phaser.GameObjects.Rectangle;
+  hp: number;
+  nextSparkAt: number;
+};
+type MiniBoss = {
+  sprite: Phaser.Physics.Arcade.Sprite;
+  legs: BossLeg[];
+  hpBarBg: Phaser.GameObjects.Rectangle;
+  hpBarFill: Phaser.GameObjects.Rectangle;
+  hp: number;
+  moveTarget: Phaser.Math.Vector2;
+  nextShotAt: number;
+  contactCooldownUntil: number;
 };
 
 export class Level5Scene extends BaseLevelScene {
@@ -45,6 +63,10 @@ export class Level5Scene extends BaseLevelScene {
     "level5-player-dragon-keyboard-walk-2",
     "level5-player-dragon-keyboard-walk-3"
   ];
+  private readonly playerFrontTextures = ["level5-player-keyboard-gun-front", "level5-player-keyboard-gun-front-walk"];
+  private readonly playerBackTextures = ["level5-player-keyboard-gun-back", "level5-player-keyboard-gun-back-walk"];
+  private readonly playerDragonFrontTextures = ["level5-player-dragon-keyboard-front", "level5-player-dragon-keyboard-front-walk"];
+  private readonly playerDragonBackTextures = ["level5-player-dragon-keyboard-back", "level5-player-dragon-keyboard-back-walk"];
   private playerWalkFrame = 1;
   private nextPlayerWalkFrameAt = 0;
   private playerTextureKey = "";
@@ -59,15 +81,24 @@ export class Level5Scene extends BaseLevelScene {
   private waveTimer?: Phaser.Time.TimerEvent;
   private tauntTimer?: Phaser.Time.TimerEvent;
   private heartPickupTimer?: Phaser.Time.TimerEvent;
-  private heartPickup?: Phaser.GameObjects.Image;
+  private heartPickups: Phaser.GameObjects.Image[] = [];
   private dragonWeaponTimer?: Phaser.Time.TimerEvent;
   private dragonWeaponPickup?: Phaser.GameObjects.Image;
+  private shotMultiplierTimer?: Phaser.Time.TimerEvent;
+  private shotMultiplierPickup?: Phaser.GameObjects.Text;
+  private pylonTimer?: Phaser.Time.TimerEvent;
+  private powerPylons: PowerPylon[] = [];
+  private miniBosses: MiniBoss[] = [];
   private hasDragonWeapon = false;
+  private activeShotMultiplier: ShotMultiplier | 1 = 1;
+  private shotMultiplierExpiresAt = 0;
   private fightActive = false;
   private isJumping = false;
   private nextShotAt = 0;
   private nextJumpAt = 0;
   private scaredFaceUntil = 0;
+  private bossStunnedUntil = 0;
+  private miniBossPhaseTriggered = false;
   private playerBaseScaleX = 1;
   private playerBaseScaleY = 1;
   private shadowBaseScaleX = 1;
@@ -80,7 +111,7 @@ export class Level5Scene extends BaseLevelScene {
   create(): void {
     this.initLevel(STAGE.LEVEL5);
     this.resetRuntimeState();
-    this.audio.playMusic("music-boss", AUDIO.MUSIC.BOSS);
+    this.audio.playMusic("music-level5-intense", AUDIO.MUSIC.BOSS_INTENSE);
     this.physics.world.gravity.y = LEVEL5.WORLD_GRAVITY_Y;
     this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
 
@@ -106,9 +137,7 @@ export class Level5Scene extends BaseLevelScene {
       this.handlePlayerProjectileHit(projectile as Phaser.Physics.Arcade.Image);
     });
 
-    this.showDialog(t("level5.intro"), () => {
-      this.startFight();
-    });
+    this.startFight();
   }
 
   private resetRuntimeState(): void {
@@ -124,15 +153,24 @@ export class Level5Scene extends BaseLevelScene {
     this.waveTimer = undefined;
     this.tauntTimer = undefined;
     this.heartPickupTimer = undefined;
-    this.heartPickup = undefined;
+    this.heartPickups = [];
     this.dragonWeaponTimer = undefined;
     this.dragonWeaponPickup = undefined;
+    this.shotMultiplierTimer = undefined;
+    this.shotMultiplierPickup = undefined;
+    this.pylonTimer = undefined;
+    this.powerPylons = [];
+    this.miniBosses = [];
     this.hasDragonWeapon = false;
+    this.activeShotMultiplier = 1;
+    this.shotMultiplierExpiresAt = 0;
     this.fightActive = false;
     this.isJumping = false;
     this.nextShotAt = 0;
     this.nextJumpAt = 0;
     this.scaredFaceUntil = 0;
+    this.bossStunnedUntil = 0;
+    this.miniBossPhaseTriggered = false;
   }
 
   update(_: number, delta: number): void {
@@ -144,7 +182,11 @@ export class Level5Scene extends BaseLevelScene {
     this.updatePlayer(delta);
     this.checkHeartPickup();
     this.checkDragonWeaponPickup();
+    this.checkShotMultiplierPickup();
+    this.updateShotMultiplierState();
     this.updateBoss(delta);
+    this.updateMiniBosses(delta);
+    this.updatePowerPylons();
     this.updateProjectiles(delta);
     this.hud.updateAll();
   }
@@ -367,6 +409,8 @@ export class Level5Scene extends BaseLevelScene {
       callback: () => this.showBossTaunt()
     });
     this.dragonWeaponTimer = this.time.delayedCall(LEVEL5.DRAGON_WEAPON_SPAWN_DELAY_MS, () => this.spawnDragonWeaponPickup());
+    this.scheduleNextShotMultiplierPickup();
+    this.scheduleNextPowerPylon();
     this.scheduleNextHeartPickup();
   }
 
@@ -376,7 +420,7 @@ export class Level5Scene extends BaseLevelScene {
     }
 
     const body = this.boss.body as Phaser.Physics.Arcade.Body;
-    const active = this.fightActive && this.bossHp > 0;
+    const active = this.fightActive && this.bossHp > 0 && !this.isBossStunned();
     if (active) {
       const distanceToTarget = Phaser.Math.Distance.Between(
         this.boss.x,
@@ -424,7 +468,9 @@ export class Level5Scene extends BaseLevelScene {
 
   private updateBossLegs(): void {
     const body = this.boss.body as Phaser.Physics.Arcade.Body;
-    const speedRatio = Phaser.Math.Clamp(Math.hypot(body.velocity.x, body.velocity.y) / scale(LEVEL5.BOSS_PATROL_SPEED), 0.28, 1);
+    const speedRatio = this.isBossStunned()
+      ? 0
+      : Phaser.Math.Clamp(Math.hypot(body.velocity.x, body.velocity.y) / scale(LEVEL5.BOSS_PATROL_SPEED), 0.28, 1);
     const walkTime = this.time.now * LEVEL5.BOSS_LEG_WALK_SPEED * speedRatio;
 
     for (const leg of this.bossLegs) {
@@ -437,6 +483,313 @@ export class Level5Scene extends BaseLevelScene {
       );
       leg.sprite.setAngle(leg.baseAngle + swing * LEVEL5.BOSS_LEG_SWING_ANGLE);
       leg.sprite.setAlpha(this.bossHp > 0 ? 1 : 0.82);
+    }
+  }
+
+  private triggerMiniBossPhase(): void {
+    this.miniBossPhaseTriggered = true;
+    this.audio.playSfx("sfx-phase", AUDIO.SFX.PHASE);
+    this.showBossTaunt("level5.tauntRuleWorld");
+    const flash = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0xfef08a, 0.34);
+    flash.setDepth(1101);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: LEVEL5.MINI_BOSS_SPAWN_FLASH_MS,
+      ease: "Quad.easeOut",
+      onComplete: () => flash.destroy()
+    });
+
+    this.time.delayedCall(LEVEL5.MINI_BOSS_SPAWN_FLASH_MS * 0.45, () => {
+      if (!this.fightActive || this.bossHp <= 0) {
+        return;
+      }
+      for (let i = 0; i < LEVEL5.MINI_BOSS_COUNT; i += 1) {
+        this.spawnMiniBoss(i);
+      }
+    });
+  }
+
+  private spawnMiniBoss(index: number): void {
+    const x = index === 0 ? this.arena.left + scaleX(104) : this.arena.right - scaleX(104);
+    const y = this.arena.top + scaleY(100 + index * 84);
+    const sprite = this.physics.add.sprite(x, y, "level5-robot-mouse-body");
+    sprite.setDisplaySize(scaleX(LEVEL5.MINI_BOSS_DISPLAY_WIDTH), scaleY(LEVEL5.MINI_BOSS_DISPLAY_HEIGHT));
+    sprite.setDepth(18);
+    sprite.setImmovable(true);
+    const body = sprite.body as Phaser.Physics.Arcade.Body;
+    body.setAllowGravity(false);
+    body.setSize(
+      sprite.width * LEVEL5.MINI_BOSS_BODY_WIDTH_RATIO,
+      sprite.height * LEVEL5.MINI_BOSS_BODY_HEIGHT_RATIO,
+      false
+    );
+    body.setOffset(
+      (sprite.width - body.width) / 2,
+      sprite.height * LEVEL5.MINI_BOSS_BODY_OFFSET_Y_RATIO
+    );
+
+    const hpBarWidth = scaleX(LEVEL5.MINI_BOSS_DISPLAY_WIDTH);
+    const hpBarHeight = Math.max(4, scaleY(5));
+    const hpBarY = y - sprite.displayHeight / 2 - scaleY(10);
+    const hpBarBg = this.add.rectangle(x, hpBarY, hpBarWidth, hpBarHeight, 0x111827, 0.82).setDepth(28);
+    hpBarBg.setStrokeStyle(Math.max(1, scale(1)), 0xfca5a5, 0.9);
+    const hpBarFill = this.add
+      .rectangle(x - hpBarWidth / 2, hpBarY, hpBarWidth, hpBarHeight, 0xef4444, 0.95)
+      .setOrigin(0, 0.5)
+      .setDepth(29);
+
+    const miniBoss: MiniBoss = {
+      sprite,
+      legs: this.createMiniBossLegs(sprite),
+      hpBarBg,
+      hpBarFill,
+      hp: LEVEL5.MINI_BOSS_HP,
+      moveTarget: new Phaser.Math.Vector2(),
+      nextShotAt: this.time.now + LEVEL5.MINI_BOSS_FIREBALL_INTERVAL_MS,
+      contactCooldownUntil: 0
+    };
+    this.assignMiniBossMoveTarget(miniBoss);
+    this.miniBosses.push(miniBoss);
+    this.showMiniBossSpawnEffect(x, y);
+  }
+
+  private createMiniBossLegs(sprite: Phaser.Physics.Arcade.Sprite): BossLeg[] {
+    const legDefs: Array<Omit<BossLeg, "sprite">> = [
+      { side: -1, offsetX: -30, offsetY: -15, baseAngle: -28, phase: 0 },
+      { side: -1, offsetX: -34, offsetY: 4, baseAngle: -8, phase: Math.PI },
+      { side: -1, offsetX: -25, offsetY: 20, baseAngle: 24, phase: Math.PI * 0.55 },
+      { side: 1, offsetX: 30, offsetY: -15, baseAngle: 28, phase: Math.PI },
+      { side: 1, offsetX: 34, offsetY: 4, baseAngle: 8, phase: 0 },
+      { side: 1, offsetX: 25, offsetY: 20, baseAngle: -24, phase: Math.PI * 1.55 }
+    ];
+
+    return legDefs.map((def) => {
+      const leg = this.add
+        .image(sprite.x, sprite.y, "level5-robot-mouse-leg")
+        .setDisplaySize(scaleX(LEVEL5.MINI_BOSS_LEG_DISPLAY_WIDTH), scaleY(LEVEL5.MINI_BOSS_LEG_DISPLAY_HEIGHT))
+        .setOrigin(def.side < 0 ? 0.74 : 0.26, 0.14)
+        .setFlipX(def.side < 0)
+        .setDepth(def.offsetY > 18 ? 19 : 16);
+      return { ...def, sprite: leg };
+    });
+  }
+
+  private showMiniBossSpawnEffect(x: number, y: number): void {
+    const ring = this.add.circle(x, y, scale(18), 0xffffff, 0).setStrokeStyle(scale(3), 0xfef08a, 0.9).setDepth(34);
+    this.tweens.add({
+      targets: ring,
+      scale: 2.2,
+      alpha: 0,
+      duration: 420,
+      ease: "Cubic.easeOut",
+      onComplete: () => ring.destroy()
+    });
+  }
+
+  private updateMiniBosses(_: number): void {
+    for (const miniBoss of [...this.miniBosses]) {
+      if (!miniBoss.sprite.active || miniBoss.hp <= 0) {
+        continue;
+      }
+      const body = miniBoss.sprite.body as Phaser.Physics.Arcade.Body;
+      const distanceToTarget = Phaser.Math.Distance.Between(
+        miniBoss.sprite.x,
+        miniBoss.sprite.y,
+        miniBoss.moveTarget.x,
+        miniBoss.moveTarget.y
+      );
+      if (distanceToTarget < scale(LEVEL5.MINI_BOSS_TARGET_REACHED_RANGE)) {
+        this.assignMiniBossMoveTarget(miniBoss);
+      }
+
+      const direction = new Phaser.Math.Vector2(miniBoss.moveTarget.x - miniBoss.sprite.x, miniBoss.moveTarget.y - miniBoss.sprite.y);
+      if (direction.lengthSq() > 1) {
+        direction.normalize();
+      }
+      body.setVelocity(direction.x * scale(LEVEL5.MINI_BOSS_PATROL_SPEED), direction.y * scale(LEVEL5.MINI_BOSS_PATROL_SPEED));
+      this.clampMiniBossToArena(miniBoss);
+      miniBoss.sprite.setAngle(Math.sin(this.time.now * 0.009 + miniBoss.sprite.x) * 1.2);
+      this.updateMiniBossLegs(miniBoss);
+      this.updateMiniBossHpBar(miniBoss);
+
+      if (this.time.now >= miniBoss.nextShotAt) {
+        miniBoss.nextShotAt = this.time.now + LEVEL5.MINI_BOSS_FIREBALL_INTERVAL_MS;
+        this.spawnMiniBossFireball(miniBoss);
+      }
+      this.checkMiniBossContact(miniBoss);
+    }
+    this.miniBosses = this.miniBosses.filter((miniBoss) => miniBoss.sprite.active);
+  }
+
+  private assignMiniBossMoveTarget(miniBoss: MiniBoss): void {
+    const minX = Math.round(this.arena.left + scaleX(70));
+    const maxX = Math.round(this.arena.right - scaleX(70));
+    const minY = Math.round(this.arena.top + scaleY(54));
+    const maxY = Math.round(this.arena.bottom - scaleY(58));
+    const chasePlayer = Phaser.Math.Between(0, 100) < 45;
+    miniBoss.moveTarget.set(
+      chasePlayer ? this.player.x + Phaser.Math.Between(-scaleX(50), scaleX(50)) : Phaser.Math.Between(minX, maxX),
+      chasePlayer ? this.player.y + Phaser.Math.Between(-scaleY(38), scaleY(38)) : Phaser.Math.Between(minY, maxY)
+    );
+    miniBoss.moveTarget.x = Phaser.Math.Clamp(miniBoss.moveTarget.x, minX, maxX);
+    miniBoss.moveTarget.y = Phaser.Math.Clamp(miniBoss.moveTarget.y, minY, maxY);
+  }
+
+  private clampMiniBossToArena(miniBoss: MiniBoss): void {
+    const halfWidth = miniBoss.sprite.displayWidth * 0.32;
+    const halfHeight = miniBoss.sprite.displayHeight * 0.34;
+    miniBoss.sprite.x = Phaser.Math.Clamp(miniBoss.sprite.x, this.arena.left + halfWidth, this.arena.right - halfWidth);
+    miniBoss.sprite.y = Phaser.Math.Clamp(miniBoss.sprite.y, this.arena.top + halfHeight, this.arena.bottom - halfHeight);
+  }
+
+  private updateMiniBossLegs(miniBoss: MiniBoss): void {
+    const body = miniBoss.sprite.body as Phaser.Physics.Arcade.Body;
+    const speedRatio = Phaser.Math.Clamp(Math.hypot(body.velocity.x, body.velocity.y) / scale(LEVEL5.MINI_BOSS_PATROL_SPEED), 0.28, 1);
+    const walkTime = this.time.now * LEVEL5.MINI_BOSS_LEG_WALK_SPEED * speedRatio;
+    for (const leg of miniBoss.legs) {
+      const cycle = walkTime + leg.phase;
+      const swing = Math.sin(cycle);
+      const lift = Math.max(0, Math.cos(cycle));
+      leg.sprite.setPosition(
+        miniBoss.sprite.x + scaleX(leg.offsetX + swing * LEVEL5.MINI_BOSS_LEG_SWING_X * leg.side),
+        miniBoss.sprite.y + scaleY(leg.offsetY - lift * LEVEL5.MINI_BOSS_LEG_LIFT_Y)
+      );
+      leg.sprite.setAngle(leg.baseAngle + swing * LEVEL5.MINI_BOSS_LEG_SWING_ANGLE);
+    }
+  }
+
+  private updateMiniBossHpBar(miniBoss: MiniBoss): void {
+    const width = scaleX(LEVEL5.MINI_BOSS_DISPLAY_WIDTH);
+    const y = miniBoss.sprite.y - miniBoss.sprite.displayHeight / 2 - scaleY(10);
+    const percent = Phaser.Math.Clamp(miniBoss.hp / LEVEL5.MINI_BOSS_HP, 0, 1);
+    miniBoss.hpBarBg.setPosition(miniBoss.sprite.x, y);
+    miniBoss.hpBarFill.setPosition(miniBoss.sprite.x - width / 2, y);
+    miniBoss.hpBarFill.setDisplaySize(width * percent, Math.max(4, scaleY(5)));
+    miniBoss.hpBarFill.setFillStyle(percent > 0.45 ? 0xef4444 : 0xf97316, 0.95);
+  }
+
+  private spawnMiniBossFireball(miniBoss: MiniBoss): void {
+    if (!this.fightActive || !miniBoss.sprite.active) {
+      return;
+    }
+    const angle = Phaser.Math.Angle.Between(miniBoss.sprite.x, miniBoss.sprite.y, this.player.x, this.player.y);
+    const fireball = this.physics.add.image(miniBoss.sprite.x, miniBoss.sprite.y + scaleY(10), "linked-snake-fireball");
+    fireball.setDisplaySize(scale(LEVEL5.MINI_BOSS_FIREBALL_SIZE), scale(LEVEL5.MINI_BOSS_FIREBALL_SIZE));
+    fireball.setDepth(28);
+    fireball.setData("kind", "fire" satisfies BossHazardKind);
+    const body = fireball.body as Phaser.Physics.Arcade.Body;
+    body.setAllowGravity(false);
+    body.setCircle(fireball.width * 0.35);
+    this.bossProjectiles.add(fireball);
+    body.setVelocity(Math.cos(angle) * scale(LEVEL5.MINI_BOSS_FIREBALL_SPEED), Math.sin(angle) * scale(LEVEL5.MINI_BOSS_FIREBALL_SPEED));
+    this.audio.playSfx("sfx-fire-spit", AUDIO.SFX.FIRE * 0.52);
+    this.time.delayedCall(LEVEL5.BOSS_PROJECTILE_LIFETIME_MS, () => {
+      if (fireball.active) {
+        fireball.destroy();
+      }
+    });
+  }
+
+  private checkMiniBossContact(miniBoss: MiniBoss): void {
+    if (this.time.now < miniBoss.contactCooldownUntil || this.isJumping || this.invulnerable) {
+      return;
+    }
+    if (!Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), this.getMiniBossHitBox(miniBoss))) {
+      return;
+    }
+    miniBoss.contactCooldownUntil = this.time.now + LEVEL5.MINI_BOSS_CONTACT_COOLDOWN_MS;
+    this.applyDamage(() => {
+      const angle = Phaser.Math.Angle.Between(miniBoss.sprite.x, miniBoss.sprite.y, this.player.x, this.player.y);
+      this.player.x += Math.cos(angle) * scale(LEVEL5.PLAYER_DAMAGE_KNOCKBACK);
+      this.player.y += Math.sin(angle) * scale(LEVEL5.PLAYER_DAMAGE_KNOCKBACK);
+      this.clampPlayerToArena();
+      this.updatePlayerShadow();
+    });
+    FloatingText.spawn(
+      this,
+      this.player.x,
+      this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM),
+      t("common.heartLost"),
+      "#ff6b6b"
+    );
+    this.hud.updateAll();
+  }
+
+  private getMiniBossHitBox(miniBoss: MiniBoss): Phaser.Geom.Rectangle {
+    const body = miniBoss.sprite.body as Phaser.Physics.Arcade.Body;
+    return new Phaser.Geom.Rectangle(body.x, body.y, body.width, body.height);
+  }
+
+  private getHitMiniBoss(shot: PlayerProjectile): MiniBoss | undefined {
+    const shotBounds = shot.getBounds();
+    return this.miniBosses.find(
+      (miniBoss) => miniBoss.sprite.active && miniBoss.hp > 0 && Phaser.Geom.Intersects.RectangleToRectangle(shotBounds, this.getMiniBossHitBox(miniBoss))
+    );
+  }
+
+  private handleMiniBossHit(miniBoss: MiniBoss, shot: PlayerProjectile): void {
+    const damage = (shot.getData("damage") as number | undefined) ?? 1;
+    shot.destroy();
+    miniBoss.hp = Math.max(0, miniBoss.hp - damage);
+    this.scoreSystem.addSkill(LEVEL5.PLAYER_PROJECTILE_SCORE * damage);
+    this.updateMiniBossHpBar(miniBoss);
+    if (miniBoss.hp <= 0) {
+      this.destroyMiniBoss(miniBoss);
+      return;
+    }
+    miniBoss.sprite.setTintFill(0xfef08a);
+    miniBoss.legs.forEach((leg) => leg.sprite.setTintFill(0xfef08a));
+    this.time.delayedCall(70, () => {
+      if (miniBoss.sprite.active) {
+        miniBoss.sprite.clearTint();
+        miniBoss.legs.forEach((leg) => leg.sprite.clearTint());
+      }
+    });
+  }
+
+  private destroyMiniBoss(miniBoss: MiniBoss): void {
+    const x = miniBoss.sprite.x;
+    const y = miniBoss.sprite.y;
+    this.miniBosses = this.miniBosses.filter((candidate) => candidate !== miniBoss);
+    this.tweens.killTweensOf(miniBoss.sprite);
+    miniBoss.legs.forEach((leg) => {
+      this.tweens.killTweensOf(leg.sprite);
+      leg.sprite.destroy();
+    });
+    miniBoss.hpBarBg.destroy();
+    miniBoss.hpBarFill.destroy();
+    miniBoss.sprite.destroy();
+    this.showMiniBossExplosion(x, y);
+  }
+
+  private showMiniBossExplosion(x: number, y: number): void {
+    const flash = this.add.circle(x, y, scale(14), 0xf97316, 0.78).setDepth(38);
+    this.tweens.add({
+      targets: flash,
+      scale: 2.4,
+      alpha: 0,
+      duration: 300,
+      ease: "Quad.easeOut",
+      onComplete: () => flash.destroy()
+    });
+    for (let i = 0; i < 14; i += 1) {
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const distance = scale(Phaser.Math.Between(18, 58));
+      const particle = this.add
+        .rectangle(x, y, scale(Phaser.Math.Between(3, 7)), scale(Phaser.Math.Between(2, 6)), Phaser.Math.RND.pick([0xf97316, 0xfef08a, 0x38f6ff, 0xe5e7eb]), 0.95)
+        .setDepth(39)
+        .setAngle(Phaser.Math.Between(0, 180));
+      this.tweens.add({
+        targets: particle,
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        alpha: 0,
+        angle: particle.angle + Phaser.Math.Between(-180, 180),
+        duration: Phaser.Math.Between(260, 540),
+        ease: "Cubic.easeOut",
+        onComplete: () => particle.destroy()
+      });
     }
   }
 
@@ -468,6 +821,10 @@ export class Level5Scene extends BaseLevelScene {
       return "level5-computer-spider-body-scared";
     }
     return "level5-computer-spider-body-angry";
+  }
+
+  private isBossStunned(): boolean {
+    return this.time.now < this.bossStunnedUntil;
   }
 
   private updatePlayer(delta: number): void {
@@ -510,8 +867,14 @@ export class Level5Scene extends BaseLevelScene {
 
   private updatePlayerWalkTexture(moving: boolean): void {
     if (this.playerFacingDirection === "up" || this.playerFacingDirection === "down") {
-      this.playerWalkFrame = 1;
-      const textureKey = this.getPlayerFacingTextureKey();
+      const textures = this.getPlayerVerticalWalkTextures();
+      if (!moving) {
+        this.playerWalkFrame = 0;
+      } else if (this.time.now >= this.nextPlayerWalkFrameAt) {
+        this.playerWalkFrame = (this.playerWalkFrame + 1) % textures.length;
+        this.nextPlayerWalkFrameAt = this.time.now + LEVEL5.PLAYER_WALK_FRAME_MS;
+      }
+      const textureKey = textures[this.playerWalkFrame % textures.length];
       if (this.setLevel5PlayerTexture(textureKey)) {
         this.applyPlayerBodySize();
       }
@@ -520,27 +883,29 @@ export class Level5Scene extends BaseLevelScene {
 
     if (!moving) {
       this.playerWalkFrame = 1;
-      if (this.setLevel5PlayerTexture(this.playerWalkTextures[this.playerWalkFrame])) {
+      const textures = this.getPlayerSideWalkTextures();
+      if (this.setLevel5PlayerTexture(textures[this.playerWalkFrame])) {
         this.applyPlayerBodySize();
       }
       this.player.setFlipX(this.playerFacingDirection === "left");
       return;
     }
+    const textures = this.getPlayerSideWalkTextures();
     if (this.time.now >= this.nextPlayerWalkFrameAt) {
-      this.playerWalkFrame = (this.playerWalkFrame + 1) % this.playerWalkTextures.length;
+      this.playerWalkFrame = (this.playerWalkFrame + 1) % textures.length;
       this.nextPlayerWalkFrameAt = this.time.now + LEVEL5.PLAYER_WALK_FRAME_MS;
     }
-    if (this.setLevel5PlayerTexture(this.playerWalkTextures[this.playerWalkFrame])) {
+    if (this.setLevel5PlayerTexture(textures[this.playerWalkFrame])) {
       this.applyPlayerBodySize();
     }
     this.player.setFlipX(this.playerFacingDirection === "left");
   }
 
-  private getPlayerFacingTextureKey(): string {
+  private getPlayerVerticalWalkTextures(): readonly string[] {
     if (this.playerFacingDirection === "up") {
-      return this.hasDragonWeapon ? "level5-player-dragon-keyboard-back" : "level5-player-keyboard-gun-back";
+      return this.hasDragonWeapon ? this.playerDragonBackTextures : this.playerBackTextures;
     }
-    return this.hasDragonWeapon ? "level5-player-dragon-keyboard-front" : "level5-player-keyboard-gun-front";
+    return this.hasDragonWeapon ? this.playerDragonFrontTextures : this.playerFrontTextures;
   }
 
   private getPlayerSideWalkTextures(): readonly string[] {
@@ -629,8 +994,44 @@ export class Level5Scene extends BaseLevelScene {
     const originX = this.player.x + muzzle.x;
     const originY = this.player.y + muzzle.y;
 
+    for (const shotAim of this.getPlayerShotAims(aim)) {
+      const shot = this.hasDragonWeapon
+        ? this.createDragonProjectile(originX, originY, shotAim)
+        : this.createBinaryProjectile(originX, originY, shotAim);
+      this.playerProjectiles.push(shot);
+    }
+    if (this.playerProjectiles.length > LEVEL5.PLAYER_PROJECTILE_MAX_ACTIVE) {
+      while (this.playerProjectiles.length > LEVEL5.PLAYER_PROJECTILE_MAX_ACTIVE) {
+        this.playerProjectiles.shift()?.destroy();
+      }
+    }
+    this.audio.playSfx("sfx-fire-spit", AUDIO.SFX.FIRE);
+  }
+
+  private getPlayerShotAims(baseAim: Phaser.Math.Vector2): Phaser.Math.Vector2[] {
+    if (this.activeShotMultiplier === 2) {
+      return [
+        this.rotateAim(baseAim, -LEVEL5.SHOT_MULTIPLIER_SPREAD_DEG),
+        this.rotateAim(baseAim, LEVEL5.SHOT_MULTIPLIER_SPREAD_DEG)
+      ];
+    }
+    if (this.activeShotMultiplier === 3) {
+      return [
+        baseAim.clone(),
+        this.rotateAim(baseAim, -LEVEL5.SHOT_MULTIPLIER_SPREAD_DEG),
+        this.rotateAim(baseAim, LEVEL5.SHOT_MULTIPLIER_SPREAD_DEG)
+      ];
+    }
+    return [baseAim];
+  }
+
+  private rotateAim(aim: Phaser.Math.Vector2, degrees: number): Phaser.Math.Vector2 {
+    return aim.clone().rotate(Phaser.Math.DegToRad(degrees)).normalize();
+  }
+
+  private createBinaryProjectile(x: number, y: number, aim: Phaser.Math.Vector2): Phaser.GameObjects.Text {
     const shot = this.add
-      .text(originX, originY, this.getBinaryShotText(), {
+      .text(x, y, this.getBinaryShotText(), {
         fontFamily: "Courier New, monospace",
         fontSize: `${scale(LEVEL5.PLAYER_PROJECTILE_FONT_SIZE)}px`,
         color: "#b7f7ce",
@@ -643,13 +1044,23 @@ export class Level5Scene extends BaseLevelScene {
       .setDepth(31);
     shot.setData("vx", aim.x * scale(LEVEL5.PLAYER_PROJECTILE_SPEED));
     shot.setData("vy", aim.y * scale(LEVEL5.PLAYER_PROJECTILE_SPEED));
+    shot.setData("damage", 1);
     shot.setData("expiresAt", this.time.now + LEVEL5.PLAYER_PROJECTILE_LIFETIME_MS);
+    return shot;
+  }
 
-    this.playerProjectiles.push(shot);
-    if (this.playerProjectiles.length > LEVEL5.PLAYER_PROJECTILE_MAX_ACTIVE) {
-      this.playerProjectiles.shift()?.destroy();
-    }
-    this.audio.playSfx("sfx-fire-spit", AUDIO.SFX.FIRE);
+  private createDragonProjectile(x: number, y: number, aim: Phaser.Math.Vector2): Phaser.GameObjects.Image {
+    const shot = this.add
+      .image(x, y, "level5-dragon-beetle-shot")
+      .setDisplaySize(scaleX(LEVEL5.DRAGON_PROJECTILE_WIDTH), scaleY(LEVEL5.DRAGON_PROJECTILE_HEIGHT))
+      .setOrigin(0.5)
+      .setRotation(aim.angle())
+      .setDepth(31);
+    shot.setData("vx", aim.x * scale(LEVEL5.DRAGON_PROJECTILE_SPEED));
+    shot.setData("vy", aim.y * scale(LEVEL5.DRAGON_PROJECTILE_SPEED));
+    shot.setData("damage", LEVEL5.DRAGON_PROJECTILE_DAMAGE);
+    shot.setData("expiresAt", this.time.now + LEVEL5.DRAGON_PROJECTILE_LIFETIME_MS);
+    return shot;
   }
 
   private getPlayerAimVector(): Phaser.Math.Vector2 {
@@ -685,25 +1096,30 @@ export class Level5Scene extends BaseLevelScene {
     return variants[Phaser.Math.Between(0, variants.length - 1)];
   }
 
-  private handleBossHit(shot: Phaser.GameObjects.Text): void {
+  private handleBossHit(shot: PlayerProjectile): void {
     if (!this.fightActive || !shot.active || this.bossHp <= 0) {
       return;
     }
 
+    const previousHp = this.bossHp;
+    const damage = (shot.getData("damage") as number | undefined) ?? 1;
     shot.destroy();
-    this.bossHp = Math.max(0, this.bossHp - 1);
+    this.bossHp = Math.max(0, this.bossHp - damage);
     this.scaredFaceUntil = this.time.now + LEVEL5.BOSS_SCARED_FACE_MS;
-    this.scoreSystem.addSkill(LEVEL5.PLAYER_PROJECTILE_SCORE);
+    this.scoreSystem.addSkill(LEVEL5.PLAYER_PROJECTILE_SCORE * damage);
     this.updateBossHpUi();
     this.syncBossBodyTexture();
     this.flashBoss();
+    if (!this.miniBossPhaseTriggered && previousHp > LEVEL5.MINI_BOSS_TRIGGER_HP && this.bossHp <= LEVEL5.MINI_BOSS_TRIGGER_HP) {
+      this.triggerMiniBossPhase();
+    }
 
-    if (this.bossHp % 10 === 0 || this.bossHp <= 0) {
+    if (Math.floor(previousHp / 10) !== Math.floor(this.bossHp / 10) || this.bossHp <= 0) {
       FloatingText.spawn(
         this,
         this.boss.x,
         this.boss.y - scaleY(58),
-        t("level5.damageHp", { damage: 1 }),
+        t("level5.damageHp", { damage }),
         "#fef08a"
       );
     }
@@ -730,7 +1146,7 @@ export class Level5Scene extends BaseLevelScene {
   }
 
   private spawnBossAttack(): void {
-    if (!this.fightActive || this.bossHp <= 0) {
+    if (!this.fightActive || this.bossHp <= 0 || this.isBossStunned()) {
       return;
     }
 
@@ -747,7 +1163,7 @@ export class Level5Scene extends BaseLevelScene {
   }
 
   private spawnEnergyWaves(): void {
-    if (!this.fightActive || this.bossHp <= 0) {
+    if (!this.fightActive || this.bossHp <= 0 || this.isBossStunned()) {
       return;
     }
     this.spawnEnergyWave(-1);
@@ -777,13 +1193,13 @@ export class Level5Scene extends BaseLevelScene {
     });
   }
 
-  private showBossTaunt(): void {
+  private showBossTaunt(forceKey?: string): void {
     if (!this.fightActive || this.bossHp <= 0) {
       return;
     }
 
     const taunts = ["level5.tauntFired", "level5.tauntLayoffs", "level5.tauntProgrammersOver"];
-    const key = taunts[Phaser.Math.Between(0, taunts.length - 1)];
+    const key = forceKey ?? taunts[Phaser.Math.Between(0, taunts.length - 1)];
     const x = this.boss.x;
     const y = this.boss.y - scaleY(LEVEL5.BOSS_TAUNT_OFFSET_Y);
     const bubble = this.add.image(x, y, "speech_bubble").setScale(getUiScale() * 0.82).setDepth(1007);
@@ -880,11 +1296,25 @@ export class Level5Scene extends BaseLevelScene {
     if (!this.fightActive || this.bossHp <= 0) {
       return;
     }
-    if (this.heartPickup?.active) {
+    if (this.heartPickups.some((heart) => heart.active)) {
       this.scheduleNextHeartPickup();
       return;
     }
 
+    const hearts: Phaser.GameObjects.Image[] = [];
+    for (let i = 0; i < LEVEL5.HEART_PICKUP_COUNT; i += 1) {
+      const heart = this.createHeartPickup(i);
+      hearts.push(heart);
+    }
+    this.heartPickups = hearts;
+
+    this.time.delayedCall(LEVEL5.HEART_PICKUP_VISIBLE_MS, () => {
+      this.clearHeartPickups();
+      this.scheduleNextHeartPickup();
+    });
+  }
+
+  private createHeartPickup(index: number): Phaser.GameObjects.Image {
     const x = Phaser.Math.Between(
       Math.round(this.arena.left + scaleX(LEVEL5.HEART_PICKUP_MARGIN_X)),
       Math.round(this.arena.right - scaleX(LEVEL5.HEART_PICKUP_MARGIN_X))
@@ -898,36 +1328,39 @@ export class Level5Scene extends BaseLevelScene {
     heart.setDisplaySize(scale(LEVEL5.HEART_PICKUP_SIZE), scale(LEVEL5.HEART_PICKUP_SIZE));
     heart.setDepth(32);
     heart.setData("collected", false);
-    this.heartPickup = heart;
 
     this.tweens.add({
       targets: heart,
       scale: 1.14,
       alpha: 0.72,
-      duration: 420,
+      duration: 420 + index * 60,
       yoyo: true,
       repeat: -1,
       ease: "Sine.easeInOut"
     });
+    return heart;
+  }
 
-    this.time.delayedCall(LEVEL5.HEART_PICKUP_VISIBLE_MS, () => {
-      if (this.heartPickup !== heart || !heart.active) {
+  private clearHeartPickups(): void {
+    this.heartPickups.forEach((heart) => {
+      if (!heart.active) {
         return;
       }
       this.tweens.killTweensOf(heart);
       heart.destroy();
-      this.heartPickup = undefined;
-      this.scheduleNextHeartPickup();
     });
+    this.heartPickups = [];
   }
 
   private checkHeartPickup(): void {
-    const heart = this.heartPickup;
-    if (!heart?.active || heart.getData("collected")) {
-      return;
-    }
-    if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), heart.getBounds())) {
-      this.collectHeartPickup(heart);
+    const playerBounds = this.player.getBounds();
+    for (const heart of [...this.heartPickups]) {
+      if (!heart.active || heart.getData("collected")) {
+        continue;
+      }
+      if (Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, heart.getBounds())) {
+        this.collectHeartPickup(heart);
+      }
     }
   }
 
@@ -938,7 +1371,7 @@ export class Level5Scene extends BaseLevelScene {
     heart.setData("collected", true);
     this.tweens.killTweensOf(heart);
     heart.destroy();
-    this.heartPickup = undefined;
+    this.heartPickups = this.heartPickups.filter((candidate) => candidate !== heart);
 
     runState.hearts += 1;
     this.hud.updateAll();
@@ -949,7 +1382,417 @@ export class Level5Scene extends BaseLevelScene {
       t("level5.heartPickup"),
       "#8fe388"
     );
-    this.scheduleNextHeartPickup();
+  }
+
+  private spawnDragonWeaponPickup(): void {
+    if (!this.fightActive || this.bossHp <= 0 || this.hasDragonWeapon || this.dragonWeaponPickup?.active) {
+      return;
+    }
+
+    const x = Phaser.Math.Between(
+      Math.round(this.arena.left + scaleX(LEVEL5.DRAGON_WEAPON_MARGIN_X)),
+      Math.round(this.arena.right - scaleX(LEVEL5.DRAGON_WEAPON_MARGIN_X))
+    );
+    const y = Phaser.Math.Between(
+      Math.round(this.arena.top + scaleY(LEVEL5.DRAGON_WEAPON_MARGIN_Y)),
+      Math.round(this.arena.bottom - scaleY(LEVEL5.DRAGON_WEAPON_MARGIN_Y))
+    );
+
+    const weapon = this.add.image(x, y, "level5-dragon-keyboard-pickup");
+    weapon.setDisplaySize(scaleX(LEVEL5.DRAGON_WEAPON_PICKUP_WIDTH), scaleY(LEVEL5.DRAGON_WEAPON_PICKUP_HEIGHT));
+    weapon.setDepth(32);
+    weapon.setData("collected", false);
+    this.dragonWeaponPickup = weapon;
+
+    this.tweens.add({
+      targets: weapon,
+      y: y - scaleY(5),
+      angle: 3,
+      duration: 520,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut"
+    });
+  }
+
+  private checkDragonWeaponPickup(): void {
+    const weapon = this.dragonWeaponPickup;
+    if (!weapon?.active || weapon.getData("collected")) {
+      return;
+    }
+    if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), weapon.getBounds())) {
+      this.collectDragonWeaponPickup(weapon);
+    }
+  }
+
+  private collectDragonWeaponPickup(weapon: Phaser.GameObjects.Image): void {
+    if (!weapon.active || weapon.getData("collected")) {
+      return;
+    }
+    weapon.setData("collected", true);
+    this.tweens.killTweensOf(weapon);
+    weapon.destroy();
+    this.dragonWeaponPickup = undefined;
+    this.hasDragonWeapon = true;
+    this.playerWalkFrame = 0;
+    this.playerTextureKey = "";
+    this.updatePlayerWalkTexture(false);
+    FloatingText.spawn(
+      this,
+      this.player.x,
+      this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM),
+      t("level5.dragonWeaponPickup"),
+      "#facc15"
+    );
+  }
+
+  private scheduleNextShotMultiplierPickup(): void {
+    this.shotMultiplierTimer?.remove(false);
+    if (!this.fightActive || this.bossHp <= 0) {
+      return;
+    }
+    this.shotMultiplierTimer = this.time.delayedCall(
+      Phaser.Math.Between(LEVEL5.SHOT_MULTIPLIER_PICKUP_MIN_DELAY_MS, LEVEL5.SHOT_MULTIPLIER_PICKUP_MAX_DELAY_MS),
+      () => this.spawnShotMultiplierPickup()
+    );
+  }
+
+  private spawnShotMultiplierPickup(): void {
+    if (!this.fightActive || this.bossHp <= 0) {
+      return;
+    }
+    if (this.shotMultiplierPickup?.active) {
+      this.scheduleNextShotMultiplierPickup();
+      return;
+    }
+
+    const multiplier: ShotMultiplier = Phaser.Math.Between(0, 1) === 0 ? 2 : 3;
+    const x = Phaser.Math.Between(
+      Math.round(this.arena.left + scaleX(LEVEL5.SHOT_MULTIPLIER_MARGIN_X)),
+      Math.round(this.arena.right - scaleX(LEVEL5.SHOT_MULTIPLIER_MARGIN_X))
+    );
+    const y = Phaser.Math.Between(
+      Math.round(this.arena.top + scaleY(LEVEL5.SHOT_MULTIPLIER_MARGIN_Y)),
+      Math.round(this.arena.bottom - scaleY(LEVEL5.SHOT_MULTIPLIER_MARGIN_Y))
+    );
+    const pickup = this.add
+      .text(x, y, `X${multiplier}`, {
+        fontFamily: "Arial, sans-serif",
+        fontSize: `${scale(19)}px`,
+        color: "#fef08a",
+        fontStyle: "bold",
+        stroke: "#111827",
+        strokeThickness: scale(4),
+        backgroundColor: "#1f2937",
+        padding: {
+          left: Math.round(scaleX(8)),
+          right: Math.round(scaleX(8)),
+          top: Math.round(scaleY(4)),
+          bottom: Math.round(scaleY(4))
+        }
+      })
+      .setOrigin(0.5)
+      .setDepth(33);
+    pickup.setData("multiplier", multiplier);
+    this.shotMultiplierPickup = pickup;
+
+    this.tweens.add({
+      targets: pickup,
+      scale: 1.12,
+      y: y - scaleY(5),
+      duration: 460,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut"
+    });
+
+    this.time.delayedCall(LEVEL5.SHOT_MULTIPLIER_PICKUP_VISIBLE_MS, () => {
+      if (this.shotMultiplierPickup !== pickup || !pickup.active) {
+        return;
+      }
+      this.clearShotMultiplierPickup();
+      this.scheduleNextShotMultiplierPickup();
+    });
+  }
+
+  private checkShotMultiplierPickup(): void {
+    const pickup = this.shotMultiplierPickup;
+    if (!pickup?.active) {
+      return;
+    }
+    if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), pickup.getBounds())) {
+      this.collectShotMultiplierPickup(pickup);
+    }
+  }
+
+  private collectShotMultiplierPickup(pickup: Phaser.GameObjects.Text): void {
+    const multiplier = (pickup.getData("multiplier") as ShotMultiplier | undefined) ?? 2;
+    this.clearShotMultiplierPickup();
+    this.activeShotMultiplier = multiplier;
+    this.shotMultiplierExpiresAt = this.time.now + LEVEL5.SHOT_MULTIPLIER_DURATION_MS;
+    FloatingText.spawn(
+      this,
+      this.player.x,
+      this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM),
+      t("level5.shotMultiplierPickup", { mult: multiplier }),
+      "#fef08a"
+    );
+    this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_LIGHT);
+    this.scheduleNextShotMultiplierPickup();
+  }
+
+  private clearShotMultiplierPickup(): void {
+    if (!this.shotMultiplierPickup?.active) {
+      this.shotMultiplierPickup = undefined;
+      return;
+    }
+    this.tweens.killTweensOf(this.shotMultiplierPickup);
+    this.shotMultiplierPickup.destroy();
+    this.shotMultiplierPickup = undefined;
+  }
+
+  private updateShotMultiplierState(): void {
+    if (this.activeShotMultiplier === 1 || this.time.now < this.shotMultiplierExpiresAt) {
+      return;
+    }
+    this.activeShotMultiplier = 1;
+    this.shotMultiplierExpiresAt = 0;
+  }
+
+  private scheduleNextPowerPylon(): void {
+    this.pylonTimer?.remove(false);
+    if (!this.fightActive || this.bossHp <= 0) {
+      return;
+    }
+    this.pylonTimer = this.time.delayedCall(
+      Phaser.Math.Between(LEVEL5.POWER_PYLON_SPAWN_MIN_MS, LEVEL5.POWER_PYLON_SPAWN_MAX_MS),
+      () => {
+        this.spawnPowerPylon();
+        this.scheduleNextPowerPylon();
+      }
+    );
+  }
+
+  private spawnPowerPylon(): void {
+    if (!this.fightActive || this.bossHp <= 0) {
+      return;
+    }
+    this.powerPylons = this.powerPylons.filter((pylon) => pylon.sprite.active);
+    if (this.powerPylons.length >= LEVEL5.POWER_PYLON_MAX_ACTIVE) {
+      return;
+    }
+
+    const side = Phaser.Math.RND.pick([-1, 1]);
+    const x =
+      side < 0
+        ? Math.round(this.arena.left + scaleX(LEVEL5.POWER_PYLON_MARGIN_X))
+        : Math.round(this.arena.right - scaleX(LEVEL5.POWER_PYLON_MARGIN_X));
+    const y = Phaser.Math.Between(
+      Math.round(this.arena.top + scaleY(LEVEL5.POWER_PYLON_MARGIN_Y)),
+      Math.round(this.arena.bottom - scaleY(LEVEL5.POWER_PYLON_MARGIN_Y))
+    );
+    const sprite = this.add.image(x, y, "level5-electric-pylon");
+    sprite.setDisplaySize(scaleX(LEVEL5.POWER_PYLON_DISPLAY_WIDTH), scaleY(LEVEL5.POWER_PYLON_DISPLAY_HEIGHT));
+    sprite.setDepth(26);
+    const hpBarWidth = scaleX(LEVEL5.POWER_PYLON_DISPLAY_WIDTH);
+    const hpBarHeight = Math.max(4, scaleY(5));
+    const hpBarY = y - sprite.displayHeight / 2 - scaleY(10);
+    const hpBarBg = this.add.rectangle(x, hpBarY, hpBarWidth, hpBarHeight, 0x111827, 0.82).setDepth(28);
+    hpBarBg.setStrokeStyle(Math.max(1, scale(1)), 0x93c5fd, 0.9);
+    const hpBarFill = this.add
+      .rectangle(x - hpBarWidth / 2, hpBarY, hpBarWidth, hpBarHeight, 0x22c55e, 0.95)
+      .setOrigin(0, 0.5)
+      .setDepth(29);
+
+    const pylon: PowerPylon = {
+      sprite,
+      hpBarBg,
+      hpBarFill,
+      hp: LEVEL5.POWER_PYLON_HP,
+      nextSparkAt: this.time.now
+    };
+    this.powerPylons.push(pylon);
+
+    this.tweens.add({
+      targets: sprite,
+      scaleX: sprite.scaleX * 1.04,
+      scaleY: sprite.scaleY * 1.04,
+      alpha: 0.86,
+      duration: 360,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut"
+    });
+  }
+
+  private updatePowerPylons(): void {
+    for (const pylon of [...this.powerPylons]) {
+      if (!pylon.sprite.active) {
+        continue;
+      }
+      pylon.sprite.setAngle(Math.sin(this.time.now * 0.012) * 1.3);
+      this.updatePylonHpBar(pylon);
+      if (this.time.now >= pylon.nextSparkAt) {
+        pylon.nextSparkAt = this.time.now + LEVEL5.POWER_PYLON_SPARK_INTERVAL_MS;
+        this.spawnPylonSpark(pylon.sprite);
+      }
+    }
+    this.powerPylons = this.powerPylons.filter((pylon) => pylon.sprite.active);
+  }
+
+  private spawnPylonSpark(pylon: Phaser.GameObjects.Image): void {
+    const x = pylon.x + Phaser.Math.Between(-scaleX(18), scaleX(18));
+    const y = pylon.y + Phaser.Math.Between(-scaleY(24), scaleY(22));
+    const spark = this.add.graphics().setDepth(pylon.depth + 1);
+    spark.lineStyle(scale(2), Phaser.Math.RND.pick([0x67e8f9, 0xfef08a, 0xffffff]), 0.88);
+    spark.beginPath();
+    spark.moveTo(x, y);
+    spark.lineTo(x + Phaser.Math.Between(-scaleX(9), scaleX(9)), y + Phaser.Math.Between(-scaleY(7), scaleY(7)));
+    spark.lineTo(x + Phaser.Math.Between(-scaleX(12), scaleX(12)), y + Phaser.Math.Between(-scaleY(12), scaleY(12)));
+    spark.strokePath();
+    this.tweens.add({
+      targets: spark,
+      alpha: 0,
+      duration: 150,
+      onComplete: () => spark.destroy()
+    });
+  }
+
+  private updatePylonHpBar(pylon: PowerPylon): void {
+    const width = scaleX(LEVEL5.POWER_PYLON_DISPLAY_WIDTH);
+    const y = pylon.sprite.y - pylon.sprite.displayHeight / 2 - scaleY(10);
+    const percent = Phaser.Math.Clamp(pylon.hp / LEVEL5.POWER_PYLON_HP, 0, 1);
+    pylon.hpBarBg.setPosition(pylon.sprite.x, y);
+    pylon.hpBarFill.setPosition(pylon.sprite.x - width / 2, y);
+    pylon.hpBarFill.setDisplaySize(width * percent, Math.max(4, scaleY(5)));
+    pylon.hpBarFill.setFillStyle(percent > 0.55 ? 0x22c55e : percent > 0.25 ? 0xfacc15 : 0xef4444, 0.95);
+  }
+
+  private getHitPowerPylon(shot: PlayerProjectile): PowerPylon | undefined {
+    const shotBounds = shot.getBounds();
+    return this.powerPylons.find(
+      (pylon) => pylon.sprite.active && Phaser.Geom.Intersects.RectangleToRectangle(shotBounds, pylon.sprite.getBounds())
+    );
+  }
+
+  private handlePowerPylonHit(pylon: PowerPylon, shot: PlayerProjectile): void {
+    const damage = (shot.getData("damage") as number | undefined) ?? 1;
+    shot.destroy();
+    pylon.hp = Math.max(0, pylon.hp - damage);
+    this.updatePylonHpBar(pylon);
+
+    if (pylon.hp <= 0) {
+      this.destroyPowerPylon(pylon);
+      return;
+    }
+
+    pylon.sprite.setTintFill(0xfef08a);
+    this.time.delayedCall(80, () => {
+      if (pylon.sprite.active) {
+        pylon.sprite.clearTint();
+      }
+    });
+  }
+
+  private destroyPowerPylon(pylon: PowerPylon): void {
+    const x = pylon.sprite.x;
+    const y = pylon.sprite.y;
+    this.powerPylons = this.powerPylons.filter((candidate) => candidate !== pylon);
+    this.tweens.killTweensOf(pylon.sprite);
+    pylon.hpBarBg.destroy();
+    pylon.hpBarFill.destroy();
+    pylon.sprite.destroy();
+    this.explodePowerPylon(x, y);
+    this.triggerBossStun(x, y);
+  }
+
+  private explodePowerPylon(x: number, y: number): void {
+    const flash = this.add.circle(x, y, scale(18), 0x67e8f9, 0.72).setDepth(38);
+    this.tweens.add({
+      targets: flash,
+      scale: 2.4,
+      alpha: 0,
+      duration: 360,
+      ease: "Quad.easeOut",
+      onComplete: () => flash.destroy()
+    });
+
+    for (let i = 0; i < LEVEL5.POWER_PYLON_EXPLOSION_PARTICLES; i += 1) {
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+      const distance = scale(Phaser.Math.Between(18, 72));
+      const particle = this.add
+        .rectangle(
+          x,
+          y,
+          scale(Phaser.Math.Between(3, 8)),
+          scale(Phaser.Math.Between(2, 6)),
+          Phaser.Math.RND.pick([0x67e8f9, 0xfef08a, 0xe5e7eb, 0x38f6ff]),
+          0.95
+        )
+        .setDepth(39)
+        .setAngle(Phaser.Math.Between(0, 180));
+      this.tweens.add({
+        targets: particle,
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        alpha: 0,
+        angle: particle.angle + Phaser.Math.Between(-180, 180),
+        duration: Phaser.Math.Between(320, 680),
+        ease: "Cubic.easeOut",
+        onComplete: () => particle.destroy()
+      });
+    }
+  }
+
+  private triggerBossStun(x: number, y: number): void {
+    this.bossStunnedUntil = Math.max(this.bossStunnedUntil, this.time.now + LEVEL5.POWER_PYLON_STUN_MS);
+    this.bossProjectiles.clear(true, true);
+    (this.boss.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+    this.boss.setTint(0x67e8f9);
+    this.bossLegs.forEach((leg) => leg.sprite.setTint(0x67e8f9));
+    FloatingText.spawn(this, x, y - scaleY(36), t("level5.pylonStun"), "#67e8f9");
+    this.showScreenLightning();
+
+    this.time.delayedCall(LEVEL5.POWER_PYLON_STUN_MS, () => {
+      if (this.boss.active && this.time.now >= this.bossStunnedUntil) {
+        this.boss.clearTint();
+        this.bossLegs.forEach((leg) => leg.sprite.clearTint());
+      }
+    });
+  }
+
+  private showScreenLightning(): void {
+    const lightning = this.add.graphics().setScrollFactor(0).setDepth(1100);
+    lightning.fillStyle(0x67e8f9, 0.1);
+    lightning.fillRect(0, 0, this.scale.width, this.scale.height);
+    lightning.lineStyle(scale(10), 0x67e8f9, 0.38);
+    this.drawLightningBolt(lightning, scaleX(24), scaleY(44), scaleX(616), scaleY(310));
+    lightning.lineStyle(scale(4), 0xffffff, 0.92);
+    this.drawLightningBolt(lightning, scaleX(24), scaleY(44), scaleX(616), scaleY(310));
+    lightning.x = -this.scale.width * 0.36;
+
+    this.tweens.add({
+      targets: lightning,
+      x: this.scale.width * 0.28,
+      alpha: 0,
+      duration: LEVEL5.POWER_PYLON_LIGHTNING_MS,
+      ease: "Sine.easeOut",
+      onComplete: () => lightning.destroy()
+    });
+  }
+
+  private drawLightningBolt(graphics: Phaser.GameObjects.Graphics, startX: number, startY: number, endX: number, endY: number): void {
+    graphics.beginPath();
+    graphics.moveTo(startX, startY);
+    const segments = 8;
+    for (let i = 1; i < segments; i += 1) {
+      const tValue = i / segments;
+      const x = Phaser.Math.Linear(startX, endX, tValue) + Phaser.Math.Between(-scaleX(34), scaleX(34));
+      const y = Phaser.Math.Linear(startY, endY, tValue) + Phaser.Math.Between(-scaleY(28), scaleY(28));
+      graphics.lineTo(x, y);
+    }
+    graphics.lineTo(endX, endY);
+    graphics.strokePath();
   }
 
   private updateProjectiles(delta: number): void {
@@ -960,6 +1803,18 @@ export class Level5Scene extends BaseLevelScene {
       }
       shot.x += ((shot.getData("vx") as number) || 0) * (delta / 1000);
       shot.y += ((shot.getData("vy") as number) || 0) * (delta / 1000);
+
+      const hitPylon = this.getHitPowerPylon(shot);
+      if (hitPylon) {
+        this.handlePowerPylonHit(hitPylon, shot);
+        return false;
+      }
+
+      const hitMiniBoss = this.getHitMiniBoss(shot);
+      if (hitMiniBoss) {
+        this.handleMiniBossHit(hitMiniBoss, shot);
+        return false;
+      }
 
       if (
         this.fightActive &&
@@ -991,6 +1846,9 @@ export class Level5Scene extends BaseLevelScene {
       const kind = projectile.getData("kind") as BossHazardKind;
       if (kind === "wave") {
         projectile.setAlpha(0.74 + Math.sin(this.time.now * 0.015) * 0.18);
+      } else if (kind === "fire") {
+        projectile.rotation += delta * 0.014;
+        projectile.setAlpha(0.84 + Math.sin(this.time.now * 0.02) * 0.14);
       } else {
         projectile.rotation += delta * (kind === "electric" ? 0.01 : 0.005);
       }
@@ -1106,8 +1964,34 @@ export class Level5Scene extends BaseLevelScene {
     this.waveTimer?.remove();
     this.tauntTimer?.remove();
     this.heartPickupTimer?.remove();
-    this.heartPickup?.destroy();
-    this.heartPickup = undefined;
+    this.dragonWeaponTimer?.remove();
+    this.shotMultiplierTimer?.remove();
+    this.pylonTimer?.remove();
+    this.clearHeartPickups();
+    this.clearShotMultiplierPickup();
+    this.powerPylons.forEach((pylon) => {
+      this.tweens.killTweensOf(pylon.sprite);
+      pylon.hpBarBg.destroy();
+      pylon.hpBarFill.destroy();
+      pylon.sprite.destroy();
+    });
+    this.powerPylons = [];
+    this.miniBosses.forEach((miniBoss) => {
+      this.tweens.killTweensOf(miniBoss.sprite);
+      miniBoss.legs.forEach((leg) => {
+        this.tweens.killTweensOf(leg.sprite);
+        leg.sprite.destroy();
+      });
+      miniBoss.hpBarBg.destroy();
+      miniBoss.hpBarFill.destroy();
+      miniBoss.sprite.destroy();
+    });
+    this.miniBosses = [];
+    if (this.dragonWeaponPickup?.active) {
+      this.tweens.killTweensOf(this.dragonWeaponPickup);
+      this.dragonWeaponPickup.destroy();
+    }
+    this.dragonWeaponPickup = undefined;
     this.bossProjectiles.clear(true, true);
     this.playerProjectiles.forEach((shot) => shot.destroy());
     this.playerProjectiles = [];
@@ -1130,11 +2014,7 @@ export class Level5Scene extends BaseLevelScene {
     this.hud.updateAll();
 
     this.time.delayedCall(LEVEL5.LEVEL_COMPLETE_DELAY_MS, () => {
-      this.showDialog(t("level5.congratsShutdown"), () => {
-        this.showDialog(t("level5.goodLuck"), () => {
-          this.scene.start("VictoryScene");
-        });
-      });
+      this.scene.start("FinalHrScene");
     });
   }
 }

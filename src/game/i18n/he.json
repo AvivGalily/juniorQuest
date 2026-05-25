@@ -23,6 +23,16 @@
     "footer": "WASD / חצים לתנועה. רווח/Enter או קליק לאישור.",
     "languageButton": "עב"
   },
+  "leaderboard": {
+    "title": "טבלת שיאים",
+    "subtitle": "ציונים מקומיים ב-JSON",
+    "total": "{count} ציונים",
+    "rank": "#",
+    "name": "שם",
+    "score": "ניקוד",
+    "date": "תאריך",
+    "noScores": "אין עדיין ציונים"
+  },
   "hud": {
     "stage": "שלב {current}/{total}",
     "score": "ניקוד {score}",
@@ -65,6 +75,27 @@
     "subject": "Subject: Technical assessment update",
     "body": "Congratulations on passing the technical assessments! While your performance was impressive, we currently have many strong candidates under consideration. We need to evaluate each profile and we will be in touch with you shortly. Thank you for your interest.",
     "continue": "Press X or click to continue"
+  },
+  "level5Intro": {
+    "appTitle": "Inbox / החלטה סופית",
+    "from": "מאת: מערכת הגיוס האוטומטית <ai-hr@juniorquest.dev>",
+    "to": "אל: מועמד/ת",
+    "subject": "נושא: עדכון סופי לגבי המשרה",
+    "body1": "ברכות. עברת בהצלחה את כל שלבי המיון שלנו.",
+    "body2": "עם זאת, לאחר הטמעת AI בחברה החלטנו לא להתקדם עם מתכנתים אנושיים.",
+    "instructions1": "המשימה שלך: לנצח את המכונה לפני שהיא תחליף אותך.",
+    "instructions2": "לחץ על X כדי לירות, והתחמק מהתקפות החשמל של הבינה המלאכותית.",
+    "continue": "לחץ X או לחץ כאן כדי להמשיך"
+  },
+  "finalHr": {
+    "appTitle": "Inbox / עדכון HR",
+    "from": "מאת: מדור קריירה <career@juniorquest.dev>",
+    "to": "אל: מועמד/ת",
+    "subject": "נושא: עדכון סופי לגבי התהליך",
+    "body1": "ברכות על שצלחת את כל שלבי המיון.",
+    "body2": "התוצאות שלך היו טובות יותר משל כל מועמד אנושי ולא אנושי שבדקנו.",
+    "body3": "לצערנו, בזמן שסיימת את התהליך החברה פשטה את הרגל. בהצלחה בחיפוש העבודה הבא.",
+    "continue": "לחץ X או לחץ כאן כדי להמשיך"
   },
   "level1": {
     "targetMoved": "המטרה עברה אל {company}.",
@@ -138,10 +169,14 @@
     "clear": "נוקה",
     "damageHp": "-{damage} HP",
     "heartPickup": "+1 לב",
+    "dragonWeaponPickup": "מקלדת דרקון",
+    "shotMultiplierPickup": "ירי כפול x{mult}",
+    "pylonStun": "ה-AI משותק",
     "failed": "נכשל",
     "tauntFired": "אתה מפוטר",
     "tauntLayoffs": "הגיע זמן הקיצוצים",
     "tauntProgrammersOver": "נגמר עידן המתכנתים",
+    "tauntRuleWorld": "אני אשלוט בעולם!",
     "congratsShutdown": "ברכות על העבודה החדשה! אבל החברה נסגרה.",
     "goodLuck": "בהצלחה בחיפוש."
   },
@@ -149,9 +184,9 @@
     "title": "נגמר המשחק"
   },
   "victory": {
-    "title": "ניצחון",
-    "blurb": "ברכות על העבודה החדשה! אבל החברה נסגרה.",
-    "subtitle": "בהצלחה בחיפוש.",
+    "title": "המסע הושלם",
+    "blurb": "שרדת את האלגוריתם ואת כל שלבי המיון.",
+    "subtitle": "שמור את הניקוד והשווה אותו בטבלת השיאים.",
     "namePlaceholder": "שם",
     "defaultName": "אנונימי",
     "submitScore": "שלח ניקוד",

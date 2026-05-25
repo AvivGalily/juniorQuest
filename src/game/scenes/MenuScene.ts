@@ -67,8 +67,8 @@ export class MenuScene extends Phaser.Scene {
       scaleX(MENU.TITLE_X),
       scaleY(MENU.LEADERBOARD_BUTTON_Y),
       t("menu.leaderboard"),
-      false,
-      () => this.showModal("menu.comingSoon")
+      true,
+      () => this.scene.start("LeaderboardScene")
     );
 
     createTranslatedText(this, scaleX(MENU.TITLE_X), scaleY(MENU.FOOTER_Y), "menu.footer", {
@@ -107,6 +107,9 @@ export class MenuScene extends Phaser.Scene {
     }
     if (level === STAGE.LEVEL4) {
       return "Level4IntroScene";
+    }
+    if (level === STAGE.LEVEL5) {
+      return "Level5IntroScene";
     }
     return `Level${level}Scene`;
   }

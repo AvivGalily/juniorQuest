@@ -10,8 +10,11 @@ import { Level3IntroScene } from "./scenes/Level3IntroScene";
 import { Level3Scene } from "./scenes/Level3Scene";
 import { Level4IntroScene } from "./scenes/Level4IntroScene";
 import { Level4Scene } from "./scenes/Level4Scene";
+import { Level5IntroScene } from "./scenes/Level5IntroScene";
 import { Level5Scene } from "./scenes/Level5Scene";
+import { FinalHrScene } from "./scenes/FinalHrScene";
 import { GameOverScene } from "./scenes/GameOverScene";
+import { LeaderboardScene } from "./scenes/LeaderboardScene";
 import { VictoryScene } from "./scenes/VictoryScene";
 import { PHASER } from "../config/physics";
 import { isDebug } from "./utils/debug";
@@ -61,8 +64,11 @@ export const phaserConfig: Phaser.Types.Core.GameConfig = {
     Level3Scene,
     Level4IntroScene,
     Level4Scene,
+    Level5IntroScene,
     Level5Scene,
+    FinalHrScene,
     GameOverScene,
+    LeaderboardScene,
     VictoryScene
   ]
 };

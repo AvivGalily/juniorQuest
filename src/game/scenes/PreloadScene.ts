@@ -85,18 +85,25 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("level5-computer-spider-body-crack-2", new URL("../img/level5-computer-spider-body-crack-2.png", import.meta.url).href);
     this.load.image("level5-computer-spider-body-broken", new URL("../img/level5-computer-spider-body-broken.png", import.meta.url).href);
     this.load.image("level5-computer-spider-leg", new URL("../img/level5-computer-spider-leg.png", import.meta.url).href);
+    this.load.image("level5-electric-pylon", new URL("../img/level5-electric-pylon.png", import.meta.url).href);
+    this.load.image("level5-robot-mouse-body", new URL("../img/level5-robot-mouse-body.png", import.meta.url).href);
+    this.load.image("level5-robot-mouse-leg", new URL("../img/level5-robot-mouse-leg.png", import.meta.url).href);
     this.load.image("level5-player-keyboard-gun-walk-1", new URL("../img/level5-player-keyboard-gun-walk-1.png", import.meta.url).href);
     this.load.image("level5-player-keyboard-gun-walk-2", new URL("../img/level5-player-keyboard-gun-walk-2.png", import.meta.url).href);
     this.load.image("level5-player-keyboard-gun-walk-3", new URL("../img/level5-player-keyboard-gun-walk-3.png", import.meta.url).href);
     this.load.image("level5-player-keyboard-gun-front", new URL("../img/level5-player-keyboard-gun-front.png", import.meta.url).href);
+    this.load.image("level5-player-keyboard-gun-front-walk", new URL("../img/level5-player-keyboard-gun-front-walk.png", import.meta.url).href);
     this.load.image("level5-player-keyboard-gun-back", new URL("../img/level5-player-keyboard-gun-back.png", import.meta.url).href);
+    this.load.image("level5-player-keyboard-gun-back-walk", new URL("../img/level5-player-keyboard-gun-back-walk.png", import.meta.url).href);
     this.load.image("level5-dragon-keyboard-pickup", new URL("../img/level5-dragon-keyboard-pickup.png", import.meta.url).href);
     this.load.image("level5-dragon-beetle-shot", new URL("../img/level5-dragon-beetle-shot.png", import.meta.url).href);
     this.load.image("level5-player-dragon-keyboard-walk-1", new URL("../img/level5-player-dragon-keyboard-walk-1.png", import.meta.url).href);
     this.load.image("level5-player-dragon-keyboard-walk-2", new URL("../img/level5-player-dragon-keyboard-walk-2.png", import.meta.url).href);
     this.load.image("level5-player-dragon-keyboard-walk-3", new URL("../img/level5-player-dragon-keyboard-walk-3.png", import.meta.url).href);
     this.load.image("level5-player-dragon-keyboard-front", new URL("../img/level5-player-dragon-keyboard-front.png", import.meta.url).href);
+    this.load.image("level5-player-dragon-keyboard-front-walk", new URL("../img/level5-player-dragon-keyboard-front-walk.png", import.meta.url).href);
     this.load.image("level5-player-dragon-keyboard-back", new URL("../img/level5-player-dragon-keyboard-back.png", import.meta.url).href);
+    this.load.image("level5-player-dragon-keyboard-back-walk", new URL("../img/level5-player-dragon-keyboard-back-walk.png", import.meta.url).href);
     this.load.image("linked-snake-head", new URL(`${envBase}linked-snake-head.png`, import.meta.url).href);
     this.load.image("linked-snake-head-hurt", new URL(`${envBase}linked-snake-head-hurt.png`, import.meta.url).href);
     this.load.image("linked-snake-node", new URL(`${envBase}linked-snake-node.png`, import.meta.url).href);
@@ -471,6 +478,28 @@ export class PreloadScene extends Phaser.Scene {
       }
       return buffer;
     };
+    const makeLevel5IntenseLoop = (): AudioBuffer => {
+      const sampleRate = ctx.sampleRate;
+      const duration = 1.2;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      const notes = [196.0, 233.08, 261.63, 311.13, 349.23, 311.13, 261.63, 233.08];
+      for (let i = 0; i < length; i += 1) {
+        const t = i / sampleRate;
+        const beat = t % 0.15;
+        const step = Math.floor(t / 0.15) % notes.length;
+        const kickBeat = t % 0.3;
+        const kick = Math.sin(2 * Math.PI * (118 - kickBeat * 300) * t) * Math.exp(-kickBeat * 38) * 0.58;
+        const bass = Math.sin(2 * Math.PI * notes[step] * 0.5 * t) * 0.32;
+        const leadGate = Math.exp(-beat * 16);
+        const lead = Math.sin(2 * Math.PI * notes[step] * t) * leadGate * 0.23;
+        const alarm = Math.sin(2 * Math.PI * 880 * t) * Math.max(0, Math.sin(t * Math.PI * 4)) * 0.045;
+        const hat = (Math.random() * 2 - 1) * Math.exp(-beat * 52) * 0.16;
+        data[i] = (kick + bass + lead + alarm + hat) * AUDIO_TONES.MUSIC.LOOP_VOLUME;
+      }
+      return buffer;
+    };
     const makeFairLoop = (): AudioBuffer => {
       const sampleRate = ctx.sampleRate;
       const duration = 1.92;
@@ -499,5 +528,6 @@ export class PreloadScene extends Phaser.Scene {
     this.cache.audio.add("music-level3-action", makeActionLoop());
     this.cache.audio.add("music-level4-race", makeLevel4RaceLoop());
     this.cache.audio.add("music-boss", makeLoop(AUDIO_TONES.MUSIC.BOSS_FREQ));
+    this.cache.audio.add("music-level5-intense", makeLevel5IntenseLoop());
   }
 }

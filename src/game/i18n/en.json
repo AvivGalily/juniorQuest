@@ -23,6 +23,16 @@
     "footer": "WASD / Arrows to move. Space/Enter or click to confirm.",
     "languageButton": "EN"
   },
+  "leaderboard": {
+    "title": "Leaderboard",
+    "subtitle": "Local JSON scores",
+    "total": "{count} scores",
+    "rank": "#",
+    "name": "Name",
+    "score": "Score",
+    "date": "Date",
+    "noScores": "No scores yet"
+  },
   "hud": {
     "stage": "Stage {current}/{total}",
     "score": "SCORE {score}",
@@ -64,6 +74,27 @@
     "to": "To: Candidate",
     "subject": "Subject: Technical assessment update",
     "body": "Congratulations on passing the technical assessments! While your performance was impressive, we currently have many strong candidates under consideration. We need to evaluate each profile and we will be in touch with you shortly. Thank you for your interest.",
+    "continue": "Press X or click to continue"
+  },
+  "level5Intro": {
+    "appTitle": "Inbox / Final Decision",
+    "from": "From: Automated Talent System <ai-hr@juniorquest.dev>",
+    "to": "To: Candidate",
+    "subject": "Subject: Final update on your application",
+    "body1": "Congratulations. You successfully passed every stage of our hiring process.",
+    "body2": "However, after adopting AI across the company, we have decided not to move forward with human programmers.",
+    "instructions1": "Your task: defeat the machine before it replaces you.",
+    "instructions2": "Press X to fire, and avoid the artificial intelligence's electric attacks.",
+    "continue": "Press X or click to continue"
+  },
+  "finalHr": {
+    "appTitle": "Inbox / HR Follow-up",
+    "from": "From: Career Center <career@juniorquest.dev>",
+    "to": "To: Candidate",
+    "subject": "Subject: Final hiring update",
+    "body1": "Congratulations on clearing every assessment in the process.",
+    "body2": "Your results outperformed every human and non-human candidate we evaluated.",
+    "body3": "Unfortunately, while you were finishing the process, the company went bankrupt. Good luck with the next job hunt.",
     "continue": "Press X or click to continue"
   },
   "level1": {
@@ -138,10 +169,14 @@
     "clear": "CLEAR",
     "damageHp": "-{damage} HP",
     "heartPickup": "+1 HEART",
+    "dragonWeaponPickup": "DRAGON KEYBOARD",
+    "shotMultiplierPickup": "MULTI SHOT x{mult}",
+    "pylonStun": "AI STUNNED",
     "failed": "FAILED",
     "tauntFired": "You're fired.",
     "tauntLayoffs": "Time for layoffs.",
     "tauntProgrammersOver": "The age of programmers is over.",
+    "tauntRuleWorld": "I will rule the world!",
     "congratsShutdown": "Congrats on the new job! But the company shut down.",
     "goodLuck": "Good luck searching."
   },
@@ -149,9 +184,9 @@
     "title": "GAME OVER"
   },
   "victory": {
-    "title": "Victory",
-    "blurb": "Congrats on the new job! But the company shut down.",
-    "subtitle": "Good luck searching.",
+    "title": "Run Complete",
+    "blurb": "Your job hunt survived the algorithm.",
+    "subtitle": "Save your score and compare it on the leaderboard.",
     "namePlaceholder": "NAME",
     "defaultName": "ANON",
     "submitScore": "Submit Score",
