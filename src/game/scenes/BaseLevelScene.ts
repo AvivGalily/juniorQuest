@@ -19,11 +19,13 @@ export class BaseLevelScene extends Phaser.Scene {
   protected player?: Player;
   protected invulnerable = false;
   protected paused = false;
+  protected deathTransitioning = false;
   private pauseOverlayObjects: Phaser.GameObjects.GameObject[] = [];
 
   protected initLevel(stageNumber: number): void {
     this.paused = false;
     this.invulnerable = false;
+    this.deathTransitioning = false;
     this.time.timeScale = 1;
     this.physics.world.isPaused = false;
     runState.currentLevel = stageNumber;
@@ -70,13 +72,19 @@ export class BaseLevelScene extends Phaser.Scene {
     this.pauseOverlayObjects.forEach((object) => object.setVisible(this.paused));
   }
 
-  protected applyDamage(respawn?: () => void): void {
-    if (this.invulnerable) {
-      return;
+  protected applyDamage(respawn?: () => void): boolean {
+    if (this.invulnerable || this.deathTransitioning) {
+      return false;
     }
     runState.hearts -= 1;
     this.comboSystem.reset();
     this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT);
+    if (runState.hearts <= 0) {
+      this.deathTransitioning = true;
+      this.input.enabled = false;
+      this.startGameOverAfterPhysicsStep();
+      return true;
+    }
     if (this.player) {
       flashTween(this, this.player, BASE_LEVEL.FLASH_DURATION_MS);
     }
@@ -87,9 +95,24 @@ export class BaseLevelScene extends Phaser.Scene {
     if (respawn) {
       respawn();
     }
-    if (runState.hearts <= 0) {
+    return false;
+  }
+
+  private startGameOverAfterPhysicsStep(): void {
+    const sourceSceneKey = this.sys.settings.key;
+    let started = false;
+    const startGameOver = (): void => {
+      if (started || !this.scene.isActive(sourceSceneKey)) {
+        return;
+      }
+      started = true;
+      this.physics.world.isPaused = false;
+      this.time.timeScale = 1;
       this.scene.start("GameOverScene");
-    }
+    };
+
+    window.setTimeout(startGameOver, 0);
+    this.time.delayedCall(1, startGameOver);
   }
 
   protected createPauseOverlay(): void {

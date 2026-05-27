@@ -18,9 +18,15 @@
     "selectLevel": "בחירת שלב",
     "level": "שלב: {level}",
     "about": "אודות",
+    "difficulty": "רמת קושי",
+    "difficultyTitle": "רמת קושי בחיפוש עבודה",
+    "difficultySelected": "נבחר",
+    "difficultyUniversity": "בוגר אוניברסיטה",
+    "difficultyCollege": "בוגר מכללה",
+    "difficultyBootcamp": "בוגר בוטקאמפ",
     "leaderboard": "טבלת שיאים",
     "comingSoon": "בקרוב",
-    "footer": "WASD / חצים לתנועה. רווח/Enter או קליק לאישור.",
+    "footer": "WASD או חצים לתזוזה. רווח או Enter לקפיצה. X לאישור ופעולה.",
     "languageButton": "עב"
   },
   "leaderboard": {
@@ -47,7 +53,7 @@
     "greeting": "ברכות על סיום התואר במדעי המחשב.",
     "body1": "השלב הראשון בדרך למשרה הוא יריד התעסוקה. מצא את המגייסת שתהיה מוכנה לקבל אותך והגש לה את קורות החיים שלך.",
     "body2": "שים לב: השומרים בודקים מי שייך לאירוע. אל תיתן להם לזהות שאתה לא שייך.",
-    "continue": "Press X or click to continue"
+    "continue": "לחץ X או לחץ כאן כדי להמשיך"
   },
   "level2Intro": {
     "appTitle": "Inbox / ראיון טכני",
@@ -58,23 +64,23 @@
     "body1": "המשימה שלך היא לבנות את עץ החיפוש הבינארי שלנו בצורה כמה שיותר מלאה.",
     "body2": "בכל עלה, הערך בצד שמאל חייב להיות קטן ממנו, והערך בצד ימין חייב להיות גדול ממנו. הניקוד ייקבע לפי מספר העלים שתצליח לשבץ נכון.",
     "body3": "שים לב להשלים את המשימה בזמן, ותיזהר מבאגים שיגיעו בדרך.",
-    "continue": "Press X or click to continue"
+    "continue": "לחץ X או לחץ כאן כדי להמשיך"
   },
   "level3Intro": {
-    "appTitle": "Inbox / Production Incident",
-    "from": "From: Senior Software Engineer <senior@juniorquest.dev>",
-    "to": "To: Candidate",
-    "subject": "Subject: Linked list database incident",
-    "body": "Oh no! Our linked list has spiraled out of control and is destroying the database! Your mission is to reverse the linked list. You must jump on each node one by one to reverse its direction, starting from the Head all the way to the Tail. But be careful\u2014it won't go down without a fight!",
-    "continue": "Press X or click to continue"
+    "appTitle": "Inbox / תקלה בפרודקשן",
+    "from": "מאת: מהנדס תוכנה בכיר <senior@juniorquest.dev>",
+    "to": "אל: מועמד/ת",
+    "subject": "נושא: תקלה במסד הנתונים של הרשימה המקושרת",
+    "body": "אוי לא. הרשימה המקושרת שלנו יצאה משליטה ומוחקת את מסד הנתונים. המשימה שלך היא להפוך את הרשימה: קפוץ על כל צומת לפי הסדר, מה-Head ועד ה-Tail, והפוך את כיוון הקישור. תיזהר, היא לא תוותר בקלות.",
+    "continue": "לחץ X או לחץ כאן כדי להמשיך"
   },
   "level4Intro": {
-    "appTitle": "Inbox / Talent Team",
-    "from": "From: Corporate Recruiter <recruiting@juniorquest.dev>",
-    "to": "To: Candidate",
-    "subject": "Subject: Technical assessment update",
-    "body": "Congratulations on passing the technical assessments! While your performance was impressive, we currently have many strong candidates under consideration. We need to evaluate each profile and we will be in touch with you shortly. Thank you for your interest.",
-    "continue": "Press X or click to continue"
+    "appTitle": "Inbox / צוות הגיוס",
+    "from": "מאת: מגייסת החברה <recruiting@juniorquest.dev>",
+    "to": "אל: מועמד/ת",
+    "subject": "נושא: עדכון לגבי ההערכה הטכנית",
+    "body": "ברכות על מעבר ההערכות הטכניות. הביצועים שלך היו מרשימים, אך יש לנו כרגע מועמדים חזקים רבים בתהליך. נבחן את כל הפרופילים וניצור קשר בהמשך. תודה על ההתעניינות.",
+    "continue": "לחץ X או לחץ כאן כדי להמשיך"
   },
   "level5Intro": {
     "appTitle": "Inbox / החלטה סופית",
@@ -95,6 +101,16 @@
     "body1": "ברכות על שצלחת את כל שלבי המיון.",
     "body2": "התוצאות שלך היו טובות יותר משל כל מועמד אנושי ולא אנושי שבדקנו.",
     "body3": "לצערנו, בזמן שסיימת את התהליך החברה פשטה את הרגל. בהצלחה בחיפוש העבודה הבא.",
+    "continue": "לחץ X או לחץ כאן כדי להמשיך"
+  },
+  "rejectionEmail": {
+    "appTitle": "Inbox / צוות הגיוס",
+    "from": "מאת: מגייסת החברה <recruiting@juniorquest.dev>",
+    "to": "אל: מועמד/ת",
+    "subject": "נושא: עדכון לגבי מועמדותך",
+    "body1": "אנחנו מודים לך על הזמן היקר שהשקעת בתהליך הגיוס שלנו.",
+    "body2": "לאחר בחינה מעמיקה של ביצועיך, החלטנו בשלב זה להמשיך עם מועמדים אחרים.",
+    "body3": "שמרנו את קורות החיים שלך להזדמנויות עתידיות, אם כי בפועל כנראה לא ניצור קשר אם תיפתח משרה מתאימה. שיהיה בהצלחה בהמשך החיפוש.",
     "continue": "לחץ X או לחץ כאן כדי להמשיך"
   },
   "level1": {
@@ -132,36 +148,68 @@
     "mustBeGreater": "{value} חייב להיות גדול מ-{min}.",
     "mustBeSmaller": "{value} חייב להיות קטן מ-{max}.",
     "obstacleHit": "פגיעה במכשול: העלה שהחזקת חזר למקום.",
+    "timeUp": "נגמר הזמן",
     "lock": "נעול",
     "fullAccepted": "BST מלא התקבל.",
     "partialAccepted": "BST חלקי תקין התקבל."
   },
   "level3": {
-    "title": "Reverse Linked List Snake / נחש Linked List",
-    "subtitle": "קפוץ על הצומת הזוהר, לחץ E, והתחמק מאש ומקוצים נופלים.",
+    "title": "נחש Reverse Linked List",
+    "subtitle": "עמוד על curr ולחץ E שלוש פעמים: save next, reverse link, advance.",
     "fire": "אש",
-    "spike": "קוץ",
-    "landOnNode": "נחת על צומת",
+    "spike": "נטיף",
+    "landOnNode": "עמוד על curr",
     "wrongNode": "צומת שגוי",
     "nextPrev": "next = prev",
+    "stepsTitle": "שלבי Reverse",
+    "stepsHint": "לחץ E על curr",
+    "stepsProgress": "{step}/3",
+    "stepsComplete": "הצומת התהפך",
+    "stepsReset": "איבדת את המצביע",
+    "stepsNeedCurrent": "עמוד על curr",
+    "stepsNeedOrder": "סיים את 3 השלבים",
+    "stepsSaveNext": "save next",
+    "stepsReversePointer": "current.next = prev",
+    "stepsAdvancePointers": "prev = current",
+    "stepsAdvancePointersFull": "prev = current; current = next",
+    "stepsFinalReturn": "return prev",
+    "stepsStep1": "1. save next",
+    "stepsStep2": "2. reverse link",
+    "stepsStep3": "3. advance",
+    "stepSaveNext": "save next",
+    "stepReversePointer": "current.next = prev",
+    "stepAdvancePointers": "advance prev/curr",
+    "pointerPrev": "prev",
+    "pointerPrevNull": "prev = null",
+    "pointerCurr": "curr",
+    "pointerNext": "next",
+    "pointerNextNull": "next = null",
+    "interviewerTaunt1": "בוא נראה איך אתה מתמודד עם לחץ.",
+    "interviewerTaunt2": "בדור שלי היינו עושים הכל ביעילות O(1).",
+    "interviewerTaunt3": "היום בלי AI אתם לא יכולים לתכנת.",
+    "heartPickup": "+1 לב",
     "ouch": "אאוץ'",
     "burn": "נשרפת"
   },
   "level4": {
-    "title": "Candidate Stack",
-    "finish": "Offer Loop",
-    "referralBoost": "REFERRAL BOOST",
-    "dockerBoost": "DOCKER BOOST",
-    "mergeConflict": "MERGE CONFLICT",
-    "indentationError": "INDENTATION ERROR",
-    "push": "PUSH",
-    "trip": "TRIP HAZARD",
+    "title": "מרוץ מועמדים",
+    "finish": "כניסה להייטק",
+    "referralBoost": "בוסט קשרים",
+    "dockerBoost": "בוסט Docker",
+    "mergeConflict": "קונפליקט Merge",
+    "indentationError": "שגיאת הזחה",
+    "push": "דחיפה",
+    "trip": "מכשול",
     "rank": "מקום {rank}/{total}",
     "attackTaunt1": "אני יותר טוב בליטקוד.",
     "attackTaunt2": "קיבלתי יותר ממך בתואר.",
     "attackTaunt3": "יש לי יותר כוכבים בגיטהאב.",
     "attackTaunt4": "אני כבר מכיר את המנהל המגייס.",
-    "rivalFinished": "המשכנו עם מועמדים אחרים."
+    "rivalFinished": "המשכנו עם מועמדים אחרים.",
+    "jetpackLabel": "פרוטקציות",
+    "connections": "קשרים",
+    "coffeePickup": "קפה Java x{count}",
+    "javaHit": "קפה Java"
   },
   "level5": {
     "hp": "HP {hp}",
@@ -181,7 +229,11 @@
     "goodLuck": "בהצלחה בחיפוש."
   },
   "gameOver": {
-    "title": "נגמר המשחק"
+    "title": "נגמר המשחק",
+    "blurb": "אפשר לשמור את הניקוד לפני שחוזרים לחיפוש העבודה.",
+    "saveScore": "שמור ניקוד",
+    "skipSave": "לא לשמור",
+    "saved": "הניקוד נשמר."
   },
   "victory": {
     "title": "המסע הושלם",

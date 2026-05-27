@@ -26,17 +26,21 @@ export class Rival extends Phaser.Physics.Arcade.Sprite {
   }
 
   updateAI(targetX: number, options?: { speedMultiplier?: number; jump?: boolean; jumpMultiplier?: number; stopDistance?: number }): void {
+    const body = this.body as Phaser.Physics.Arcade.Body | null;
+    if (!body) {
+      return;
+    }
     const dir = targetX - this.x;
     const stopDistance = options?.stopDistance ?? 0;
     this.setVelocityX(Math.abs(dir) <= stopDistance ? 0 : Math.sign(dir) * this.speed * (options?.speedMultiplier ?? 1));
-    if ((options?.jump ?? true) && this.body.blocked.down) {
+    if ((options?.jump ?? true) && body.blocked.down) {
       this.setVelocityY(-scale(ENTITIES.RIVAL_JUMP_VELOCITY) * (options?.jumpMultiplier ?? 1));
     }
     const prevFacing = this.facing;
-    if (Math.abs(this.body.velocity.x) > INPUT.AXIS_EPSILON) {
-      this.facing = this.body.velocity.x < 0 ? "left" : "right";
+    if (Math.abs(body.velocity.x) > INPUT.AXIS_EPSILON) {
+      this.facing = body.velocity.x < 0 ? "left" : "right";
     }
-    this.moving = Math.abs(this.body.velocity.x) > INPUT.AXIS_EPSILON || Math.abs(this.body.velocity.y) > INPUT.AXIS_EPSILON;
+    this.moving = Math.abs(body.velocity.x) > INPUT.AXIS_EPSILON || Math.abs(body.velocity.y) > INPUT.AXIS_EPSILON;
     this.updateWalkPhase(prevFacing !== this.facing);
     this.updateTexture();
   }

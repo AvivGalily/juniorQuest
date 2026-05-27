@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { COMBO, DEPTH, DOM_TEXT, HUD, RUN, TIME } from "../../config/physics";
+import { COMBO, DEPTH, DOM_TEXT, HUD, TIME } from "../../config/physics";
 import { runState } from "../RunState";
 import { createTranslatedText, setTranslatedText } from "../utils/domText";
 import { getUiScale } from "../utils/resolution";
@@ -13,10 +13,9 @@ export class UIHud {
   private readonly uiScale: number;
   private scoreText: Phaser.GameObjects.DOMElement;
   private comboText: Phaser.GameObjects.DOMElement;
-  private stageText: Phaser.GameObjects.DOMElement;
   private timerText: Phaser.GameObjects.DOMElement;
 
-  constructor(scene: Phaser.Scene, stageNumber: number) {
+  constructor(scene: Phaser.Scene, _stageNumber: number) {
     this.scene = scene;
     const uiScale = getUiScale();
     this.uiScale = uiScale;
@@ -27,21 +26,6 @@ export class UIHud {
     for (let i = 0; i < HUD.HEART_COUNT; i += 1) {
       this.addHeartSlot(i);
     }
-
-    this.stageText = createTranslatedText(
-      scene,
-      scene.scale.width / 2,
-      HUD.STAGE_Y * uiScale,
-      "hud.stage",
-      {
-      params: { current: stageNumber, total: RUN.TOTAL_LEVELS },
-      maxWidth: HUD.STAGE_MAX_WIDTH,
-      fontSize: HUD.STAGE_FONT_SIZE,
-      color: "#e8eef2",
-      align: "center",
-      originY: DOM_TEXT.ORIGIN_TOP
-      }
-    ).setScrollFactor(0).setDepth(DEPTH.HUD);
 
     this.scoreText = createTranslatedText(scene, this.heartRightX, HUD.SCORE_Y * uiScale, "hud.score", {
       params: { score: 0 },

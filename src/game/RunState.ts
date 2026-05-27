@@ -1,4 +1,4 @@
-import { Difficulty } from "../config/difficulty";
+import { Difficulty, readStoredDifficulty, saveDifficulty } from "../config/difficulty";
 import { RUN } from "../config/physics";
 
 class RunState {
@@ -6,10 +6,15 @@ class RunState {
   runScore: number = RUN.DEFAULT_SCORE;
   hearts: number = RUN.DEFAULT_HEARTS;
   comboSteps: number = RUN.DEFAULT_COMBO_STEPS;
-  difficulty: Difficulty = "bootcamp";
+  difficulty: Difficulty = readStoredDifficulty();
   levelStartTimeMs: number = 0;
   level2ElapsedMs: number = 0;
   mistakes: number = RUN.DEFAULT_MISTAKES;
+
+  setDifficulty(difficulty: Difficulty): void {
+    this.difficulty = difficulty;
+    saveDifficulty(difficulty);
+  }
 
   resetRun(): void {
     this.currentLevel = RUN.DEFAULT_LEVEL;

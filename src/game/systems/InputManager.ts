@@ -61,7 +61,7 @@ export class InputManager {
   }
 
   justPressedInteract(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.keys.E);
+    return Phaser.Input.Keyboard.JustDown(this.keys.X);
   }
 
   isConfirmDown(): boolean {

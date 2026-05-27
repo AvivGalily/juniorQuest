@@ -188,7 +188,7 @@ export class Level1Scene extends BaseLevelScene {
 
     const tags = ["Cloudify", "DataNinjas", "PixelSoft", "LambdaLab", "SprintWorks", "StackLion", "ByteForge", "NodeWave", "Signal42", "BrightAI"];
     const diff = difficultyPresets[runState.difficulty];
-    const hrCount = LEVEL1.RECRUITER_COUNT;
+    const hrCount = diff.l1.recruiterCount;
     const npcCount = LEVEL1.NPC_COUNT;
     for (let i = 0; i < hrCount; i += 1) {
       const spawn = this.getRecruiterSpawnPoint(i);
@@ -224,15 +224,12 @@ export class Level1Scene extends BaseLevelScene {
     const initialTarget = rngPick(this.getActiveRecruiterStates());
     this.setTargetRecruiter(initialTarget?.recruiter);
 
-    const waypoints = LEVEL1.WAYPOINTS_1.map((pos) => this.getSafeFloorPoint(scaleX(pos.x), scaleY(pos.y)));
-    const waypoints2 = LEVEL1.WAYPOINTS_2.map((pos) => this.getSafeFloorPoint(scaleX(pos.x), scaleY(pos.y)));
     const guardSpeed = scale(diff.l1.guardSpeed);
-    const guardStart1 = this.getSafeFloorPoint(scaleX(LEVEL1.GUARD_STARTS[0].x), scaleY(LEVEL1.GUARD_STARTS[0].y));
-    const guardStart2 = this.getSafeFloorPoint(scaleX(LEVEL1.GUARD_STARTS[1].x), scaleY(LEVEL1.GUARD_STARTS[1].y));
-    this.guards = [
-      new Guard(this, guardStart1.x, guardStart1.y, waypoints, guardSpeed),
-      new Guard(this, guardStart2.x, guardStart2.y, waypoints2, guardSpeed)
-    ];
+    this.guards = [];
+    for (let i = 0; i < diff.l1.guardCount; i += 1) {
+      const guardStart = this.getGuardSpawnPoint(i);
+      this.guards.push(new Guard(this, guardStart.x, guardStart.y, this.getGuardWaypoints(i), guardSpeed));
+    }
     this.guardFovs = this.guards.map(() => this.add.graphics());
     this.guards.forEach((guard) => {
       guard.body.allowGravity = false;
@@ -354,6 +351,24 @@ export class Level1Scene extends BaseLevelScene {
     ];
     const spot = spots[index % spots.length];
     return this.getSafeFloorPoint(scaleX(spot.x + rngInt(-16, 16)), scaleY(spot.y + rngInt(-10, 10)));
+  }
+
+  private getGuardSpawnPoint(index: number): Phaser.Math.Vector2 {
+    const starts = [
+      ...LEVEL1.GUARD_STARTS,
+      { x: 320, y: 292 },
+      { x: 178, y: 198 },
+      { x: 464, y: 198 }
+    ];
+    const start = starts[index % starts.length];
+    return this.getSafeFloorPoint(scaleX(start.x + rngInt(-8, 8)), scaleY(start.y + rngInt(-6, 6)));
+  }
+
+  private getGuardWaypoints(index: number): Phaser.Math.Vector2[] {
+    const base = index % 2 === 0 ? LEVEL1.WAYPOINTS_1 : LEVEL1.WAYPOINTS_2;
+    const waypoints = base.map((pos) => this.getSafeFloorPoint(scaleX(pos.x), scaleY(pos.y)));
+    const offset = Math.floor(index / 2) % waypoints.length;
+    return [...waypoints.slice(offset), ...waypoints.slice(0, offset)];
   }
 
   private keepSpriteOnWalkableFloor(sprite: Phaser.Physics.Arcade.Sprite): void {

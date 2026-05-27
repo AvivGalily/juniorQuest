@@ -86,6 +86,8 @@ export const createDialogText = (
   element.setOrigin(options?.originX ?? DOM_TEXT.DEFAULT_ORIGIN, options?.originY ?? DOM_TEXT.DEFAULT_ORIGIN);
   const node = element.node as HTMLDivElement;
   node.style.pointerEvents = "none";
+  node.dataset.juniorQuestDomText = "true";
+  node.dataset.sceneKey = scene.sys.settings.key;
   node.dataset.direction = options?.direction ?? "auto";
   applyDirection(element);
 

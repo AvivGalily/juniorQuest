@@ -11,6 +11,8 @@ const escapeHtml = (value: string): string =>
 export class Level4IntroScene extends Phaser.Scene {
   private audio!: AudioManager;
   private dismissed = false;
+  private emailCard?: Phaser.GameObjects.DOMElement;
+  private continueZone?: Phaser.GameObjects.Zone;
 
   constructor() {
     super("Level4IntroScene");
@@ -18,13 +20,19 @@ export class Level4IntroScene extends Phaser.Scene {
 
   create(): void {
     this.dismissed = false;
+    this.emailCard = undefined;
+    this.continueZone = undefined;
+    this.input.enabled = true;
     this.audio = new AudioManager(this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupIntro, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupIntro, this);
+    this.stopLeakedLevel3Scene();
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 1);
     this.createRecruiterBackdrop();
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.58);
 
     this.createEmailCard();
-    this.input.keyboard.on("keydown-X", () => this.continueToLevel());
+    this.input.keyboard?.on("keydown-X", () => this.continueToLevel());
   }
 
   private createRecruiterBackdrop(): void {
@@ -176,6 +184,8 @@ export class Level4IntroScene extends Phaser.Scene {
     `;
 
     const card = this.add.dom(this.scale.width / 2, this.scale.height / 2).createFromHTML(html).setOrigin(0.5);
+    this.emailCard = card;
+    (card.node as HTMLElement).dataset.level4IntroCard = "true";
     card.addListener("click");
     card.on("click", (event: Event) => {
       const target = event.target as HTMLElement | null;
@@ -185,7 +195,7 @@ export class Level4IntroScene extends Phaser.Scene {
     });
 
     const ctaH = Math.round(scaleY(30));
-    this.add
+    this.continueZone = this.add
       .zone(this.scale.width / 2, this.scale.height / 2 + cardH / 2 - Math.round(scaleY(12)) - ctaH / 2, cardW - pad * 2, ctaH)
       .setInteractive({ useHandCursor: true })
       .setDepth(10000)
@@ -197,8 +207,54 @@ export class Level4IntroScene extends Phaser.Scene {
       return;
     }
     this.dismissed = true;
-    this.audio.playSfx("sfx-confirm", AUDIO.SFX.CONFIRM);
+    try {
+      this.audio.playSfx("sfx-confirm", AUDIO.SFX.CONFIRM);
+    } catch {
+      // Continue even if audio is unavailable during a scene transition.
+    }
     runState.levelStartTimeMs = Date.now();
-    this.scene.start("Level4Scene");
+    this.cleanupIntro();
+    this.stopLeakedLevel3Scene();
+    try {
+      this.scene.start("Level4Scene");
+    } catch {
+      this.scene.manager.start("Level4Scene");
+    }
+    window.setTimeout(() => {
+      try {
+        if (this.scene.isActive("Level4IntroScene") || this.scene.isPaused("Level4IntroScene")) {
+          this.scene.stop("Level4IntroScene");
+        }
+      } catch {
+        // The intro scene may already be stopped.
+      }
+      if (!this.scene.isActive("Level4Scene")) {
+        this.stopLeakedLevel3Scene();
+        this.scene.manager.start("Level4Scene");
+      }
+    }, 120);
+  }
+
+  private stopLeakedLevel3Scene(): void {
+    try {
+      if (this.scene.isActive("Level3Scene") || this.scene.isPaused("Level3Scene")) {
+        this.scene.stop("Level3Scene");
+      }
+    } catch {
+      // Transition can continue even if level 3 has already been stopped.
+    }
+    document.querySelectorAll<HTMLElement>("[data-scene-key='Level3Scene']").forEach((node) => {
+      node.remove();
+    });
+  }
+
+  private cleanupIntro(): void {
+    this.emailCard?.destroy();
+    this.continueZone?.destroy();
+    this.emailCard = undefined;
+    this.continueZone = undefined;
+    document.querySelectorAll<HTMLElement>("[data-level4-intro-card='true']").forEach((node) => {
+      node.remove();
+    });
   }
 }

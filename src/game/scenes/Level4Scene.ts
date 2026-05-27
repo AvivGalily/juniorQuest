@@ -78,7 +78,7 @@ type Level4RestartData = {
 };
 
 export class Level4Scene extends BaseLevelScene {
-  private player!: Player;
+  protected declare player: Player;
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private dockerGroup!: Phaser.Physics.Arcade.StaticGroup;
   private jetpackGroup!: Phaser.Physics.Arcade.StaticGroup;
@@ -103,6 +103,8 @@ export class Level4Scene extends BaseLevelScene {
   private cameraScrollY = 0;
   private maxCameraScrollY = 0;
   private pushStrength = scale(LEVEL4.DEFAULT_PUSH_STRENGTH);
+  private boostSpawnMultiplier = 1;
+  private rivalJumpHeightMultiplier = 1;
   private lastHazardHitAt = 0;
   private lastDockerBoostAt = 0;
   private playerJetpackUntil = 0;
@@ -116,8 +118,13 @@ export class Level4Scene extends BaseLevelScene {
   }
 
   create(data?: Level4RestartData): void {
+    this.closeLevel4IntroOverlay();
     this.resetSceneState();
     this.initLevel(STAGE.LEVEL4);
+    this.input.enabled = true;
+    if (this.input.keyboard) {
+      this.input.keyboard.enabled = true;
+    }
     if (typeof data?.heartsOverride === "number") {
       runState.hearts = data.heartsOverride;
       this.hud.updateAll();
@@ -142,6 +149,8 @@ export class Level4Scene extends BaseLevelScene {
 
     const diff = difficultyPresets[runState.difficulty];
     this.pushStrength = scale(diff.l4.pushStrength);
+    this.boostSpawnMultiplier = diff.l4.boostSpawnMultiplier;
+    this.rivalJumpHeightMultiplier = diff.l4.rivalJumpHeightMultiplier;
     this.createProfessionals();
     this.createBoostsAndHazards();
     this.createRivals(diff.l4.rivalsCount);
@@ -157,6 +166,25 @@ export class Level4Scene extends BaseLevelScene {
       .setDepth(950);
 
     this.physics.add.overlap(this.player, this.doorZone, () => this.completeLevel());
+  }
+
+  private closeLevel4IntroOverlay(): void {
+    document.querySelectorAll<HTMLElement>("[data-level4-intro-card='true']").forEach((node) => {
+      node.remove();
+    });
+    document.querySelectorAll<HTMLElement>("[data-scene-key='Level3Scene']").forEach((node) => {
+      node.remove();
+    });
+    try {
+      if (this.scene.isActive("Level3Scene") || this.scene.isPaused("Level3Scene")) {
+        this.scene.stop("Level3Scene");
+      }
+      if (this.scene.isActive("Level4IntroScene") || this.scene.isPaused("Level4IntroScene")) {
+        this.scene.stop("Level4IntroScene");
+      }
+    } catch {
+      // Level 4 can run even if the intro scene was already stopped.
+    }
   }
 
   update(_: number, _delta: number): void {
@@ -206,6 +234,9 @@ export class Level4Scene extends BaseLevelScene {
     this.tripHazards = [];
     this.cameraScrollY = 0;
     this.maxCameraScrollY = 0;
+    this.pushStrength = scale(LEVEL4.DEFAULT_PUSH_STRENGTH);
+    this.boostSpawnMultiplier = 1;
+    this.rivalJumpHeightMultiplier = 1;
     this.lastHazardHitAt = 0;
     this.lastDockerBoostAt = 0;
     this.playerJetpackUntil = 0;
@@ -217,7 +248,7 @@ export class Level4Scene extends BaseLevelScene {
   }
 
   private ensureLevel4Textures(): void {
-    const g = this.make.graphics({ x: 0, y: 0, add: false });
+    const g = this.make.graphics({ x: 0, y: 0 });
     const s = 3;
 
     if (!this.textures.exists("trip-hazard-smooth")) {
@@ -326,8 +357,36 @@ export class Level4Scene extends BaseLevelScene {
     this.physics.add.existing(this.doorZone, true);
   }
 
+  private getAdjustedBoostSteps(baseSteps: readonly number[]): number[] {
+    if (baseSteps.length === 0 || this.boostSpawnMultiplier === 1) {
+      return [...baseSteps];
+    }
+
+    const targetCount = Math.max(1, Math.round(baseSteps.length * this.boostSpawnMultiplier));
+    if (targetCount <= baseSteps.length) {
+      const selected = new Set<number>();
+      for (let i = 0; i < targetCount; i += 1) {
+        const sourceIndex = targetCount === 1 ? Math.floor(baseSteps.length / 2) : Math.round((i * (baseSteps.length - 1)) / (targetCount - 1));
+        selected.add(baseSteps[sourceIndex]);
+      }
+      return [...selected].sort((a, b) => a - b);
+    }
+
+    const minStep = Math.min(...baseSteps);
+    const maxStep = Math.max(...baseSteps);
+    const generated = new Set<number>(baseSteps);
+    for (let i = 0; generated.size < targetCount && i < targetCount * 3; i += 1) {
+      const t = (i + 0.5) / targetCount;
+      generated.add(Phaser.Math.Clamp(Math.round(Phaser.Math.Linear(minStep, maxStep, t)), 1, LEVEL4.PLATFORM_COUNT - 2));
+    }
+    for (let step = minStep; generated.size < targetCount && step <= maxStep; step += 1) {
+      generated.add(step);
+    }
+    return [...generated].sort((a, b) => a - b);
+  }
+
   private createProfessionals(): void {
-    for (const step of LEVEL4.PROFESSIONAL_STEPS) {
+    for (const step of this.getAdjustedBoostSteps(LEVEL4.PROFESSIONAL_STEPS)) {
       const platform = this.getPlatform(step);
       if (!platform) {
         continue;
@@ -347,7 +406,7 @@ export class Level4Scene extends BaseLevelScene {
     this.jetpackGroup = this.physics.add.staticGroup();
     this.coffeeGroup = this.physics.add.staticGroup();
     this.coffeeProjectiles = this.physics.add.group({ allowGravity: false });
-    for (const step of LEVEL4.DOCKER_STEPS) {
+    for (const step of this.getAdjustedBoostSteps(LEVEL4.DOCKER_STEPS)) {
       const platform = this.getPlatform(step);
       if (!platform) {
         continue;
@@ -380,7 +439,7 @@ export class Level4Scene extends BaseLevelScene {
   }
 
   private createJetpacks(): void {
-    for (const step of LEVEL4.JETPACK_STEPS) {
+    for (const step of this.getAdjustedBoostSteps(LEVEL4.JETPACK_STEPS)) {
       const platform = this.getPlatform(step);
       if (!platform) {
         continue;
@@ -390,12 +449,11 @@ export class Level4Scene extends BaseLevelScene {
         .setDisplaySize(scaleX(74), scaleY(72))
         .refreshBody() as Phaser.Physics.Arcade.Image;
       sprite.setDepth(8);
-      const label = createDialogText(this, sprite.x, sprite.y - scaleY(52), "פרוטקציות", {
+      const label = createDialogText(this, sprite.x, sprite.y - scaleY(52), t("level4.jetpackLabel"), {
         maxWidth: 120,
         fontSize: 12,
         color: "#fef08a",
         align: "center",
-        direction: "rtl",
         weight: 800
       }).setDepth(9);
       this.jetpacks.push({ sprite, label, used: false });
@@ -403,7 +461,7 @@ export class Level4Scene extends BaseLevelScene {
   }
 
   private createCoffeePickups(): void {
-    for (const step of LEVEL4.JAVA_COFFEE_STEPS) {
+    for (const step of this.getAdjustedBoostSteps(LEVEL4.JAVA_COFFEE_STEPS)) {
       const platform = this.getPlatform(step);
       if (!platform) {
         continue;
@@ -570,7 +628,7 @@ export class Level4Scene extends BaseLevelScene {
       rival.updateAI(climb.targetX, {
         speedMultiplier: behavior.speedMultiplier,
         jump: climb.jump,
-        jumpMultiplier: LEVEL4.RIVAL_CLIMB_JUMP_MULTIPLIER,
+        jumpMultiplier: LEVEL4.RIVAL_CLIMB_JUMP_MULTIPLIER * this.rivalJumpHeightMultiplier,
         stopDistance: climb.stopDistance
       });
       if (this.isRivalJetpackActive(rival)) {
@@ -816,7 +874,8 @@ export class Level4Scene extends BaseLevelScene {
         continue;
       }
       hazard.text.setPosition(hazard.owner.x, hazard.owner.y - scaleY(52));
-      const attackX = hazard.owner.x + (hazard.owner.body.velocity.x >= 0 ? scaleX(26) : -scaleX(26));
+      const ownerBody = hazard.owner.body as Phaser.Physics.Arcade.Body | null;
+      const attackX = hazard.owner.x + ((ownerBody?.velocity.x ?? 0) >= 0 ? scaleX(26) : -scaleX(26));
       const attackY = hazard.owner.y + scaleY(4);
       if (!hazard.applied && this.time.now >= hazard.damageAt && Phaser.Math.Distance.Between(attackX, attackY, this.player.x, this.player.y) <= scale(LEVEL4.RIVAL_ATTACK_RANGE * 1.05)) {
         hazard.applied = true;
@@ -930,7 +989,7 @@ export class Level4Scene extends BaseLevelScene {
 
   private getNearestProfessional(): Professional | null {
     let best: Professional | null = null;
-    let bestDist = MATH.LARGE_NUMBER;
+    let bestDist: number = MATH.LARGE_NUMBER;
     for (const professional of this.professionals) {
       if (professional.used) {
         continue;
@@ -998,13 +1057,25 @@ export class Level4Scene extends BaseLevelScene {
     if (target === this.player) {
       this.coffeeAmmo = LEVEL4.JAVA_COFFEE_AMMO_PER_PICKUP;
       this.updateCoffeeAmmoIcons();
-      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), "Java x3", "#f97316");
+      FloatingText.spawn(
+        this,
+        this.player.x,
+        this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM),
+        t("level4.coffeePickup", { count: LEVEL4.JAVA_COFFEE_AMMO_PER_PICKUP }),
+        "#f97316"
+      );
       return;
     }
     const rival = target as Rival;
     rival.setData("coffeeAmmo", LEVEL4.JAVA_COFFEE_AMMO_PER_PICKUP);
     rival.setData("nextCoffeeShotAt", this.time.now + rngInt(220, 520));
-    FloatingText.spawn(this, rival.x, rival.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), "Java x3", "#f97316");
+    FloatingText.spawn(
+      this,
+      rival.x,
+      rival.y - scale(FLOATING_TEXT.START_OFFSET_SMALL),
+      t("level4.coffeePickup", { count: LEVEL4.JAVA_COFFEE_AMMO_PER_PICKUP }),
+      "#f97316"
+    );
   }
 
   private tryShootCoffee(): boolean {
@@ -1057,7 +1128,7 @@ export class Level4Scene extends BaseLevelScene {
     this.consumeCoffeeProjectile(projectile);
     this.time.delayedCall(0, () => {
       this.player.setData("ignoreFallResetUntil", this.time.now + 1300);
-      this.dropPlayerFloors(LEVEL4.JAVA_COFFEE_DROP_FLOORS, "Java", "#f97316");
+      this.dropPlayerFloors(LEVEL4.JAVA_COFFEE_DROP_FLOORS, t("level4.javaHit"), "#f97316");
       this.syncCameraToPlayer();
     });
   }
@@ -1091,13 +1162,13 @@ export class Level4Scene extends BaseLevelScene {
     this.playerJetpackUntil = this.time.now + LEVEL4.JETPACK_DURATION_MS;
     this.nextPlayerSmokeAt = 0;
     this.scoreSystem.addSkill(LEVEL4.BOOST_SCORE);
-    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), "פרוטקציות", "#fef08a");
+    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), t("level4.jetpackLabel"), "#fef08a");
   }
 
   private activateRivalJetpack(rival: Rival): void {
     rival.setData("jetpackUntil", this.time.now + LEVEL4.JETPACK_DURATION_MS * 0.78);
     rival.setData("nextSmokeAt", 0);
-    FloatingText.spawn(this, rival.x, rival.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), "Connections", "#9bdcff");
+    FloatingText.spawn(this, rival.x, rival.y - scale(FLOATING_TEXT.START_OFFSET_SMALL), t("level4.connections"), "#9bdcff");
   }
 
   private isPlayerJetpackActive(): boolean {
@@ -1165,7 +1236,8 @@ export class Level4Scene extends BaseLevelScene {
   private boostSprite(sprite: Phaser.Physics.Arcade.Sprite, floors: number): void {
     const velocity = -Math.sqrt(2 * LEVEL4.WORLD_GRAVITY_Y * scaleY(LEVEL4.PLATFORM_STEP_Y * floors)) * 1.06;
     sprite.setVelocityY(velocity);
-    sprite.setVelocityX(sprite.body.velocity.x * 0.6);
+    const body = sprite.body as Phaser.Physics.Arcade.Body | null;
+    sprite.setVelocityX((body?.velocity.x ?? 0) * 0.6);
   }
 
   private dropPlayerFloors(floors: number, message: string, color: string): void {

@@ -24,6 +24,11 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("player-cv-walk-slow-right", new URL(`${playerBase}player-cv-walk-slow-right.png`, import.meta.url).href);
     this.load.image("player-cv-walk-fast-right", new URL(`${playerBase}player-cv-walk-fast-right.png`, import.meta.url).href);
     this.load.image("player-carry-left", new URL(`${playerBase}Player-carry-left.png`, import.meta.url).href);
+    this.load.image("difficulty-university", new URL(`${playerBase}difficulty-university.png`, import.meta.url).href);
+    this.load.image("difficulty-college", new URL(`${playerBase}difficulty-college.png`, import.meta.url).href);
+    this.load.image("difficulty-bootcamp", new URL(`${playerBase}difficulty-bootcamp.png`, import.meta.url).href);
+    this.load.image("flag-israel", new URL(`${playerBase}flag-israel.png`, import.meta.url).href);
+    this.load.image("flag-england", new URL(`${playerBase}flag-england.png`, import.meta.url).href);
 
     const guardBase = "../entities/guard/img/";
     this.load.image("guard-stand", new URL(`${guardBase}gurad-stand.png`, import.meta.url).href);
@@ -110,6 +115,15 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("linked-snake-tail", new URL(`${envBase}linked-snake-tail.png`, import.meta.url).href);
     this.load.image("linked-snake-fireball", new URL(`${envBase}linked-snake-fireball.png`, import.meta.url).href);
     this.load.image("linked-snake-burst", new URL(`${envBase}linked-snake-burst.png`, import.meta.url).href);
+    this.load.image("level3-interviewer-npc", new URL(`${envBase}level3-interviewer-npc.png`, import.meta.url).href);
+    this.load.spritesheet("level3-fire-impact-sheet", new URL(`${envBase}level3-fire-impact-sheet.png`, import.meta.url).href, {
+      frameWidth: 192,
+      frameHeight: 160
+    });
+    this.load.spritesheet("level3-rock-burst-sheet", new URL(`${envBase}level3-rock-burst-sheet.png`, import.meta.url).href, {
+      frameWidth: 192,
+      frameHeight: 150
+    });
   }
 
   create(): void {

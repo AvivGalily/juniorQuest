@@ -74,6 +74,7 @@ export class Level2Scene extends BaseLevelScene {
   private levelCompleted = false;
   private transitionStarted = false;
   private transitionFallbackId?: number;
+  private gameOverFallbackId?: number;
   private mistakeCountAtStart = 0;
   private obstacleSpeedMultiplier = 1;
   private elapsedScoreMs = 0;
@@ -92,7 +93,8 @@ export class Level2Scene extends BaseLevelScene {
 
     const diff = difficultyPresets[runState.difficulty];
     this.requiredPlacements = Math.min(diff.l2.requiredPlacements, LEVEL2_SLOTS.length);
-    this.obstacleSpeedMultiplier = Phaser.Math.Clamp(diff.l2.waterRisePxPerSec / 4, 0.85, 1.25);
+    this.timeLimitMs = diff.l2.timeLimitMs;
+    this.obstacleSpeedMultiplier = 1;
     this.timeLeftMs = this.timeLimitMs;
     this.elapsedScoreMs = runState.level2ElapsedMs;
     this.mistakeCountAtStart = runState.mistakes;
@@ -131,9 +133,14 @@ export class Level2Scene extends BaseLevelScene {
       window.clearTimeout(this.transitionFallbackId);
       this.transitionFallbackId = undefined;
     }
+    if (this.gameOverFallbackId !== undefined) {
+      window.clearTimeout(this.gameOverFallbackId);
+      this.gameOverFallbackId = undefined;
+    }
     this.slots = [];
     this.placedCount = 0;
     this.requiredPlacements = LEVEL2.DEFAULT_REQUIRED_PLACEMENTS;
+    this.timeLimitMs = LEVEL2.TIME_LIMIT_MS;
     this.leaves = [];
     this.carriedLeaf = undefined;
     this.pileText = undefined;
@@ -961,8 +968,10 @@ export class Level2Scene extends BaseLevelScene {
 
     if (this.timeLeftMs <= 0) {
       this.scoreSystem.breakCombo();
-      this.applyDamage();
-      this.timeLeftMs = this.timeLimitMs;
+      const died = this.applyLevel2Damage("timeout");
+      if (!died) {
+        this.timeLeftMs = this.timeLimitMs;
+      }
     }
   }
 
@@ -1088,7 +1097,83 @@ export class Level2Scene extends BaseLevelScene {
     obstacle.destroy();
     this.returnCarriedLeafFromHazard();
     this.showFeedback(t("level2.obstacleHit"), "#fecaca");
-    this.applyDamage();
+    this.applyLevel2Damage("obstacle");
+  }
+
+  private applyLevel2Damage(reason: "timeout" | "obstacle"): boolean {
+    if (this.deathTransitioning || this.levelCompleted) {
+      return false;
+    }
+    if (runState.hearts > 1) {
+      const died = super.applyDamage();
+      this.hud.updateAll();
+      return died;
+    }
+
+    runState.hearts = 0;
+    this.comboSystem.reset();
+    this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT);
+    this.hud.updateAll();
+    this.showLevel2GameOver(reason);
+    return true;
+  }
+
+  private showLevel2GameOver(reason: "timeout" | "obstacle"): void {
+    if (this.deathTransitioning) {
+      return;
+    }
+    this.deathTransitioning = true;
+    this.levelCompleted = true;
+    this.input.enabled = false;
+    this.physics.world.isPaused = false;
+    this.time.timeScale = 1;
+    this.stopLevel2Hazards();
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
+    body?.setVelocity(0, 0);
+    this.carriedLeaf = undefined;
+    this.player.setCarrying(false);
+
+    const delayMs = reason === "timeout" ? 3000 : 0;
+    if (reason === "timeout") {
+      this.showFeedback(t("level2.timeUp"), "#fecaca");
+      createTranslatedText(this, this.scale.width / 2, this.scale.height / 2, "level2.timeUp", {
+        maxWidth: 260,
+        fontSize: 28,
+        color: "#ff6b6b",
+        weight: 900
+      })
+        .setScrollFactor(0)
+        .setDepth(2501);
+    }
+
+    this.scheduleGameOver(delayMs);
+  }
+
+  private scheduleGameOver(delayMs: number): void {
+    const sourceSceneKey = this.sys.settings.key;
+    let started = false;
+    const startGameOver = (): void => {
+      if (started || !this.scene.isActive(sourceSceneKey)) {
+        return;
+      }
+      started = true;
+      this.physics.world.isPaused = false;
+      this.time.timeScale = 1;
+      this.scene.start("GameOverScene");
+    };
+
+    this.time.delayedCall(delayMs, startGameOver);
+    this.gameOverFallbackId = window.setTimeout(startGameOver, delayMs + 250);
+  }
+
+  private stopLevel2Hazards(): void {
+    this.bugTimer?.remove(false);
+    this.nullTimer?.remove(false);
+    this.sideBugTimer?.remove(false);
+    this.bugTimer = undefined;
+    this.nullTimer = undefined;
+    this.sideBugTimer = undefined;
   }
 
   private showFeedback(text: string, color: string): void {
@@ -1205,6 +1290,14 @@ export class Level2Scene extends BaseLevelScene {
     if (this.transitionFallbackId !== undefined) {
       window.clearTimeout(this.transitionFallbackId);
       this.transitionFallbackId = undefined;
+    }
+    if (this.gameOverFallbackId !== undefined) {
+      window.clearTimeout(this.gameOverFallbackId);
+      this.gameOverFallbackId = undefined;
+    }
+    if (this.deathTransitioning) {
+      this.obstacleGroup = undefined;
+      return;
     }
     this.obstacleGroup = undefined;
     this.pathGraphics?.clear();

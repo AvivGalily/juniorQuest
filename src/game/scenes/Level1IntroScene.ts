@@ -117,7 +117,7 @@ export class Level1IntroScene extends Phaser.Scene {
             line-height:1.2;
             color:#0f172a;
             font-weight:800;
-            text-align:right;
+            text-align:${textAlign};
             white-space:nowrap;
             overflow:hidden;
             text-overflow:ellipsis;

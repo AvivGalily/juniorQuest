@@ -1,125 +1,143 @@
-export type Difficulty = "bootcamp" | "college" | "university";
+import { LEVEL1, LEVEL2, LEVEL4, LEVEL5, TIME } from "./physics";
+
+export type Difficulty = "university" | "college" | "bootcamp";
 
 export interface DifficultyConfig {
   l1: {
+    guardCount: number;
+    recruiterCount: number;
     guardFovDeg: number;
     detectionHoldMs: number;
     guardSpeed: number;
-    recruiterCount: number;
   };
   l2: {
-    waterRisePxPerSec: number;
-    waterPenaltyJumpPx: number;
-    cubeCount: number;
     requiredPlacements: number;
+    timeLimitMs: number;
   };
   l3: {
     nodesCount: number;
-    comboWindowMs: number;
-    snakeAttackIntervalMs: number;
+    hazardFrequencyMultiplier: number;
   };
   l4: {
     rivalsCount: number;
-    checkpointEveryPx: number;
+    boostSpawnMultiplier: number;
+    rivalJumpHeightMultiplier: number;
     pushStrength: number;
   };
   l5: {
-    bossHP: number;
-    patternWindowMs: number;
-    minReactionWindowMs: number;
-    patternSpeed: number;
+    bossHp: number;
+    miniBossTriggerHp: number;
+    miniBossCount: number;
   };
 }
 
+export const DEFAULT_DIFFICULTY: Difficulty = "college";
+export const DIFFICULTY_STORAGE_KEY = "juniorquest_difficulty_v1";
+export const difficultyOrder: Difficulty[] = ["university", "college", "bootcamp"];
+
+const currentLevel3Nodes = 7;
+
 export const difficultyPresets: Record<Difficulty, DifficultyConfig> = {
-  bootcamp: {
+  university: {
     l1: {
+      guardCount: Math.max(1, 2 - 1),
+      recruiterCount: Math.max(1, LEVEL1.RECRUITER_COUNT - 2),
       guardFovDeg: 60,
       detectionHoldMs: 1000,
-      guardSpeed: 60,
-      recruiterCount: 10
+      guardSpeed: 60
     },
     l2: {
-      waterRisePxPerSec: 3,
-      waterPenaltyJumpPx: 16,
-      cubeCount: 15,
-      requiredPlacements: 11
+      requiredPlacements: Math.max(1, LEVEL2.DEFAULT_REQUIRED_PLACEMENTS - 2),
+      timeLimitMs: LEVEL2.TIME_LIMIT_MS + 30 * TIME.MS_PER_SEC
     },
     l3: {
-      nodesCount: 7,
-      comboWindowMs: 2000,
-      snakeAttackIntervalMs: 2500
+      nodesCount: Math.max(1, currentLevel3Nodes - 2),
+      hazardFrequencyMultiplier: 0.8
     },
     l4: {
       rivalsCount: 4,
-      checkpointEveryPx: 450,
-      pushStrength: 220
+      boostSpawnMultiplier: 1.3,
+      rivalJumpHeightMultiplier: 1,
+      pushStrength: LEVEL4.DEFAULT_PUSH_STRENGTH
     },
     l5: {
-      bossHP: 12,
-      patternWindowMs: 1600,
-      minReactionWindowMs: 900,
-      patternSpeed: 1
+      bossHp: 80,
+      miniBossTriggerHp: 40,
+      miniBossCount: 1
     }
   },
   college: {
     l1: {
-      guardFovDeg: 70,
-      detectionHoldMs: 900,
-      guardSpeed: 70,
-      recruiterCount: 10
+      guardCount: 2,
+      recruiterCount: LEVEL1.RECRUITER_COUNT,
+      guardFovDeg: 60,
+      detectionHoldMs: 1000,
+      guardSpeed: 60
     },
     l2: {
-      waterRisePxPerSec: 4,
-      waterPenaltyJumpPx: 18,
-      cubeCount: 16,
-      requiredPlacements: 12
+      requiredPlacements: LEVEL2.DEFAULT_REQUIRED_PLACEMENTS,
+      timeLimitMs: LEVEL2.TIME_LIMIT_MS
     },
     l3: {
-      nodesCount: 8,
-      comboWindowMs: 1800,
-      snakeAttackIntervalMs: 2300
+      nodesCount: currentLevel3Nodes,
+      hazardFrequencyMultiplier: 1
     },
     l4: {
-      rivalsCount: 5,
-      checkpointEveryPx: 420,
-      pushStrength: 240
+      rivalsCount: 4,
+      boostSpawnMultiplier: 1,
+      rivalJumpHeightMultiplier: 1,
+      pushStrength: LEVEL4.DEFAULT_PUSH_STRENGTH
     },
     l5: {
-      bossHP: 14,
-      patternWindowMs: 1500,
-      minReactionWindowMs: 800,
-      patternSpeed: 1.1
+      bossHp: LEVEL5.BOSS_HP,
+      miniBossTriggerHp: LEVEL5.MINI_BOSS_TRIGGER_HP,
+      miniBossCount: LEVEL5.MINI_BOSS_COUNT
     }
   },
-  university: {
+  bootcamp: {
     l1: {
-      guardFovDeg: 80,
-      detectionHoldMs: 800,
-      guardSpeed: 80,
-      recruiterCount: 10
+      guardCount: 2 + 3,
+      recruiterCount: LEVEL1.RECRUITER_COUNT + 1,
+      guardFovDeg: 60,
+      detectionHoldMs: 1000,
+      guardSpeed: 60
     },
     l2: {
-      waterRisePxPerSec: 5,
-      waterPenaltyJumpPx: 20,
-      cubeCount: 18,
-      requiredPlacements: 13
+      requiredPlacements: Math.min(LEVEL2.DEFAULT_REQUIRED_PLACEMENTS + 2, 15),
+      timeLimitMs: Math.max(30 * TIME.MS_PER_SEC, LEVEL2.TIME_LIMIT_MS - 30 * TIME.MS_PER_SEC)
     },
     l3: {
-      nodesCount: 9,
-      comboWindowMs: 1700,
-      snakeAttackIntervalMs: 2100
+      nodesCount: currentLevel3Nodes + 2,
+      hazardFrequencyMultiplier: 1.2
     },
     l4: {
-      rivalsCount: 6,
-      checkpointEveryPx: 400,
-      pushStrength: 260
+      rivalsCount: 4,
+      boostSpawnMultiplier: 0.5,
+      rivalJumpHeightMultiplier: 2,
+      pushStrength: LEVEL4.DEFAULT_PUSH_STRENGTH
     },
     l5: {
-      bossHP: 16,
-      patternWindowMs: 1400,
-      minReactionWindowMs: 750,
-      patternSpeed: 1.2
+      bossHp: 150,
+      miniBossTriggerHp: 50,
+      miniBossCount: 3
     }
   }
 };
+
+export function isDifficulty(value: unknown): value is Difficulty {
+  return value === "university" || value === "college" || value === "bootcamp";
+}
+
+export function readStoredDifficulty(): Difficulty {
+  if (typeof localStorage === "undefined") {
+    return DEFAULT_DIFFICULTY;
+  }
+  const stored = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
+  return isDifficulty(stored) ? stored : DEFAULT_DIFFICULTY;
+}
+
+export function saveDifficulty(difficulty: Difficulty): void {
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(DIFFICULTY_STORAGE_KEY, difficulty);
+  }
+}

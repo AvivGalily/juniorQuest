@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { difficultyPresets } from "../../config/difficulty";
 import { BaseLevelScene } from "./BaseLevelScene";
 import { Player } from "../entities/player/Player";
 import { AUDIO, FLOATING_TEXT, LEVEL5, RUN, STAGE } from "../../config/physics";
@@ -74,9 +75,12 @@ export class Level5Scene extends BaseLevelScene {
   private bossBodyTextureKey: BossBodyTextureKey = "level5-computer-spider-body-angry";
   private arena!: Phaser.Geom.Rectangle;
   private playerShadow!: Phaser.GameObjects.Ellipse;
+  private bossMaxHp = LEVEL5.BOSS_HP;
   private bossHp = LEVEL5.BOSS_HP;
   private bossHpFill!: Phaser.GameObjects.Rectangle;
   private bossHpText!: Phaser.GameObjects.Text;
+  private miniBossTriggerHp = LEVEL5.MINI_BOSS_TRIGGER_HP;
+  private miniBossCount = LEVEL5.MINI_BOSS_COUNT;
   private attackTimer?: Phaser.Time.TimerEvent;
   private waveTimer?: Phaser.Time.TimerEvent;
   private tauntTimer?: Phaser.Time.TimerEvent;
@@ -148,7 +152,11 @@ export class Level5Scene extends BaseLevelScene {
     this.playerTextureKey = "";
     this.playerFacingDirection = "right";
     this.bossBodyTextureKey = "level5-computer-spider-body-angry";
-    this.bossHp = LEVEL5.BOSS_HP;
+    const diff = difficultyPresets[runState.difficulty];
+    this.bossMaxHp = diff.l5.bossHp;
+    this.bossHp = this.bossMaxHp;
+    this.miniBossTriggerHp = diff.l5.miniBossTriggerHp;
+    this.miniBossCount = diff.l5.miniBossCount;
     this.attackTimer = undefined;
     this.waveTimer = undefined;
     this.tauntTimer = undefined;
@@ -504,15 +512,15 @@ export class Level5Scene extends BaseLevelScene {
       if (!this.fightActive || this.bossHp <= 0) {
         return;
       }
-      for (let i = 0; i < LEVEL5.MINI_BOSS_COUNT; i += 1) {
+      for (let i = 0; i < this.miniBossCount; i += 1) {
         this.spawnMiniBoss(i);
       }
     });
   }
 
   private spawnMiniBoss(index: number): void {
-    const x = index === 0 ? this.arena.left + scaleX(104) : this.arena.right - scaleX(104);
-    const y = this.arena.top + scaleY(100 + index * 84);
+    const x = index % 3 === 2 ? this.arena.centerX : index % 2 === 0 ? this.arena.left + scaleX(104) : this.arena.right - scaleX(104);
+    const y = this.arena.top + (this.arena.height * (index + 1)) / (this.miniBossCount + 1);
     const sprite = this.physics.add.sprite(x, y, "level5-robot-mouse-body");
     sprite.setDisplaySize(scaleX(LEVEL5.MINI_BOSS_DISPLAY_WIDTH), scaleY(LEVEL5.MINI_BOSS_DISPLAY_HEIGHT));
     sprite.setDepth(18);
@@ -808,13 +816,13 @@ export class Level5Scene extends BaseLevelScene {
   }
 
   private getBossBodyTextureKey(): BossBodyTextureKey {
-    if (this.bossHp <= 30) {
+    if (this.bossHp <= this.bossMaxHp * 0.3) {
       return "level5-computer-spider-body-broken";
     }
-    if (this.bossHp <= 60) {
+    if (this.bossHp <= this.bossMaxHp * 0.6) {
       return "level5-computer-spider-body-crack-2";
     }
-    if (this.bossHp <= 80) {
+    if (this.bossHp <= this.bossMaxHp * 0.8) {
       return "level5-computer-spider-body-crack-1";
     }
     if (this.time.now < this.scaredFaceUntil) {
@@ -1110,7 +1118,7 @@ export class Level5Scene extends BaseLevelScene {
     this.updateBossHpUi();
     this.syncBossBodyTexture();
     this.flashBoss();
-    if (!this.miniBossPhaseTriggered && previousHp > LEVEL5.MINI_BOSS_TRIGGER_HP && this.bossHp <= LEVEL5.MINI_BOSS_TRIGGER_HP) {
+    if (!this.miniBossPhaseTriggered && previousHp > this.miniBossTriggerHp && this.bossHp <= this.miniBossTriggerHp) {
       this.triggerMiniBossPhase();
     }
 
@@ -1869,9 +1877,9 @@ export class Level5Scene extends BaseLevelScene {
   }
 
   private updateBossHpUi(): void {
-    const percent = Phaser.Math.Clamp(this.bossHp / LEVEL5.BOSS_HP, 0, 1);
+    const percent = Phaser.Math.Clamp(this.bossHp / this.bossMaxHp, 0, 1);
     this.bossHpFill.setDisplaySize(scaleX(LEVEL5.HP_BAR_WIDTH) * percent, scaleY(LEVEL5.HP_BAR_HEIGHT));
-    this.bossHpText.setText(`${t("level5.hp", { hp: this.bossHp })}/${LEVEL5.BOSS_HP}`);
+    this.bossHpText.setText(`${t("level5.hp", { hp: this.bossHp })}/${this.bossMaxHp}`);
   }
 
   private showDialog(text: string, onDone: () => void): void {

@@ -3,6 +3,7 @@ import { BaseLevelScene } from "./BaseLevelScene";
 import { Player } from "../entities/player/Player";
 import { difficultyPresets } from "../../config/difficulty";
 import { ALPHA, AUDIO, FLOATING_TEXT, LEVEL3, PLAYER, RUN, SCALE, STAGE, TEXTURES, TIME } from "../../config/physics";
+import { Level3Physics } from "../../config/levelPhysics";
 import { runState } from "../RunState";
 import { FloatingText } from "../entities/FloatingText";
 import { createTranslatedText } from "../utils/domText";
@@ -37,16 +38,24 @@ type SnakePathPoint = {
 };
 
 type TimedFireHazard = {
-  object: Phaser.GameObjects.Rectangle;
+  object: Phaser.GameObjects.Zone;
+  effect: Phaser.GameObjects.Sprite;
   expiresAt: number;
   damageApplied: boolean;
 };
+
+type ReverseStepKey = "SaveNext" | "ReversePointer" | "AdvancePointers";
+
+const REVERSE_STEPS: ReverseStepKey[] = ["SaveNext", "ReversePointer", "AdvancePointers"];
+const INTERVIEWER_TAUNTS = ["level3.interviewerTaunt1", "level3.interviewerTaunt2", "level3.interviewerTaunt3"] as const;
 
 export class Level3Scene extends BaseLevelScene {
   protected declare player: Player;
   private ground!: Phaser.Physics.Arcade.Image;
   private head!: Phaser.GameObjects.Image;
   private tail!: Phaser.GameObjects.Image;
+  private headPlatform!: Phaser.GameObjects.Rectangle;
+  private tailPlatform!: Phaser.GameObjects.Rectangle;
   private segments: SnakeSegment[] = [];
   private links!: Phaser.GameObjects.Graphics;
   private projectileGroup!: Phaser.Physics.Arcade.Group;
@@ -54,9 +63,13 @@ export class Level3Scene extends BaseLevelScene {
   private attackTimer?: Phaser.Time.TimerEvent;
   private stalactiteTimer?: Phaser.Time.TimerEvent;
   private completeTimer?: Phaser.Time.TimerEvent;
+  private completeFallbackId?: number;
+  private levelCompleteTransitionAtMs = 0;
+  private levelCompleteTransitionStarted = false;
   private activeWarnings: Phaser.GameObjects.GameObject[] = [];
   private fireHazards: TimedFireHazard[] = [];
   private activeSegmentIndex = 0;
+  private reverseStepIndex = 0;
   private levelFinished = false;
   private cleanedUp = false;
   private snakeInitialized = false;
@@ -67,21 +80,34 @@ export class Level3Scene extends BaseLevelScene {
   private snakePhase = 0;
   private snakePath: SnakePathPoint[] = [];
   private snakePathDistance = 0;
-  private nodeSpacing = scaleX(42);
+  private nodeSpacing = scaleX(Level3Physics.snakeInitialNodeSpacing);
   private readonly snakeBaseY = scaleY(LEVEL3.SNAKE_HEAD_Y);
-  private readonly nodeDisplayWidth = scaleX(36);
-  private readonly nodeDisplayHeight = scaleY(28);
-  private readonly headDisplayWidth = scaleX(104);
-  private readonly headDisplayHeight = scaleY(88);
-  private readonly tailDisplayWidth = scaleX(96);
-  private readonly tailDisplayHeight = scaleY(64);
-  private readonly snakeWaveAmplitude = scaleY(8);
-  private readonly headTrailGap = scaleX(78);
-  private readonly figureEightCenterX = scaleX(320);
-  private readonly figureEightAmplitudeX = scaleX(250);
-  private readonly figureEightAmplitudeY = scaleY(34);
+  private readonly nodeDisplayWidth = scaleX(Level3Physics.snakeNodeDisplayWidth);
+  private readonly nodeDisplayHeight = scaleY(Level3Physics.snakeNodeDisplayHeight);
+  private readonly headDisplayWidth = scaleX(Level3Physics.snakeHeadDisplayWidth);
+  private readonly headDisplayHeight = scaleY(Level3Physics.snakeHeadDisplayHeight);
+  private readonly tailDisplayWidth = scaleX(Level3Physics.snakeTailDisplayWidth);
+  private readonly tailDisplayHeight = scaleY(Level3Physics.snakeTailDisplayHeight);
+  private readonly snakeWaveAmplitude = scaleY(Level3Physics.snakeWaveAmplitudeY);
+  private readonly headTrailGap = scaleX(Level3Physics.snakeHeadTrailGap);
+  private readonly figureEightCenterX = scaleX(Level3Physics.snakeFigureEightCenterX);
+  private readonly figureEightAmplitudeX = scaleX(Level3Physics.snakeFigureEightAmplitudeX);
+  private readonly figureEightAmplitudeY = scaleY(Level3Physics.snakeFigureEightAmplitudeY);
   private readonly figureEightSpeed = 0.00038;
-  private readonly pathSampleSpacing = scaleX(5);
+  private readonly pathSampleSpacing = scaleX(Level3Physics.snakePathSampleSpacing);
+  private stepChips: Phaser.GameObjects.Rectangle[] = [];
+  private stepTexts: Phaser.GameObjects.Text[] = [];
+  private pointerLabels: Phaser.GameObjects.Text[] = [];
+  private interviewerNpc?: Phaser.GameObjects.Image;
+  private interviewerBubble?: Phaser.GameObjects.Rectangle;
+  private interviewerText?: Phaser.GameObjects.Text;
+  private interviewerTimer?: Phaser.Time.TimerEvent;
+  private interviewerInitialTimer?: Phaser.Time.TimerEvent;
+  private interviewerTauntIndex = 0;
+  private nextInterviewerTauntAtMs = 0;
+  private nextHeartPickupAtMs = 0;
+  private heartPickupExpiresAtMs = 0;
+  private heartPickup?: Phaser.GameObjects.Image;
 
   constructor() {
     super("Level3Scene");
@@ -92,26 +118,46 @@ export class Level3Scene extends BaseLevelScene {
     this.levelFinished = false;
     this.snakeInitialized = false;
     this.activeSegmentIndex = 0;
+    this.reverseStepIndex = 0;
     this.painFaceUntilMs = 0;
     this.lastAttackPattern = -1;
     this.attackCount = 0;
+    this.interviewerTauntIndex = 0;
     this.snakePhase = 0;
     this.snakePath = [];
     this.snakePathDistance = 0;
     this.segments = [];
+    this.stepChips = [];
+    this.stepTexts = [];
+    this.pointerLabels = [];
     this.activeWarnings = [];
     this.fireHazards = [];
     this.attackTimer = undefined;
     this.stalactiteTimer = undefined;
+    this.interviewerTimer = undefined;
+    this.interviewerInitialTimer = undefined;
+    this.nextInterviewerTauntAtMs = 0;
+    this.nextHeartPickupAtMs = 0;
+    this.heartPickupExpiresAtMs = 0;
     this.completeTimer = undefined;
+    this.completeFallbackId = undefined;
+    this.levelCompleteTransitionAtMs = 0;
+    this.levelCompleteTransitionStarted = false;
     this.stalactiteGroup = undefined;
     this.painFace = undefined;
+    this.headPlatform = undefined as unknown as Phaser.GameObjects.Rectangle;
+    this.tailPlatform = undefined as unknown as Phaser.GameObjects.Rectangle;
+    this.interviewerNpc = undefined;
+    this.interviewerBubble = undefined;
+    this.interviewerText = undefined;
+    this.heartPickup = undefined;
     this.initLevel(STAGE.LEVEL3);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupLevel3, this);
     this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupLevel3, this);
     this.audio.playMusic("music-level3-action", AUDIO.MUSIC.LEVEL3_ACTION);
     this.physics.world.gravity.y = LEVEL3.WORLD_GRAVITY_Y;
     this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height);
+    this.ensureLevel3EffectAnimations();
 
     this.add.image(this.scale.width / 2, this.scale.height / 2, "level3-snake-bg").setDisplaySize(this.scale.width, this.scale.height);
 
@@ -129,6 +175,9 @@ export class Level3Scene extends BaseLevelScene {
 
     this.links = this.add.graphics().setDepth(8);
     this.createSnake();
+    this.createReverseStepHud();
+    this.createPointerLabels();
+    this.createInterviewerCommentary();
 
     createTranslatedText(this, scaleX(LEVEL3.TITLE_X), scaleY(LEVEL3.TITLE_Y), "level3.title", {
       maxWidth: LEVEL3.TITLE_MAX_WIDTH,
@@ -143,12 +192,10 @@ export class Level3Scene extends BaseLevelScene {
 
     this.projectileGroup = this.physics.add.group();
     this.physics.add.overlap(this.player, this.projectileGroup, (_, projectile) => {
-      (projectile as Phaser.GameObjects.GameObject).destroy();
-      this.applyDamage();
-      if (runState.hearts <= 0 || !this.isLevel3Active()) {
-        return;
-      }
-      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), t("level3.fire"), "#ff6b6b");
+      const fireball = projectile as Phaser.Physics.Arcade.Image;
+      this.spawnFireImpact(fireball.x, fireball.y, 0.58);
+      fireball.destroy();
+      this.applyLevel3Damage();
     });
 
     this.ensureStalactiteTexture();
@@ -158,30 +205,37 @@ export class Level3Scene extends BaseLevelScene {
       if (!spike.active || this.levelFinished || !this.isLevel3Active()) {
         return;
       }
+      this.spawnRockBurst(spike.x, Math.min(spike.y + scaleY(42), scaleY(LEVEL3.GROUND_Y - 7)), 0.72);
       spike.destroy();
-      this.applyDamage();
-      if (runState.hearts <= 0 || !this.isLevel3Active()) {
-        return;
-      }
-      FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), t("level3.spike"), "#ff6b6b");
+      this.applyLevel3Damage();
     });
 
     this.scheduleNextAttack(850);
     this.scheduleNextStalactite(1250);
+    this.nextInterviewerTauntAtMs = this.time.now + Level3Physics.interviewerFirstTauntDelayMs;
+    this.scheduleNextHeartPickup(Level3Physics.heartPickupFirstDelayMs);
   }
 
   update(_: number, delta: number): void {
     this.handlePauseToggle();
-    if (this.paused || this.levelFinished) {
+    if (this.levelFinished) {
+      this.updateLevelCompleteTransition();
+      return;
+    }
+    if (this.paused) {
       return;
     }
 
     this.updateSnakeMovement(delta);
     this.updatePainFace();
+    this.updatePointerLabels();
     this.player.updatePlatformer(this.inputManager, scale(PLAYER.PLATFORMER_SPEED_L3), scale(PLAYER.JUMP_L3));
     this.updateProjectiles();
     this.updateFireHazards();
     this.updateStalactites();
+    this.checkHeartPickup();
+    this.updateHeartPickupSpawn();
+    this.updateInterviewerTaunts();
 
     if (this.inputManager.justPressedInteract()) {
       this.tryFlipMountedSegment();
@@ -193,18 +247,20 @@ export class Level3Scene extends BaseLevelScene {
   private createSnake(): void {
     const diff = difficultyPresets[runState.difficulty];
     const count = Math.min(diff.l3.nodesCount, 9);
-    this.nodeSpacing = Math.min(scaleX(42), (scaleX(500) - scaleX(120)) / Math.max(1, count - 1));
+    this.nodeSpacing = Math.min(
+      scaleX(Level3Physics.snakeInitialNodeSpacing),
+      (scaleX(Level3Physics.snakePathStartX) - scaleX(Level3Physics.snakePathEndX)) / Math.max(1, count - 1)
+    );
 
     this.tail = this.add.image(0, 0, "linked-snake-tail").setDisplaySize(this.tailDisplayWidth, this.tailDisplayHeight).setDepth(10);
     this.head = this.add.image(0, 0, "linked-snake-head").setDisplaySize(this.headDisplayWidth, this.headDisplayHeight).setDepth(14);
+    this.headPlatform = this.createSnakeRidePlatform(this.headDisplayWidth * 0.52, scaleY(9));
+    this.tailPlatform = this.createSnakeRidePlatform(this.tailDisplayWidth * 0.54, scaleY(8));
     this.painFace = this.add.graphics().setDepth(35).setVisible(false);
 
     for (let i = 0; i < count; i += 1) {
       const image = this.add.image(0, 0, "linked-snake-node").setDisplaySize(this.nodeDisplayWidth, this.nodeDisplayHeight).setDepth(13);
-      const platform = this.add.rectangle(0, 0, this.nodeDisplayWidth * 0.82, scaleY(8), 0xffffff, 0);
-      this.physics.add.existing(platform, true);
-      this.configureTopOnlyPlatform(platform);
-      this.physics.add.collider(this.player, platform);
+      const platform = this.createSnakeRidePlatform(this.nodeDisplayWidth * 0.82, scaleY(8));
 
       const label = this.add
         .text(0, 0, String(i + 1), {
@@ -235,6 +291,14 @@ export class Level3Scene extends BaseLevelScene {
     this.resetSnakePath();
     this.updateSnakePose(0);
     this.updateSegmentHighlights();
+  }
+
+  private createSnakeRidePlatform(width: number, height: number): Phaser.GameObjects.Rectangle {
+    const platform = this.add.rectangle(0, 0, width, height, 0xffffff, 0);
+    this.physics.add.existing(platform, true);
+    this.configureTopOnlyPlatform(platform);
+    this.physics.add.collider(this.player, platform);
+    return platform;
   }
 
   private configureTopOnlyPlatform(platform: Phaser.GameObjects.Rectangle): void {
@@ -376,6 +440,7 @@ export class Level3Scene extends BaseLevelScene {
     this.head.setPosition(headPoint.x, headPoint.y - scaleY(4));
     this.head.setFlipX(!headFacesRight);
     this.head.setAngle(Phaser.Math.Clamp(headAngle * 0.22, -10, 10) + Math.sin(this.snakePhase * 1.4) * 2);
+    this.moveLoosePlatform(this.headPlatform, this.head.x, this.head.y - this.headDisplayHeight * 0.34);
 
     const tailPoint = this.sampleSnakePath(this.headTrailGap + this.segments.length * bodyGap);
     const tailX = tailPoint.x;
@@ -383,9 +448,23 @@ export class Level3Scene extends BaseLevelScene {
     this.tail.setPosition(tailX, tailY + scaleY(4));
     this.tail.setFlipX(last.x > tailX);
     this.tail.setAngle(Phaser.Math.Clamp(Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(last.x, last.y, tailX, tailY)) * 0.35, -14, 14));
+    this.moveLoosePlatform(this.tailPlatform, this.tail.x, this.tail.y - this.tailDisplayHeight * 0.32);
 
     this.drawLinks();
     this.carryMountedPlayer(dt);
+  }
+
+  private moveLoosePlatform(platform: Phaser.GameObjects.Rectangle | undefined, x: number, y: number): void {
+    const body = platform?.body as Phaser.Physics.Arcade.StaticBody | undefined;
+    if (!platform || !body) {
+      return;
+    }
+    const prevX = platform.x;
+    const prevY = platform.y;
+    platform.setPosition(x, y);
+    platform.setData("dx", x - prevX);
+    platform.setData("dy", y - prevY);
+    body.updateFromGameObject();
   }
 
   private moveSegment(segment: SnakeSegment, x: number, y: number): void {
@@ -416,8 +495,24 @@ export class Level3Scene extends BaseLevelScene {
     if (dt <= 0 || !body?.blocked.down) {
       return;
     }
+    const playerBounds = this.player.getBounds();
     const mountedIndex = this.getMountedSegmentIndex();
     if (mountedIndex === undefined) {
+      for (const platform of [this.headPlatform, this.tailPlatform]) {
+        const platformBounds = platform?.getBounds();
+        if (!platformBounds) {
+          continue;
+        }
+        const overlapsX = playerBounds.right > platformBounds.left && playerBounds.left < platformBounds.right;
+        const closeToTop = Math.abs(playerBounds.bottom - platformBounds.top) <= scaleY(12);
+        if (!overlapsX || !closeToTop) {
+          continue;
+        }
+        const dx = platform.getData("dx") as number | undefined;
+        const dy = platform.getData("dy") as number | undefined;
+        this.player.setPosition(this.player.x + (dx ?? 0), this.player.y + (dy ?? 0));
+        return;
+      }
       return;
     }
     const segment = this.segments[mountedIndex];
@@ -487,6 +582,261 @@ export class Level3Scene extends BaseLevelScene {
     this.links.fillPath();
   }
 
+  private createReverseStepHud(): void {
+    const y = scaleY(82);
+    const chipWidth = scaleX(126);
+    const chipHeight = scaleY(22);
+    const gap = scaleX(6);
+    const startX = this.scale.width / 2 - chipWidth - gap;
+    for (let i = 0; i < REVERSE_STEPS.length; i += 1) {
+      const x = startX + i * (chipWidth + gap);
+      const chip = this.add
+        .rectangle(x, y, chipWidth, chipHeight, 0x102332, 0.86)
+        .setStrokeStyle(scale(1), 0x38bdf8, 0.72)
+        .setScrollFactor(0)
+        .setDepth(1010);
+      const label = this.add
+        .text(x, y, t(`level3.step${REVERSE_STEPS[i]}`), {
+          fontFamily: "Arial, sans-serif",
+          fontSize: `${Math.round(scale(10))}px`,
+          color: "#cbd5e1",
+          fontStyle: "bold",
+          align: "center"
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(1011);
+      this.stepChips.push(chip);
+      this.stepTexts.push(label);
+    }
+    this.updateReverseStepHud();
+  }
+
+  private updateReverseStepHud(): void {
+    for (let i = 0; i < this.stepChips.length; i += 1) {
+      const chip = this.stepChips[i];
+      const label = this.stepTexts[i];
+      const completed = i < this.reverseStepIndex;
+      const active = i === this.reverseStepIndex && this.activeSegmentIndex < this.segments.length;
+      chip.setFillStyle(completed ? 0x14532d : active ? 0x3b2f0b : 0x102332, active ? 0.94 : 0.82);
+      chip.setStrokeStyle(scale(active ? 2 : 1), completed ? 0x8fe388 : active ? 0xffd166 : 0x38bdf8, active ? 1 : 0.72);
+      label.setColor(completed ? "#bbf7d0" : active ? "#fef08a" : "#cbd5e1");
+    }
+  }
+
+  private createPointerLabels(): void {
+    const keys = ["level3.pointerPrev", "level3.pointerCurr", "level3.pointerNext"];
+    this.pointerLabels = keys.map((key) =>
+      this.add
+        .text(0, 0, t(key), {
+          fontFamily: "Arial, sans-serif",
+          fontSize: `${Math.round(scale(10))}px`,
+          color: "#f8fafc",
+          fontStyle: "bold",
+          align: "center",
+          backgroundColor: "#0f172acc",
+          padding: { left: Math.round(scaleX(4)), right: Math.round(scaleX(4)), top: Math.round(scaleY(2)), bottom: Math.round(scaleY(2)) }
+        })
+        .setOrigin(0.5)
+        .setDepth(38)
+        .setVisible(false)
+    );
+    this.updatePointerLabels();
+  }
+
+  private updatePointerLabels(): void {
+    const current = this.segments[this.activeSegmentIndex];
+    if (!current) {
+      this.pointerLabels.forEach((label) => label.setVisible(false));
+      return;
+    }
+    const prev = this.segments[this.activeSegmentIndex - 1];
+    const next = this.segments[this.activeSegmentIndex + 1];
+    const entries = [
+      { label: this.pointerLabels[0], node: prev, fallbackX: current.x - scaleX(55), textKey: prev ? "level3.pointerPrev" : "level3.pointerPrevNull" },
+      { label: this.pointerLabels[1], node: current, fallbackX: current.x, textKey: "level3.pointerCurr" },
+      { label: this.pointerLabels[2], node: next, fallbackX: current.x + scaleX(55), textKey: next ? "level3.pointerNext" : "level3.pointerNextNull" }
+    ];
+    for (const entry of entries) {
+      if (!entry.label) {
+        continue;
+      }
+      const x = entry.node?.x ?? entry.fallbackX;
+      const y = (entry.node?.y ?? current.y) - scaleY(34);
+      entry.label.setText(t(entry.textKey));
+      entry.label.setPosition(x, y);
+      entry.label.setVisible(true);
+    }
+  }
+
+  private createInterviewerCommentary(): void {
+    const npcX = scaleX(Level3Physics.interviewerNpcX);
+    const npcY = scaleY(Level3Physics.interviewerNpcY);
+    this.interviewerNpc = this.add
+      .image(npcX, npcY, "level3-interviewer-npc")
+      .setDisplaySize(scaleX(Level3Physics.interviewerNpcWidth), scaleY(Level3Physics.interviewerNpcHeight))
+      .setDepth(19);
+    this.interviewerBubble = this.add
+      .rectangle(
+        npcX - scaleX(Level3Physics.interviewerBubbleOffsetX),
+        npcY - scaleY(Level3Physics.interviewerBubbleOffsetY),
+        scaleX(Level3Physics.interviewerBubbleWidth),
+        scaleY(Level3Physics.interviewerBubbleHeight),
+        0xf8fafc,
+        0.94
+      )
+      .setStrokeStyle(scale(1), 0x1f2937, 0.9)
+      .setDepth(1018)
+      .setVisible(false);
+    this.interviewerText = this.add
+      .text(npcX - scaleX(Level3Physics.interviewerBubbleOffsetX), npcY - scaleY(Level3Physics.interviewerBubbleOffsetY), "", {
+        fontFamily: "Arial, sans-serif",
+        fontSize: `${Math.round(scale(Level3Physics.interviewerBubbleFontSize))}px`,
+        color: "#111827",
+        fontStyle: "bold",
+        align: "center",
+        wordWrap: { width: Math.round(scaleX(Level3Physics.interviewerBubbleTextWrapWidth)) }
+      })
+      .setOrigin(0.5)
+      .setDepth(1019)
+      .setVisible(false);
+  }
+
+  private updateInterviewerTaunts(): void {
+    if (
+      this.levelFinished ||
+      this.deathTransitioning ||
+      !this.interviewerBubble ||
+      !this.interviewerText ||
+      !this.isLevel3Active() ||
+      this.time.now < this.nextInterviewerTauntAtMs
+    ) {
+      return;
+    }
+    this.showInterviewerTaunt();
+    this.nextInterviewerTauntAtMs = this.time.now + Level3Physics.interviewerTauntIntervalMs;
+  }
+
+  private showInterviewerTaunt(): void {
+    if (this.levelFinished || !this.interviewerBubble || !this.interviewerText) {
+      return;
+    }
+    const key = INTERVIEWER_TAUNTS[this.interviewerTauntIndex % INTERVIEWER_TAUNTS.length];
+    this.interviewerTauntIndex += 1;
+    this.tweens.killTweensOf([this.interviewerBubble, this.interviewerText]);
+    this.interviewerText.setText(t(key));
+    this.interviewerBubble.setAlpha(0).setVisible(true);
+    this.interviewerText.setAlpha(0).setVisible(true);
+    this.tweens.add({
+      targets: [this.interviewerBubble, this.interviewerText],
+      alpha: 1,
+      duration: 150,
+      ease: "Sine.easeOut"
+    });
+    this.tweens.add({
+      targets: [this.interviewerBubble, this.interviewerText],
+      alpha: 0,
+      delay: 2800,
+      duration: 260,
+      ease: "Sine.easeIn",
+      onComplete: () => {
+        this.interviewerBubble?.setVisible(false);
+        this.interviewerText?.setVisible(false);
+      }
+    });
+  }
+
+  private scheduleNextHeartPickup(delayMs?: number): void {
+    if (this.levelFinished || this.deathTransitioning || !this.isLevel3Active()) {
+      this.nextHeartPickupAtMs = 0;
+      return;
+    }
+    const resolvedDelayMs =
+      delayMs ?? Phaser.Math.Between(Level3Physics.heartPickupMinIntervalMs, Level3Physics.heartPickupMaxIntervalMs);
+    this.nextHeartPickupAtMs = this.time.now + resolvedDelayMs;
+  }
+
+  private updateHeartPickupSpawn(): void {
+    if (this.levelFinished || this.deathTransitioning || !this.isLevel3Active()) {
+      return;
+    }
+    if (this.heartPickup?.active) {
+      if (this.heartPickupExpiresAtMs > 0 && this.time.now >= this.heartPickupExpiresAtMs) {
+        this.clearHeartPickup();
+        this.scheduleNextHeartPickup();
+      }
+      return;
+    }
+    if (this.nextHeartPickupAtMs > 0 && this.time.now >= this.nextHeartPickupAtMs) {
+      this.nextHeartPickupAtMs = 0;
+      this.spawnHeartPickup();
+    }
+  }
+
+  private spawnHeartPickup(): void {
+    if (this.levelFinished || this.deathTransitioning || !this.isLevel3Active() || this.heartPickup?.active) {
+      this.scheduleNextHeartPickup();
+      return;
+    }
+    const x = Phaser.Math.Between(
+      Math.round(scaleX(Level3Physics.heartPickupMarginX)),
+      Math.round(this.scale.width - scaleX(Level3Physics.heartPickupMarginX))
+    );
+    const y = Phaser.Math.Between(Math.round(scaleY(Level3Physics.heartPickupMinY)), Math.round(scaleY(Level3Physics.heartPickupMaxY)));
+    const heart = this.add
+      .image(x, y, "heart_full")
+      .setDisplaySize(scale(Level3Physics.heartPickupSize), scale(Level3Physics.heartPickupSize))
+      .setDepth(60);
+    heart.setData("collected", false);
+    this.heartPickup = heart;
+    this.heartPickupExpiresAtMs = this.time.now + Level3Physics.heartPickupVisibleMs;
+    this.tweens.add({
+      targets: heart,
+      y: y - scaleY(Level3Physics.heartPickupBobY),
+      scale: Level3Physics.heartPickupPulseScale,
+      alpha: Level3Physics.heartPickupPulseAlpha,
+      duration: Level3Physics.heartPickupPulseMs,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut"
+    });
+  }
+
+  private checkHeartPickup(): void {
+    const heart = this.heartPickup;
+    if (!heart?.active || heart.getData("collected")) {
+      return;
+    }
+    if (Phaser.Geom.Intersects.RectangleToRectangle(this.player.getBounds(), heart.getBounds())) {
+      this.collectHeartPickup(heart);
+    }
+  }
+
+  private collectHeartPickup(heart: Phaser.GameObjects.Image): void {
+    if (!heart.active || heart.getData("collected")) {
+      return;
+    }
+    heart.setData("collected", true);
+    this.clearHeartPickup();
+    runState.hearts += 1;
+    this.hud.updateAll();
+    FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), t("level3.heartPickup"), "#8fe388");
+    this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_LIGHT);
+    this.scheduleNextHeartPickup();
+  }
+
+  private clearHeartPickup(): void {
+    if (!this.heartPickup?.active) {
+      this.heartPickup = undefined;
+      this.heartPickupExpiresAtMs = 0;
+      return;
+    }
+    this.tweens.killTweensOf(this.heartPickup);
+    this.heartPickup.destroy();
+    this.heartPickup = undefined;
+    this.heartPickupExpiresAtMs = 0;
+  }
+
   private updateSegmentHighlights(): void {
     for (const segment of this.segments) {
       const active = segment.index === this.activeSegmentIndex;
@@ -498,6 +848,8 @@ export class Level3Scene extends BaseLevelScene {
       segment.scanLine.setFillStyle(accent, active ? 0.76 : 0.42);
       segment.statusLight.setFillStyle(accent, segment.flipped || active ? ALPHA.FULL : 0.7);
     }
+    this.updateReverseStepHud();
+    this.updatePointerLabels();
   }
 
   private tryFlipMountedSegment(): void {
@@ -510,18 +862,31 @@ export class Level3Scene extends BaseLevelScene {
     if (mountedIndex !== this.activeSegmentIndex) {
       this.scoreSystem.addPenalty(LEVEL3.COMBO_FAIL_PENALTY);
       this.scoreSystem.breakCombo();
-      this.applyDamage();
+      this.reverseStepIndex = 0;
+      this.updateReverseStepHud();
+      const died = this.applyLevel3Damage();
+      if (died || !this.isLevel3Active()) {
+        return;
+      }
       this.throwPlayerDown(mountedIndex);
-      FloatingText.spawn(this, this.segments[mountedIndex].x, this.segments[mountedIndex].y - scale(24), t("level3.wrongNode"), "#ff6b6b");
       return;
     }
 
     const segment = this.segments[mountedIndex];
+    const step = REVERSE_STEPS[this.reverseStepIndex];
+    this.audio.playSfx("sfx-success", this.reverseStepIndex === REVERSE_STEPS.length - 1 ? AUDIO.SFX.SUCCESS_MED : AUDIO.SFX.SUCCESS_LIGHT);
+    FloatingText.spawn(this, segment.x, segment.y - scale(24), t(`level3.step${step}`), this.reverseStepIndex === 1 ? "#fef08a" : "#8fe388");
+    this.reverseStepIndex += 1;
+    this.updateReverseStepHud();
+
+    if (this.reverseStepIndex < REVERSE_STEPS.length) {
+      return;
+    }
+
+    this.reverseStepIndex = 0;
     segment.flipped = true;
     this.triggerPainFace();
     this.scoreSystem.addSkill(LEVEL3.COMBO_SKILL_SCORE);
-    this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_MED);
-    FloatingText.spawn(this, segment.x, segment.y - scale(24), t("level3.nextPrev"), "#8fe388");
     this.throwPlayerDown(mountedIndex);
     this.activeSegmentIndex += 1;
     this.drawLinks();
@@ -579,6 +944,161 @@ export class Level3Scene extends BaseLevelScene {
     this.painFace.strokePath();
   }
 
+  private ensureLevel3EffectAnimations(): void {
+    if (!this.anims.exists("level3-fire-impact")) {
+      this.anims.create({
+        key: "level3-fire-impact",
+        frames: this.anims.generateFrameNumbers("level3-fire-impact-sheet", { start: 0, end: 5 }),
+        frameRate: 9,
+        repeat: 0
+      });
+    }
+    if (!this.anims.exists("level3-rock-burst")) {
+      this.anims.create({
+        key: "level3-rock-burst",
+        frames: this.anims.generateFrameNumbers("level3-rock-burst-sheet", { start: 0, end: 5 }),
+        frameRate: 12,
+        repeat: 0
+      });
+    }
+  }
+
+  private spawnFireImpact(x: number, y: number, sizeScale = 1): Phaser.GameObjects.Sprite | undefined {
+    if (this.levelFinished || !this.isLevel3Active()) {
+      return undefined;
+    }
+    const flame = this.add
+      .sprite(x, y, "level3-fire-impact-sheet", 0)
+      .setOrigin(0.5, 0.82)
+      .setDisplaySize(scaleX(112) * sizeScale, scaleY(78) * sizeScale)
+      .setDepth(28);
+    flame.play("level3-fire-impact");
+    flame.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.tweens.add({
+        targets: flame,
+        alpha: 0,
+        duration: 170,
+        ease: "Sine.easeOut",
+        onComplete: () => flame.destroy()
+      });
+    });
+    return flame;
+  }
+
+  private spawnRockBurst(x: number, y: number, sizeScale = 1): void {
+    if (this.levelFinished || !this.isLevel3Active()) {
+      return;
+    }
+    const burst = this.add
+      .sprite(x, y, "level3-rock-burst-sheet", 0)
+      .setOrigin(0.5, 0.84)
+      .setDisplaySize(scaleX(112) * sizeScale, scaleY(78) * sizeScale)
+      .setDepth(47);
+    burst.play("level3-rock-burst");
+    burst.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.tweens.add({
+        targets: burst,
+        alpha: 0,
+        duration: 120,
+        ease: "Sine.easeOut",
+        onComplete: () => burst.destroy()
+      });
+    });
+  }
+
+  private destroyFireHazard(hazard: TimedFireHazard): void {
+    this.tweens.killTweensOf(hazard.object);
+    this.tweens.killTweensOf(hazard.effect);
+    hazard.object.destroy();
+    hazard.effect.destroy();
+  }
+
+  private applyLevel3Damage(): boolean {
+    if (this.deathTransitioning || this.invulnerable || this.levelFinished) {
+      return false;
+    }
+    if (runState.hearts > 1) {
+      const died = super.applyDamage();
+      this.hud.updateAll();
+      return died;
+    }
+
+    runState.hearts = 0;
+    this.comboSystem.reset();
+    this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT);
+    this.hud.updateAll();
+    this.showLevel3GameOverAndScoreboard();
+    return true;
+  }
+
+  private showLevel3GameOverAndScoreboard(): void {
+    if (this.deathTransitioning) {
+      return;
+    }
+    this.deathTransitioning = true;
+    this.levelFinished = true;
+    this.input.enabled = false;
+    this.physics.world.isPaused = false;
+    this.time.timeScale = 1;
+    this.stopLevel3Timers();
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body | undefined;
+    if (body) {
+      body.setVelocity(0, 0);
+    }
+
+    let started = false;
+    const startScoreboard = (): void => {
+      if (started) {
+        return;
+      }
+      started = true;
+      this.physics.world.isPaused = false;
+      this.time.timeScale = 1;
+      try {
+        this.scene.start("GameOverScene");
+      } catch {
+        this.scene.manager.start("GameOverScene");
+      }
+      window.setTimeout(() => {
+        if (!this.scene.isActive("GameOverScene")) {
+          this.scene.manager.start("GameOverScene");
+        }
+      }, 120);
+    };
+
+    window.setTimeout(startScoreboard, 0);
+    this.time.delayedCall(1, startScoreboard);
+  }
+
+  private stopLevel3Timers(): void {
+    this.attackTimer?.remove(false);
+    this.stalactiteTimer?.remove(false);
+    this.interviewerTimer?.remove(false);
+    this.interviewerInitialTimer?.remove(false);
+    this.attackTimer = undefined;
+    this.stalactiteTimer = undefined;
+    this.interviewerTimer = undefined;
+    this.interviewerInitialTimer = undefined;
+    this.nextHeartPickupAtMs = 0;
+    this.heartPickupExpiresAtMs = 0;
+  }
+
+  private stopLevel3Threats(): void {
+    this.stopLevel3Timers();
+    this.clearArcadeGroup(this.projectileGroup);
+    this.clearArcadeGroup(this.stalactiteGroup);
+    for (const hazard of this.fireHazards) {
+      this.destroyFireHazard(hazard);
+    }
+    this.fireHazards = [];
+    for (const warning of this.activeWarnings) {
+      this.tweens.killTweensOf(warning);
+      warning.destroy();
+    }
+    this.activeWarnings = [];
+  }
+
   private getMountedSegmentIndex(): number | undefined {
     const playerBounds = this.player.getBounds();
     let closestIndex: number | undefined;
@@ -614,8 +1134,8 @@ export class Level3Scene extends BaseLevelScene {
       return;
     }
     const diff = difficultyPresets[runState.difficulty];
-    const baseDelay = Math.max(1650, diff.l3.snakeAttackIntervalMs * 0.62);
-    const delay = delayMs ?? baseDelay + Phaser.Math.Between(360, 860);
+    const frequency = Math.max(0.1, diff.l3.hazardFrequencyMultiplier);
+    const delay = delayMs ?? (1650 + Phaser.Math.Between(360, 860)) / frequency;
     this.attackTimer?.remove(false);
     this.attackTimer = this.time.delayedCall(delay, () => {
       this.attackTimer = undefined;
@@ -678,26 +1198,22 @@ export class Level3Scene extends BaseLevelScene {
     if (this.levelFinished || !this.isLevel3Active()) {
       return;
     }
-    const length = scaleX(118) * sizeScale;
-    const height = scaleY(48) * sizeScale;
-    const jet = this.add.graphics().setDepth(32);
-    jet.fillStyle(0xff6b1a, 0.78);
-    jet.fillTriangle(x, y, x + direction * length, y - height * 0.48, x + direction * length, y + height * 0.48);
-    jet.fillStyle(0xffd166, 0.92);
-    jet.fillTriangle(x + direction * scaleX(10), y, x + direction * length * 0.72, y - height * 0.22, x + direction * length * 0.72, y + height * 0.22);
-    jet.lineStyle(scale(3), 0xfff3a3, 0.8);
-    jet.lineBetween(x, y, x + direction * length * 0.86, y);
-    this.activeWarnings.push(jet);
+    const flash = this.add
+      .image(x + direction * scaleX(24), y, "linked-snake-fireball")
+      .setDisplaySize(scaleX(38) * sizeScale, scaleY(18) * sizeScale)
+      .setDepth(32)
+      .setFlipX(direction > 0)
+      .setAlpha(0.78);
+    this.activeWarnings.push(flash);
     this.tweens.add({
-      targets: jet,
+      targets: flash,
+      scale: 1.28,
       alpha: 0,
-      scaleX: 1.12,
-      scaleY: 1.25,
-      duration: 440,
+      duration: 180,
       ease: "Sine.easeOut",
       onComplete: () => {
-        this.activeWarnings = this.activeWarnings.filter((item) => item !== jet);
-        jet.destroy();
+        this.activeWarnings = this.activeWarnings.filter((item) => item !== flash);
+        flash.destroy();
       }
     });
   }
@@ -717,14 +1233,18 @@ export class Level3Scene extends BaseLevelScene {
       Phaser.Math.Between(scaleX(150), this.scale.width - scaleX(150))
     ];
 
-    for (const rawX of candidates.slice(0, Phaser.Math.Between(2, 3))) {
+    for (const rawX of candidates.slice(0, 1)) {
       const x = Phaser.Math.Clamp(rawX, scaleX(120), this.scale.width - scaleX(120));
-      const warning = this.add.rectangle(x, zoneY, zoneWidth, zoneHeight, 0xff6b1a, 0.2).setDepth(27);
-      warning.setStrokeStyle(scale(2), 0xffd166, 0.95);
+      const warning = this.add
+        .sprite(x, zoneY + scaleY(8), "level3-fire-impact-sheet", 0)
+        .setOrigin(0.5, 0.82)
+        .setDisplaySize(zoneWidth * 1.18, zoneHeight * 2.35)
+        .setAlpha(0.32)
+        .setDepth(27);
       this.activeWarnings.push(warning);
       this.tweens.add({
         targets: warning,
-        alpha: 0.55,
+        alpha: 0.62,
         scaleX: 1.12,
         duration: LEVEL3.ATTACK_ZONE_DELAY_MS,
         yoyo: true,
@@ -737,23 +1257,14 @@ export class Level3Scene extends BaseLevelScene {
           warning.destroy();
           return;
         }
-        const flame = this.add.rectangle(x, zoneY, zoneWidth * 1.05, zoneHeight * 1.45, 0xff6b1a, 0.72).setDepth(28);
-        flame.setStrokeStyle(scale(2), 0xffd166, 0.95);
-        this.activeWarnings.push(flame);
-        this.fireHazards.push({ object: flame, expiresAt: this.time.now + 920, damageApplied: false });
+        const flame = this.spawnFireImpact(x, zoneY + scaleY(10), 1);
+        const hazardZone = this.add.zone(x, zoneY, zoneWidth * 1.05, zoneHeight * 1.45).setOrigin(0.5);
+        if (flame) {
+          this.fireHazards.push({ object: hazardZone, effect: flame, expiresAt: this.time.now + 920, damageApplied: false });
+        } else {
+          hazardZone.destroy();
+        }
         warning.destroy();
-        this.tweens.add({
-          targets: flame,
-          alpha: 0,
-          scaleY: 1.7,
-          duration: 920,
-          ease: "Sine.easeOut",
-          onComplete: () => {
-            this.activeWarnings = this.activeWarnings.filter((item) => item !== flame);
-            this.fireHazards = this.fireHazards.filter((hazard) => hazard.object !== flame);
-            flame.destroy();
-          }
-        });
       });
     }
   }
@@ -854,15 +1365,12 @@ export class Level3Scene extends BaseLevelScene {
     const playerBounds = this.player.getBounds();
     this.fireHazards = this.fireHazards.filter((hazard) => {
       if (!hazard.object.active || this.time.now >= hazard.expiresAt) {
-        hazard.object.destroy();
+        this.destroyFireHazard(hazard);
         return false;
       }
       if (!hazard.damageApplied && Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, hazard.object.getBounds())) {
         hazard.damageApplied = true;
-        this.applyDamage();
-        if (runState.hearts > 0 && this.isLevel3Active()) {
-          FloatingText.spawn(this, this.player.x, this.player.y - scale(FLOATING_TEXT.START_OFFSET_MEDIUM), t("level3.burn"), "#ff6b6b");
-        }
+        this.applyLevel3Damage();
       }
       return true;
     });
@@ -893,14 +1401,18 @@ export class Level3Scene extends BaseLevelScene {
     if (this.levelFinished) {
       return;
     }
+    const diff = difficultyPresets[runState.difficulty];
+    const frequency = Math.max(0.1, diff.l3.hazardFrequencyMultiplier);
     this.stalactiteTimer?.remove(false);
-    this.stalactiteTimer = this.time.delayedCall(delayMs ?? Phaser.Math.Between(1600, 2700), () => {
+    this.stalactiteTimer = this.time.delayedCall(
+      delayMs ?? Phaser.Math.Between(Math.round(3200 / frequency), Math.round(5400 / frequency)),
+      () => {
       this.stalactiteTimer = undefined;
       if (this.levelFinished || !this.isLevel3Active()) {
         return;
       }
       this.spawnStalactite();
-      if (Phaser.Math.Between(0, 100) > 48) {
+      if (Phaser.Math.Between(0, 100) > 76) {
         this.time.delayedCall(260, () => this.spawnStalactite());
       }
       this.scheduleNextStalactite();
@@ -956,6 +1468,11 @@ export class Level3Scene extends BaseLevelScene {
       if (!spike.active) {
         return true;
       }
+      if (spike.y + spike.displayHeight * 0.42 >= scaleY(LEVEL3.GROUND_Y - 7)) {
+        this.spawnRockBurst(spike.x, scaleY(LEVEL3.GROUND_Y - 7), 0.92);
+        spike.destroy();
+        return true;
+      }
       if (spike.y > this.scale.height + scaleY(90)) {
         spike.destroy();
       }
@@ -972,15 +1489,12 @@ export class Level3Scene extends BaseLevelScene {
       return;
     }
     this.levelFinished = true;
-    this.attackTimer?.remove();
-    this.stalactiteTimer?.remove();
-    this.attackTimer = undefined;
-    this.stalactiteTimer = undefined;
-    this.projectileGroup?.clear(true, true);
-    this.stalactiteGroup?.clear(true, true);
+    this.stopLevel3Timers();
+    this.clearHeartPickup();
+    this.clearArcadeGroup(this.projectileGroup);
+    this.clearArcadeGroup(this.stalactiteGroup);
     for (const hazard of this.fireHazards) {
-      this.tweens.killTweensOf(hazard.object);
-      hazard.object.destroy();
+      this.destroyFireHazard(hazard);
     }
     this.fireHazards = [];
     this.scoreSystem.addBase(LEVEL3.LEVEL_COMPLETE_SCORE);
@@ -1015,11 +1529,46 @@ export class Level3Scene extends BaseLevelScene {
     });
 
     this.hud.updateAll();
-    this.completeTimer = this.time.delayedCall(LEVEL3.LEVEL_COMPLETE_DELAY_MS, () => {
-      if (this.isLevel3Active()) {
-        this.scene.start("Level4IntroScene");
+    this.scheduleLevel4Intro(LEVEL3.LEVEL_COMPLETE_DELAY_MS);
+  }
+
+  private scheduleLevel4Intro(delayMs: number): void {
+    this.levelCompleteTransitionAtMs = Date.now() + delayMs;
+    this.levelCompleteTransitionStarted = false;
+    this.completeTimer = this.time.delayedCall(delayMs, () => this.startLevel4Intro());
+    this.completeFallbackId = window.setTimeout(() => this.startLevel4Intro(), delayMs + 250);
+  }
+
+  private updateLevelCompleteTransition(): void {
+    if (
+      this.deathTransitioning ||
+      this.levelCompleteTransitionStarted ||
+      this.levelCompleteTransitionAtMs <= 0 ||
+      Date.now() < this.levelCompleteTransitionAtMs
+    ) {
+      return;
+    }
+    this.startLevel4Intro();
+  }
+
+  private startLevel4Intro(): void {
+    if (this.levelCompleteTransitionStarted) {
+      return;
+    }
+    this.levelCompleteTransitionStarted = true;
+    this.physics.world.isPaused = false;
+    this.time.timeScale = 1;
+    this.input.enabled = false;
+    try {
+      this.scene.start("Level4IntroScene");
+    } catch {
+      this.scene.manager.start("Level4IntroScene");
+    }
+    window.setTimeout(() => {
+      if (!this.scene.isActive("Level4IntroScene")) {
+        this.scene.manager.start("Level4IntroScene");
       }
-    });
+    }, 120);
   }
 
   private cleanupLevel3(): void {
@@ -1028,11 +1577,19 @@ export class Level3Scene extends BaseLevelScene {
     }
     this.cleanedUp = true;
     this.levelFinished = true;
-    this.attackTimer?.remove(false);
-    this.stalactiteTimer?.remove(false);
+    if (this.deathTransitioning) {
+      this.stopLevel3Timers();
+      this.fireHazards = [];
+      this.activeWarnings = [];
+      return;
+    }
     this.completeTimer?.remove(false);
-    this.attackTimer = undefined;
-    this.stalactiteTimer = undefined;
+    if (this.completeFallbackId !== undefined) {
+      window.clearTimeout(this.completeFallbackId);
+      this.completeFallbackId = undefined;
+    }
+    this.stopLevel3Timers();
+    this.clearHeartPickup();
     this.completeTimer = undefined;
     if (this.head?.active) {
       this.head.setTexture("linked-snake-head").setDisplaySize(this.headDisplayWidth, this.headDisplayHeight);
@@ -1041,8 +1598,7 @@ export class Level3Scene extends BaseLevelScene {
     this.painFace?.clear();
     this.painFace?.setVisible(false);
     for (const hazard of this.fireHazards) {
-      this.tweens.killTweensOf(hazard.object);
-      hazard.object.destroy();
+      this.destroyFireHazard(hazard);
     }
     this.fireHazards = [];
     for (const warning of this.activeWarnings) {
@@ -1050,11 +1606,23 @@ export class Level3Scene extends BaseLevelScene {
       warning.destroy();
     }
     this.activeWarnings = [];
-    if (this.projectileGroup) {
-      this.projectileGroup.clear(true, true);
+    this.clearArcadeGroup(this.projectileGroup);
+    this.clearArcadeGroup(this.stalactiteGroup);
+  }
+
+  private clearArcadeGroup(group?: Phaser.Physics.Arcade.Group): void {
+    const children = group?.children;
+    if (!group || !children) {
+      return;
     }
-    if (this.stalactiteGroup) {
-      this.stalactiteGroup.clear(true, true);
+    try {
+      group.clear(true, true);
+    } catch {
+      const entries = [...(children.entries ?? [])] as Phaser.GameObjects.GameObject[];
+      for (const child of entries) {
+        child.destroy();
+      }
+      children.clear();
     }
   }
 }

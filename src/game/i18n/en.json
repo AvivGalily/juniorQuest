@@ -18,9 +18,15 @@
     "selectLevel": "Select Level",
     "level": "Level: {level}",
     "about": "About",
+    "difficulty": "Difficulty",
+    "difficultyTitle": "Job Search Difficulty",
+    "difficultySelected": "Selected",
+    "difficultyUniversity": "University Graduate",
+    "difficultyCollege": "College Graduate",
+    "difficultyBootcamp": "Bootcamp Graduate",
     "leaderboard": "Leaderboard",
     "comingSoon": "Coming soon",
-    "footer": "WASD / Arrows to move. Space/Enter or click to confirm.",
+    "footer": "WASD or arrows to move. Space or Enter to jump. X to confirm and act.",
     "languageButton": "EN"
   },
   "leaderboard": {
@@ -97,6 +103,16 @@
     "body3": "Unfortunately, while you were finishing the process, the company went bankrupt. Good luck with the next job hunt.",
     "continue": "Press X or click to continue"
   },
+  "rejectionEmail": {
+    "appTitle": "Inbox / Recruiting Team",
+    "from": "From: Corporate Recruiter <recruiting@juniorquest.dev>",
+    "to": "To: Candidate",
+    "subject": "Subject: Update on your application",
+    "body1": "Thank you for the valuable time you invested in our hiring process.",
+    "body2": "After a thorough review of your performance, we have decided to move forward with other candidates.",
+    "body3": "We saved your resume for future opportunities, although realistically we will not contact you if a suitable position opens. Best of luck in your search.",
+    "continue": "Press X or click to continue"
+  },
   "level1": {
     "targetMoved": "Target moved to {company}.",
     "allRecruitersGone": "All recruiters are done for today. Bring CV faster.",
@@ -132,18 +148,46 @@
     "mustBeGreater": "{value} must be greater than {min}.",
     "mustBeSmaller": "{value} must be smaller than {max}.",
     "obstacleHit": "Obstacle hit: carried leaf returned.",
+    "timeUp": "Time is up",
     "lock": "lock",
     "fullAccepted": "Full BST accepted.",
     "partialAccepted": "Valid partial BST accepted."
   },
   "level3": {
     "title": "Reverse Linked List Snake",
-    "subtitle": "Jump on the glowing node, press E, dodge fire and falling spikes.",
+    "subtitle": "Land on the glowing node and press E three times: save next, reverse, advance.",
     "fire": "FIRE",
     "spike": "SPIKE",
     "landOnNode": "LAND ON A NODE",
     "wrongNode": "WRONG NODE",
     "nextPrev": "next = prev",
+    "stepsTitle": "Reverse steps",
+    "stepsHint": "Press E on curr",
+    "stepsProgress": "{step}/3",
+    "stepsComplete": "node reversed",
+    "stepsReset": "lost the pointer",
+    "stepsNeedCurrent": "stand on curr",
+    "stepsNeedOrder": "finish the 3 steps",
+    "stepsSaveNext": "save next",
+    "stepsReversePointer": "current.next = prev",
+    "stepsAdvancePointers": "prev = current",
+    "stepsAdvancePointersFull": "prev = current; current = next",
+    "stepsFinalReturn": "return prev",
+    "stepsStep1": "1. save next",
+    "stepsStep2": "2. reverse link",
+    "stepsStep3": "3. advance",
+    "stepSaveNext": "save next",
+    "stepReversePointer": "current.next = prev",
+    "stepAdvancePointers": "advance prev/curr",
+    "pointerPrev": "prev",
+    "pointerPrevNull": "prev = null",
+    "pointerCurr": "curr",
+    "pointerNext": "next",
+    "pointerNextNull": "next = null",
+    "interviewerTaunt1": "Let's see how you handle pressure.",
+    "interviewerTaunt2": "In my generation, we did everything in O(1).",
+    "interviewerTaunt3": "Today, without AI, you can't program.",
+    "heartPickup": "+1 HEART",
     "ouch": "OUCH",
     "burn": "BURN"
   },
@@ -161,7 +205,11 @@
     "attackTaunt2": "I scored higher than you in college.",
     "attackTaunt3": "My GitHub has more stars.",
     "attackTaunt4": "I already know the hiring manager.",
-    "rivalFinished": "We moved forward with other candidates."
+    "rivalFinished": "We moved forward with other candidates.",
+    "jetpackLabel": "Connections",
+    "connections": "Connections",
+    "coffeePickup": "Java Coffee x{count}",
+    "javaHit": "Java Coffee"
   },
   "level5": {
     "hp": "HP {hp}",
@@ -181,7 +229,11 @@
     "goodLuck": "Good luck searching."
   },
   "gameOver": {
-    "title": "GAME OVER"
+    "title": "GAME OVER",
+    "blurb": "Save your score before returning to the job hunt.",
+    "saveScore": "Save Score",
+    "skipSave": "Don't Save",
+    "saved": "Score saved."
   },
   "victory": {
     "title": "Run Complete",
