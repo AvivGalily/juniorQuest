@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { AUDIO, BASE_LEVEL, DEPTH } from "../../config/physics";
 import { runState } from "../RunState";
 import { InputManager } from "../systems/InputManager";
+import { VirtualGamepad } from "../systems/VirtualGamepad";
 import { AudioManager } from "../systems/AudioManager";
 import { ComboSystem } from "../systems/ComboSystem";
 import { ScoreSystem } from "../systems/ScoreSystem";
@@ -30,6 +31,7 @@ export class BaseLevelScene extends Phaser.Scene {
     this.physics.world.isPaused = false;
     runState.currentLevel = stageNumber;
     runState.resetLevel();
+    VirtualGamepad.setLayout(stageNumber === 1 || stageNumber === 5 ? "topdown" : "platformer");
     this.inputManager = new InputManager(this);
     this.audio = new AudioManager(this);
     this.comboSystem = new ComboSystem();
@@ -44,6 +46,7 @@ export class BaseLevelScene extends Phaser.Scene {
   }
 
   protected handlePauseToggle(): void {
+    VirtualGamepad.updateState();
     if (!this.inputManager) {
       return;
     }

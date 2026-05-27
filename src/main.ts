@@ -1,6 +1,9 @@
 import "./style.css";
 import Phaser from "phaser";
 import { phaserConfig } from "./game/phaserConfig";
+import { OrientationOverlay } from "./game/systems/OrientationOverlay";
+
+OrientationOverlay.initialize();
 
 const game = new Phaser.Game(phaserConfig);
 

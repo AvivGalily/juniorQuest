@@ -849,7 +849,7 @@ export class Level5Scene extends BaseLevelScene {
     if (this.inputManager.justPressedJump()) {
       this.startJump();
     }
-    if (this.fightActive && this.inputManager.keys.X.isDown) {
+    if (this.fightActive && this.inputManager.isActionDown()) {
       this.shootBinaryProjectile();
     }
 

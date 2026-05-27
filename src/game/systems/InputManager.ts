@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { VirtualGamepad } from "./VirtualGamepad";
 
 export class InputManager {
   private scene: Phaser.Scene;
@@ -38,8 +39,9 @@ export class InputManager {
   }
 
   getMoveVector(): Phaser.Math.Vector2 {
-    const x = (this.keys.D.isDown || this.cursors.right.isDown ? 1 : 0) - (this.keys.A.isDown || this.cursors.left.isDown ? 1 : 0);
-    const y = (this.keys.S.isDown || this.cursors.down.isDown ? 1 : 0) - (this.keys.W.isDown || this.cursors.up.isDown ? 1 : 0);
+    const vg = VirtualGamepad.getInstance();
+    const x = (this.keys.D.isDown || this.cursors.right.isDown || vg.axisX > 0 ? 1 : 0) - (this.keys.A.isDown || this.cursors.left.isDown || vg.axisX < 0 ? 1 : 0);
+    const y = (this.keys.S.isDown || this.cursors.down.isDown || vg.axisY > 0 ? 1 : 0) - (this.keys.W.isDown || this.cursors.up.isDown || vg.axisY < 0 ? 1 : 0);
     const vec = new Phaser.Math.Vector2(x, y);
     if (vec.lengthSq() > 1) {
       vec.normalize();
@@ -48,43 +50,49 @@ export class InputManager {
   }
 
   getAxisX(): number {
-    return (this.keys.D.isDown || this.cursors.right.isDown ? 1 : 0) - (this.keys.A.isDown || this.cursors.left.isDown ? 1 : 0);
+    const vg = VirtualGamepad.getInstance();
+    return (this.keys.D.isDown || this.cursors.right.isDown || vg.axisX > 0 ? 1 : 0) - (this.keys.A.isDown || this.cursors.left.isDown || vg.axisX < 0 ? 1 : 0);
   }
 
   getAxisY(): number {
-    return (this.keys.S.isDown || this.cursors.down.isDown ? 1 : 0) - (this.keys.W.isDown || this.cursors.up.isDown ? 1 : 0);
+    const vg = VirtualGamepad.getInstance();
+    return (this.keys.S.isDown || this.cursors.down.isDown || vg.axisY > 0 ? 1 : 0) - (this.keys.W.isDown || this.cursors.up.isDown || vg.axisY < 0 ? 1 : 0);
+  }
+
+  isActionDown(): boolean {
+    return this.keys.X.isDown || VirtualGamepad.getInstance().isActionDown();
   }
 
   justPressedConfirm(): boolean {
     const pointer = this.scene.input.activePointer;
-    return Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || Phaser.Input.Keyboard.JustDown(this.keys.ENTER) || pointer.justDown;
+    return Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || Phaser.Input.Keyboard.JustDown(this.keys.ENTER) || pointer.justDown || VirtualGamepad.getInstance().justPressedJump() || VirtualGamepad.getInstance().justPressedAction();
   }
 
   justPressedInteract(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.keys.X);
+    return Phaser.Input.Keyboard.JustDown(this.keys.X) || VirtualGamepad.getInstance().justPressedAction();
   }
 
   isConfirmDown(): boolean {
-    return this.keys.SPACE.isDown || this.keys.ENTER.isDown || this.scene.input.activePointer.isDown;
+    return this.keys.SPACE.isDown || this.keys.ENTER.isDown || this.scene.input.activePointer.isDown || VirtualGamepad.getInstance().isJumpDown() || VirtualGamepad.getInstance().isActionDown();
   }
 
   justPressedPause(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.keys.ESC);
+    return Phaser.Input.Keyboard.JustDown(this.keys.ESC) || VirtualGamepad.getInstance().justPressedPause();
   }
 
   justPressedJump(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
+    return Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || VirtualGamepad.getInstance().justPressedJump();
   }
 
   justPressedAttack(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.keys.F);
+    return Phaser.Input.Keyboard.JustDown(this.keys.F) || VirtualGamepad.getInstance().justPressedAction();
   }
 
   justPressedPickup(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.keys.X);
+    return Phaser.Input.Keyboard.JustDown(this.keys.X) || VirtualGamepad.getInstance().justPressedAction();
   }
 
   justPressedShift(): boolean {
-    return Phaser.Input.Keyboard.JustDown(this.keys.SHIFT);
+    return Phaser.Input.Keyboard.JustDown(this.keys.SHIFT) || VirtualGamepad.getInstance().justPressedJump();
   }
 }

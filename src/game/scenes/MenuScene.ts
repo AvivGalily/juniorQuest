@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import { Difficulty, difficultyOrder } from "../../config/difficulty";
 import { AUDIO, MENU, RUN, STAGE } from "../../config/physics";
+import { VirtualGamepad } from "../systems/VirtualGamepad";
+import { isTouchDevice } from "../utils/isMobile";
 import { Level2IntroScene } from "./Level2IntroScene";
 import { runState } from "../RunState";
 import { AudioManager } from "../systems/AudioManager";
@@ -21,6 +23,7 @@ export class MenuScene extends Phaser.Scene {
   private difficultyPopup?: { objects: Phaser.GameObjects.GameObject[] };
   private selectedLevel = RUN.DEFAULT_LEVEL;
   private levelButtonLabel?: Phaser.GameObjects.DOMElement;
+  private inputLocked = false;
 
   constructor() {
     super("MenuScene");
@@ -28,19 +31,35 @@ export class MenuScene extends Phaser.Scene {
 
   init(data?: { selectedLevel?: number }): void {
     if (typeof data?.selectedLevel === "number") {
-      this.selectedLevel = Phaser.Math.Clamp(Math.round(data.selectedLevel), RUN.DEFAULT_LEVEL, RUN.TOTAL_LEVELS);
+      this.selectedLevel = Phaser.Math.Clamp(
+        Math.round(data.selectedLevel),
+        RUN.DEFAULT_LEVEL,
+        RUN.TOTAL_LEVELS
+      );
     }
   }
 
   create(): void {
+    this.inputLocked = false;
+
     this.audio = new AudioManager(this);
     this.audio.playMusic("music-menu", AUDIO.MUSIC.MENU);
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.closeDifficultyPopup();
       this.audio.stopMusic("music-menu");
     });
 
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, MENU.BG_COLOR);
+    this.add.rectangle(
+      this.scale.width / 2,
+      this.scale.height / 2,
+      this.scale.width,
+      this.scale.height,
+      MENU.BG_COLOR
+    );
+
+    VirtualGamepad.hide();
+
     createTranslatedText(this, scaleX(MENU.TITLE_X), scaleY(MENU.TITLE_Y), "menu.title", {
       maxWidth: MENU.TITLE_MAX_WIDTH,
       fontSize: MENU.TITLE_FONT_SIZE,
@@ -53,15 +72,21 @@ export class MenuScene extends Phaser.Scene {
       color: "#9aa7b1"
     });
 
-    this.createButton(scaleX(MENU.TITLE_X), scaleY(150), t("menu.startGame"), true, () => {
-      this.startGame();
-    });
+    this.createButton(
+      scaleX(MENU.TITLE_X),
+      scaleY(150),
+      t("menu.startGame"),
+      true,
+      () => this.startGame(),
+      true
+    );
 
     createTranslatedText(this, scaleX(MENU.TITLE_X), scaleY(190), "menu.selectLevel", {
       maxWidth: MENU.BUTTON_MAX_WIDTH,
       fontSize: MENU.FOOTER_FONT_SIZE,
       color: "#9aa7b1"
     });
+
     const levelButton = this.createButton(
       scaleX(MENU.TITLE_X),
       scaleY(214),
@@ -69,9 +94,17 @@ export class MenuScene extends Phaser.Scene {
       true,
       () => this.cycleSelectedLevel()
     );
+
     this.levelButtonLabel = levelButton.text;
 
-    this.createButton(scaleX(MENU.TITLE_X), scaleY(252), t("menu.difficulty"), true, () => this.showDifficultyPopup());
+    this.createButton(
+      scaleX(MENU.TITLE_X),
+      scaleY(252),
+      t("menu.difficulty"),
+      true,
+      () => this.showDifficultyPopup()
+    );
+
     this.createButton(
       scaleX(MENU.TITLE_X),
       scaleY(288),
@@ -79,7 +112,14 @@ export class MenuScene extends Phaser.Scene {
       true,
       () => this.scene.start("LeaderboardScene")
     );
-    this.createButton(scaleX(MENU.TITLE_X), scaleY(324), t("menu.about"), true, () => this.scene.start("AboutScene"));
+
+    this.createButton(
+      scaleX(MENU.TITLE_X),
+      scaleY(324),
+      t("menu.about"),
+      true,
+      () => this.scene.start("AboutScene")
+    );
 
     createTranslatedText(this, scaleX(MENU.TITLE_X), scaleY(MENU.FOOTER_Y), "menu.footer", {
       maxWidth: MENU.FOOTER_MAX_WIDTH,
@@ -90,25 +130,52 @@ export class MenuScene extends Phaser.Scene {
 
     this.createLanguageButton();
 
+    if (isTouchDevice()) {
+      this.createFullscreenButton();
+      this.setupAutoFullscreen();
+    }
+
     this.input.keyboard.on("keydown-ENTER", () => {
       if (!this.difficultyPopup) {
         this.startGame();
       }
     });
+
     this.input.keyboard.on("keydown-SPACE", () => {
       if (!this.difficultyPopup) {
         this.startGame();
       }
     });
+
     this.input.keyboard.on("keydown-ESC", () => this.closeDifficultyPopup());
   }
 
+  private runWithLock(action: () => void): void {
+    if (this.inputLocked) return;
+
+    this.inputLocked = true;
+
+    this.time.delayedCall(500, () => {
+      this.inputLocked = false;
+    });
+
+    action();
+  }
+
   private startGame(): void {
+    if (!document.fullscreenElement && isTouchDevice()) {
+      document.documentElement.requestFullscreen().catch(() => { });
+    }
+
     (document.activeElement as HTMLElement | null)?.blur();
+
     this.audio.playSfx("sfx-confirm", AUDIO.SFX.CONFIRM);
     this.audio.stopMusic("music-menu");
+
     runState.resetRun();
+
     const level = Math.min(Math.max(this.selectedLevel, RUN.DEFAULT_LEVEL), RUN.TOTAL_LEVELS);
+
     this.scene.start(this.getLevelStartScene(level));
   }
 
@@ -116,27 +183,34 @@ export class MenuScene extends Phaser.Scene {
     if (level === STAGE.LEVEL1) {
       return "Level1IntroScene";
     }
+
     if (level === STAGE.LEVEL2) {
       if (!this.scene.get("Level2IntroScene")) {
         this.scene.add("Level2IntroScene", Level2IntroScene, false);
       }
+
       return "Level2IntroScene";
     }
+
     if (level === STAGE.LEVEL3) {
       return "Level3IntroScene";
     }
+
     if (level === STAGE.LEVEL4) {
       return "Level4IntroScene";
     }
+
     if (level === STAGE.LEVEL5) {
       return "Level5IntroScene";
     }
+
     return `Level${level}Scene`;
   }
 
   private cycleSelectedLevel(): void {
     const next = this.selectedLevel + 1;
     this.selectedLevel = next > RUN.TOTAL_LEVELS ? RUN.DEFAULT_LEVEL : next;
+
     if (this.levelButtonLabel) {
       setDomText(this.levelButtonLabel, this.getLevelButtonLabel());
     }
@@ -151,7 +225,11 @@ export class MenuScene extends Phaser.Scene {
     const y = scaleY(42);
     const locale = getLocale();
     const flagKey = locale === "he" ? "flag-israel" : "flag-england";
-    const hit = this.add.rectangle(x, y, scaleX(112), scaleY(34), 0x1f2937, 0.9).setInteractive({ useHandCursor: true });
+
+    const hit = this.add
+      .rectangle(x, y, scaleX(112), scaleY(34), 0x1f2937, 0.9)
+      .setInteractive({ useHandCursor: true });
+
     hit.setStrokeStyle(scaleX(1), 0x38bdf8, 0.75);
 
     this.add.image(x - scaleX(28), y, flagKey).setDisplaySize(scaleX(30), scaleY(20));
@@ -165,15 +243,56 @@ export class MenuScene extends Phaser.Scene {
     });
 
     hit.on("pointerdown", () => {
-      this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT);
-      toggleLocale();
-      this.scene.restart({ selectedLevel: this.selectedLevel });
+      this.runWithLock(() => {
+        this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT);
+        toggleLocale();
+        this.scene.restart({ selectedLevel: this.selectedLevel });
+      });
     });
+  }
+
+  private createFullscreenButton(): void {
+    const x = scaleX(80);
+    const y = scaleY(42);
+
+    const hit = this.add
+      .rectangle(x, y, scaleX(50), scaleY(34), 0x1f2937, 0.9)
+      .setInteractive({ useHandCursor: true });
+
+    hit.setStrokeStyle(scaleX(1), 0x38bdf8, 0.75);
+
+    this.add.text(x, y, "⛶", {
+      fontSize: "24px",
+      color: "#e8eef2"
+    }).setOrigin(0.5);
+
+    hit.on("pointerdown", () => {
+      this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT);
+
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => { });
+      } else {
+        document.exitFullscreen().catch(() => { });
+      }
+    });
+  }
+
+  private setupAutoFullscreen(): void {
+    const trigger = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => { });
+      }
+
+      document.removeEventListener("touchstart", trigger);
+    };
+
+    document.addEventListener("touchstart", trigger, { passive: true });
   }
 
   private showDifficultyPopup(): void {
     this.closeDifficultyPopup();
     this.setMenuDomVisibility(false);
+
     const objects: Phaser.GameObjects.GameObject[] = [];
     const depth = 10000;
     const centerX = this.scale.width / 2;
@@ -183,7 +302,11 @@ export class MenuScene extends Phaser.Scene {
       .rectangle(centerX, centerY, this.scale.width, this.scale.height, 0x07111c, 1)
       .setInteractive({ useHandCursor: false })
       .setDepth(depth);
-    overlay.on("pointerdown", () => this.closeDifficultyPopup());
+
+    overlay.on("pointerdown", () => {
+      this.closeDifficultyPopup();
+    });
+
     objects.push(overlay);
 
     objects.push(
@@ -200,39 +323,55 @@ export class MenuScene extends Phaser.Scene {
       college: "menu.difficultyCollege",
       bootcamp: "menu.difficultyBootcamp"
     };
+
     const rowY = [scaleY(112), scaleY(202), scaleY(292)];
 
     difficultyOrder.forEach((difficulty, index) => {
       const selected = runState.difficulty === difficulty;
       const y = rowY[index];
+
       const row = this.add
         .rectangle(centerX, y, scaleX(460), scaleY(76), selected ? 0x1e3a5f : 0x111827, 0.98)
         .setStrokeStyle(scale(2), selected ? 0x8fe388 : 0x475569, selected ? 0.95 : 0.72)
         .setInteractive({ useHandCursor: true })
         .setDepth(depth + 2);
+
       row.on("pointerover", () => row.setFillStyle(0x1f2937, 0.98));
-      row.on("pointerout", () => row.setFillStyle(selected ? 0x1e3a5f : 0x111827, 0.94));
+
+      row.on("pointerout", () => {
+        row.setFillStyle(selected ? 0x1e3a5f : 0x111827, 0.94);
+      });
+
       row.on("pointerdown", () => {
         runState.setDifficulty(difficulty);
         this.audio.playSfx("sfx-confirm", AUDIO.SFX.CONFIRM);
         this.closeDifficultyPopup();
       });
+
       objects.push(row);
 
       const icon = this.add
         .image(centerX - scaleX(170), y, `difficulty-${difficulty}`)
         .setDisplaySize(scaleX(64), scaleY(64))
         .setDepth(depth + 3);
+
       objects.push(icon);
+
       objects.push(
-        createTranslatedText(this, centerX - scaleX(120), y - (selected ? scaleY(6) : 0), labels[difficulty], {
-          maxWidth: 230,
-          fontSize: 15,
-          color: "#e8eef2",
-          align: "left",
-          originX: 0,
-          weight: 800
-        }).setDepth(depth + 3)
+        createTranslatedText(
+          this,
+          centerX - scaleX(120),
+          y - (selected ? scaleY(6) : 0),
+          labels[difficulty],
+          {
+            maxWidth: 230,
+            fontSize: 15,
+            color: "#e8eef2",
+            align: "left",
+            originX: 0,
+            weight: 800
+          }
+        ).setDepth(depth + 3)
       );
 
       if (selected) {
@@ -267,11 +406,14 @@ export class MenuScene extends Phaser.Scene {
     y: number,
     label: string,
     enabled: boolean,
-    onClick: () => void
+    onClick: () => void,
+    useLock = false
   ): { button: Phaser.GameObjects.Image; text: Phaser.GameObjects.DOMElement } {
-    const btn = this.add.image(x, y, "button").setInteractive();
+    const btn = this.add.image(x, y, "button").setInteractive({ useHandCursor: true });
+
     btn.setScale(getUiScale());
     btn.setAlpha(enabled ? MENU.BUTTON_ALPHA_ENABLED : MENU.BUTTON_ALPHA_DISABLED);
+
     const text = createDialogText(this, x, y, label, {
       maxWidth: MENU.BUTTON_MAX_WIDTH,
       fontSize: MENU.BUTTON_FONT_SIZE,
@@ -283,62 +425,76 @@ export class MenuScene extends Phaser.Scene {
         btn.setTint(MENU.BUTTON_HOVER_TINT);
       }
     });
-    btn.on("pointerout", () => btn.clearTint());
+
+    btn.on("pointerout", () => {
+      btn.clearTint();
+    });
 
     btn.on("pointerdown", () => {
-      this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT);
-      onClick();
+      if (!enabled) return;
+
+      const action = () => {
+        this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT);
+        onClick();
+      };
+
+      if (useLock) {
+        this.runWithLock(action);
+        return;
+      }
+
+      action();
     });
 
     return { button: btn, text };
   }
 
-private showModal(messageKey: string): void {
-  if (this.modal) {
-    this.modal.bg?.destroy();
-    this.modal.panel.destroy();
-    this.modal.text.destroy();
-    this.modal = undefined;
-  }
-
-  const x = this.scale.width / 2;
-  const y = this.scale.height / 2;
-  const depth = 9999;
-
-const bg = this.add.rectangle(
-  x,
-  y,
-  this.scale.width,
-  220,
-  0xffffff,
-  1
-);
-
-  bg.setDepth(depth);
-
-  const panel = this.add.image(x, y, "speech_bubble");
-  panel.setScale(getUiScale());
-  panel.setAlpha(1);
-  panel.setDepth(depth + 1);
-
-  const text = createTranslatedText(this, x, y, messageKey, {
-    maxWidth: MENU.MODAL_MAX_WIDTH,
-    fontSize: MENU.MODAL_FONT_SIZE,
-    color: "#1b1f24",
-    padding: `${MENU.MODAL_PADDING_Y}px ${MENU.MODAL_PADDING_X}px`
-  });
-
-  text.setDepth(depth + 2);
-
-  this.modal = { bg, panel, text };
-
-  this.time.delayedCall(MENU.MODAL_DURATION_MS, () => {
+  private showModal(messageKey: string): void {
     if (this.modal) {
       this.modal.bg?.destroy();
       this.modal.panel.destroy();
       this.modal.text.destroy();
       this.modal = undefined;
     }
-  });
-}
+
+    const x = this.scale.width / 2;
+    const y = this.scale.height / 2;
+    const depth = 9999;
+
+    const bg = this.add.rectangle(
+      x,
+      y,
+      this.scale.width,
+      220,
+      0xffffff,
+      1
+    );
+
+    bg.setDepth(depth);
+
+    const panel = this.add.image(x, y, "speech_bubble");
+    panel.setScale(getUiScale());
+    panel.setAlpha(1);
+    panel.setDepth(depth + 1);
+
+    const text = createTranslatedText(this, x, y, messageKey, {
+      maxWidth: MENU.MODAL_MAX_WIDTH,
+      fontSize: MENU.MODAL_FONT_SIZE,
+      color: "#1b1f24",
+      padding: `${MENU.MODAL_PADDING_Y}px ${MENU.MODAL_PADDING_X}px`
+    });
+
+    text.setDepth(depth + 2);
+
+    this.modal = { bg, panel, text };
+
+    this.time.delayedCall(MENU.MODAL_DURATION_MS, () => {
+      if (this.modal) {
+        this.modal.bg?.destroy();
+        this.modal.panel.destroy();
+        this.modal.text.destroy();
+        this.modal = undefined;
+      }
+    });
+  }
 }
