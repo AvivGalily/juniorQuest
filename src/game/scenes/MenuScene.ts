@@ -164,7 +164,7 @@ export class MenuScene extends Phaser.Scene {
 
   private startGame(): void {
     if (!document.fullscreenElement && isTouchDevice()) {
-      document.documentElement.requestFullscreen().catch(() => { });
+      document.documentElement.requestFullscreen?.().catch(() => { });
     }
 
     (document.activeElement as HTMLElement | null)?.blur();
@@ -270,9 +270,15 @@ export class MenuScene extends Phaser.Scene {
       this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT);
 
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => { });
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => { });
+        } else {
+          this.showModal("menu.fullscreenNotSupported");
+        }
       } else {
-        document.exitFullscreen().catch(() => { });
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => { });
+        }
       }
     });
   }
@@ -280,7 +286,7 @@ export class MenuScene extends Phaser.Scene {
   private setupAutoFullscreen(): void {
     const trigger = () => {
       if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => { });
+        document.documentElement.requestFullscreen?.().catch(() => { });
       }
 
       document.removeEventListener("touchstart", trigger);

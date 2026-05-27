@@ -114,6 +114,16 @@ export class Level5Scene extends BaseLevelScene {
 
   create(): void {
     this.initLevel(STAGE.LEVEL5);
+
+    if (runState.difficulty === "university") {
+      runState.hearts = 5;
+    } else if (runState.difficulty === "college") {
+      runState.hearts = 4;
+    } else if (runState.difficulty === "bootcamp") {
+      runState.hearts = 3;
+    }
+    this.hud.updateAll();
+
     this.resetRuntimeState();
     this.audio.playMusic("music-level5-intense", AUDIO.MUSIC.BOSS_INTENSE);
     this.physics.world.gravity.y = LEVEL5.WORLD_GRAVITY_Y;

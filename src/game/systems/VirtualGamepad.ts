@@ -1,4 +1,5 @@
 import { isTouchDevice } from "../utils/isMobile";
+import { t } from "../i18n/i18n";
 
 export type VirtualGamepadLayout = "none" | "topdown" | "platformer";
 
@@ -230,9 +231,15 @@ export class VirtualGamepad {
 
   private toggleFullscreen(): void {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        alert(t("menu.fullscreenNotSupported"));
+      }
     } else {
-      document.exitFullscreen().catch(() => {});
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
     }
   }
 

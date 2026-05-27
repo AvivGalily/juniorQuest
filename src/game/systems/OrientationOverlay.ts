@@ -10,12 +10,24 @@ export class OrientationOverlay {
     }
   }
 
+  private resizeTimeout?: number;
+
   private constructor() {
     if (!isTouchDevice()) return;
     this.createDomElement();
     this.checkOrientation();
-    window.addEventListener("resize", this.checkOrientation.bind(this));
-    window.addEventListener("orientationchange", this.checkOrientation.bind(this));
+
+    const handleResize = () => {
+      if (this.resizeTimeout) {
+        window.clearTimeout(this.resizeTimeout);
+      }
+      this.resizeTimeout = window.setTimeout(() => {
+        this.checkOrientation();
+      }, 250);
+    };
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
     this.tryLockOrientation();
   }
 

@@ -101,7 +101,14 @@ export class Recruiter extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  private scaleMultiplier = 1;
+
+  setScaleMultiplier(mult: number): void {
+    this.scaleMultiplier = mult;
+    this.applyDisplaySize();
+  }
+
   private applyDisplaySize(): void {
-    scaleSpriteToHeight(this, this.targetHeight);
+    scaleSpriteToHeight(this, this.targetHeight * this.scaleMultiplier);
   }
 }
