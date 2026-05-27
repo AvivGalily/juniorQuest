@@ -91,14 +91,14 @@ export class GameOverScene extends Phaser.Scene {
       color: "#e8eef2"
     });
 
-    const submitScore = (): void => {
+    const submitScore = async (): Promise<void> => {
       if (this.submitted) {
         return;
       }
       this.submitted = true;
       const name = inputNode.value.trim() || t("victory.defaultName");
       inputNode.disabled = true;
-      addLeaderboardEntry(name, runState.runScore);
+      await addLeaderboardEntry(name, runState.runScore);
       this.submitStatusText?.destroy();
       this.submitStatusText = createTranslatedText(this, scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.LEADERBOARD_Y), "gameOver.saved", {
         maxWidth: GAME_OVER.SCORE_MAX_WIDTH,
@@ -108,8 +108,8 @@ export class GameOverScene extends Phaser.Scene {
       });
       this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS);
     };
-    submitBtn.on("pointerdown", submitScore);
-    this.input.keyboard?.on("keydown-ENTER", submitScore);
+    submitBtn.on("pointerdown", () => void submitScore());
+    this.input.keyboard?.on("keydown-ENTER", () => void submitScore());
 
     const skipBtn = this.add.image(scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.SKIP_Y), "button").setInteractive();
     skipBtn.setScale(uiScale);

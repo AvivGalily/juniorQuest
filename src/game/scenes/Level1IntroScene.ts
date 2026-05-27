@@ -29,11 +29,11 @@ export class Level1IntroScene extends Phaser.Scene {
   private createEmailCard(): void {
     const recruiterSrc = new URL("../img/recruiter-linkedin-avatar.png", import.meta.url).href;
     const cardW = Math.round(scaleX(548));
-    const cardH = Math.round(scaleY(318));
+    const cardH = Math.round(scaleY(342));
     const headerH = Math.round(scaleY(42));
     const pad = Math.round(scaleX(24));
     const smallFont = Math.round(scaleY(10));
-    const bodyFont = Math.round(scaleY(10.2));
+    const bodyFont = Math.round(scaleY(9.1));
     const subjectFont = Math.round(scaleY(12.4));
     const ctaFont = Math.round(scaleY(12));
     const direction = getDirection();
@@ -128,14 +128,21 @@ export class Level1IntroScene extends Phaser.Scene {
             min-height:0;
             overflow:hidden;
             font-size:${bodyFont}px;
-            line-height:1.22;
+            line-height:1.16;
             color:#1e293b;
             font-weight:700;
             text-align:${textAlign};
           ">
-            <p style="margin:0 0 ${Math.round(scaleY(8))}px 0;">${escapeHtml(t("level1Intro.greeting"))}</p>
-            <p style="margin:0 0 ${Math.round(scaleY(8))}px 0;">${escapeHtml(t("level1Intro.body1"))}</p>
-            <p style="margin:0;">${escapeHtml(t("level1Intro.body2"))}</p>
+            <p style="margin:0 0 ${Math.round(scaleY(5))}px 0;">${escapeHtml(t("level1Intro.greeting"))}</p>
+            <p style="margin:0 0 ${Math.round(scaleY(5))}px 0;">${escapeHtml(t("level1Intro.body1"))}</p>
+            <p style="margin:0 0 ${Math.round(scaleY(6))}px 0;">${escapeHtml(t("level1Intro.body2"))}</p>
+            <div style="
+              margin-top:${Math.round(scaleY(5))}px;
+              padding-top:${Math.round(scaleY(5))}px;
+              border-top:2px solid #cbd5e1;
+              color:#0f172a;
+              font-weight:800;
+            ">${escapeHtml(t("level1Intro.instructions"))}</div>
           </div>
           <div style="
             height:${Math.round(scaleY(30))}px;

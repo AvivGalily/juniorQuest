@@ -867,7 +867,7 @@ export class Level2Scene extends BaseLevelScene {
     if (this.levelCompleted) {
       return;
     }
-    if (this.placedCount <= 0) {
+    if (this.placedCount < LEVEL2.MIN_SUBMIT_PLACEMENTS) {
       this.showFeedback(t("level2.placeOne"), "#facc15");
       return;
     }

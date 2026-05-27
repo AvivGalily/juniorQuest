@@ -29,11 +29,11 @@ export class Level2IntroScene extends Phaser.Scene {
   private createEmailCard(): void {
     const interviewerSrc = new URL("../img/technical-interviewer-avatar.png", import.meta.url).href;
     const cardW = Math.round(scaleX(548));
-    const cardH = Math.round(scaleY(318));
+    const cardH = Math.round(scaleY(342));
     const headerH = Math.round(scaleY(42));
     const pad = Math.round(scaleX(24));
     const smallFont = Math.round(scaleY(10));
-    const bodyFont = Math.round(scaleY(9.6));
+    const bodyFont = Math.round(scaleY(8.4));
     const subjectFont = Math.round(scaleY(12.2));
     const ctaFont = Math.round(scaleY(12));
     const direction = getDirection();
@@ -128,15 +128,22 @@ export class Level2IntroScene extends Phaser.Scene {
             min-height:0;
             overflow:hidden;
             font-size:${bodyFont}px;
-            line-height:1.2;
+            line-height:1.12;
             color:#1e293b;
             font-weight:700;
             text-align:${textAlign};
           ">
-            <p style="margin:0 0 ${Math.round(scaleY(7))}px 0;">${escapeHtml(t("level2Intro.greeting"))}</p>
-            <p style="margin:0 0 ${Math.round(scaleY(7))}px 0;">${escapeHtml(t("level2Intro.body1"))}</p>
-            <p style="margin:0 0 ${Math.round(scaleY(7))}px 0;">${escapeHtml(t("level2Intro.body2"))}</p>
-            <p style="margin:0;">${escapeHtml(t("level2Intro.body3"))}</p>
+            <p style="margin:0 0 ${Math.round(scaleY(4))}px 0;">${escapeHtml(t("level2Intro.greeting"))}</p>
+            <p style="margin:0 0 ${Math.round(scaleY(4))}px 0;">${escapeHtml(t("level2Intro.body1"))}</p>
+            <p style="margin:0 0 ${Math.round(scaleY(4))}px 0;">${escapeHtml(t("level2Intro.body2"))}</p>
+            <p style="margin:0 0 ${Math.round(scaleY(5))}px 0;">${escapeHtml(t("level2Intro.body3"))}</p>
+            <div style="
+              margin-top:${Math.round(scaleY(4))}px;
+              padding-top:${Math.round(scaleY(4))}px;
+              border-top:2px solid #cbd5e1;
+              color:#0f172a;
+              font-weight:800;
+            ">${escapeHtml(t("level2Intro.instructions"))}</div>
           </div>
           <div style="
             height:${Math.round(scaleY(30))}px;

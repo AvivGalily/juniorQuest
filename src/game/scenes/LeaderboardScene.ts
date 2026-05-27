@@ -28,13 +28,13 @@ export class LeaderboardScene extends Phaser.Scene {
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.5);
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x0f172a, 0.18);
 
-    this.createLeaderboardPanel();
+    void this.createLeaderboardPanel();
     this.createBackButton();
     this.input.keyboard.on("keydown-ESC", () => this.returnToMenu());
   }
 
-  private createLeaderboardPanel(): void {
-    const entries = loadLeaderboard().entries;
+  private async createLeaderboardPanel(): Promise<void> {
+    const entries = (await loadLeaderboard()).entries;
     const direction = getDirection();
     const align = direction === "rtl" ? "right" : "left";
     const panelW = Math.round(scaleX(540));

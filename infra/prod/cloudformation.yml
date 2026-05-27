@@ -1,0 +1,305 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Minimal production hosting for Junior Quest with private S3 and CloudFront OAC."
+
+Parameters:
+  ProjectSlug:
+    Type: String
+    Default: juniorquest
+    AllowedPattern: "^[a-z0-9][a-z0-9-]{1,40}[a-z0-9]$"
+    Description: "Lowercase project slug used for resource names."
+
+Resources:
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      BucketName: !Sub "${ProjectSlug}-${AWS::AccountId}-${AWS::Region}-prod"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  SiteOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-s3-oac"
+        Description: !Sub "OAC for ${AWS::StackName} private S3 origin"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  SiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub "${AWS::StackName} Junior Quest production"
+        Enabled: true
+        HttpVersion: http2
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Origins:
+          - Id: SiteBucketOrigin
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SiteOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: SiteBucketOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowOnlyThisCloudFrontDistribution
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${SiteBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${SiteDistribution}"
+
+  LeaderboardFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LeaderboardS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub "${SiteBucket.Arn}/leaderboard/leaderboard.json"
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !GetAtt SiteBucket.Arn
+                Condition:
+                  StringLike:
+                    s3:prefix: "leaderboard/leaderboard.json"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-leaderboard:*"
+
+  LeaderboardFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-leaderboard"
+      RetentionInDays: 14
+
+  LeaderboardFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-leaderboard"
+      Description: "Minimal leaderboard API backed by the private S3 bucket."
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt LeaderboardFunctionRole.Arn
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref SiteBucket
+          OBJECT_KEY: "leaderboard/leaderboard.json"
+          MAX_ENTRIES: "100"
+          NAME_MAX_LEN: "12"
+      Code:
+        ZipFile: |
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          import boto3
+          from botocore.exceptions import ClientError
+
+          s3 = boto3.client("s3")
+          bucket_name = os.environ["BUCKET_NAME"]
+          object_key = os.environ["OBJECT_KEY"]
+          max_entries = int(os.environ.get("MAX_ENTRIES", "100"))
+          name_max_len = int(os.environ.get("NAME_MAX_LEN", "12"))
+
+          cors_headers = {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Headers": "content-type",
+              "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+          }
+
+          def response(status_code, body):
+              return {
+                  "statusCode": status_code,
+                  "headers": cors_headers,
+                  "body": json.dumps(body, separators=(",", ":")),
+              }
+
+          def normalize_entries(entries):
+              if not isinstance(entries, list):
+                  return []
+
+              normalized = []
+              for entry in entries:
+                  if not isinstance(entry, dict):
+                      continue
+                  name = str(entry.get("name") or "ANON").strip()[:name_max_len] or "ANON"
+                  try:
+                      score = round(float(entry.get("score", 0)))
+                  except (TypeError, ValueError):
+                      score = 0
+                  date_iso = entry.get("dateISO")
+                  if not isinstance(date_iso, str):
+                      date_iso = "1970-01-01T00:00:00.000Z"
+                  normalized.append({"name": name, "score": score, "dateISO": date_iso})
+
+              normalized.sort(key=lambda item: item["score"], reverse=True)
+              return normalized[:max_entries]
+
+          def load_entries():
+              try:
+                  obj = s3.get_object(Bucket=bucket_name, Key=object_key)
+                  data = json.loads(obj["Body"].read().decode("utf-8"))
+                  return normalize_entries(data.get("entries"))
+              except ClientError as error:
+                  code = error.response.get("Error", {}).get("Code")
+                  if code in ("NoSuchKey", "NoSuchBucket", "404"):
+                      return []
+                  raise
+              except (json.JSONDecodeError, UnicodeDecodeError):
+                  return []
+
+          def save_entries(entries):
+              s3.put_object(
+                  Bucket=bucket_name,
+                  Key=object_key,
+                  Body=json.dumps({"entries": normalize_entries(entries)}, separators=(",", ":")).encode("utf-8"),
+                  ContentType="application/json",
+                  CacheControl="no-store",
+              )
+
+          def handler(event, context):
+              method = event.get("requestContext", {}).get("http", {}).get("method", "GET")
+
+              if method == "OPTIONS":
+                  return response(204, {})
+
+              if method == "GET":
+                  return response(200, {"entries": load_entries()})
+
+              if method != "POST":
+                  return response(405, {"message": "Method not allowed"})
+
+              try:
+                  payload = json.loads(event.get("body") or "{}")
+              except json.JSONDecodeError:
+                  return response(400, {"message": "Invalid JSON"})
+
+              name = str(payload.get("name") or "ANON").strip()[:name_max_len] or "ANON"
+              try:
+                  score = round(float(payload.get("score", 0)))
+              except (TypeError, ValueError):
+                  return response(400, {"message": "Invalid score"})
+
+              entry = {
+                  "name": name,
+                  "score": score,
+                  "dateISO": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+              }
+              entries = load_entries()
+              entries.append(entry)
+              entries = normalize_entries(entries)
+              save_entries(entries)
+              return response(200, {"entries": entries})
+    DependsOn:
+      - LeaderboardFunctionLogGroup
+
+  LeaderboardFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: NONE
+      TargetFunctionArn: !GetAtt LeaderboardFunction.Arn
+      Cors:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - content-type
+        AllowMethods:
+          - GET
+          - POST
+        MaxAge: 300
+
+  LeaderboardFunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref LeaderboardFunction
+      Principal: "*"
+      FunctionUrlAuthType: NONE
+
+  LeaderboardFunctionPublicInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LeaderboardFunction
+      Principal: "*"
+      InvokedViaFunctionUrl: true
+
+Outputs:
+  StackName:
+    Description: "CloudFormation stack name."
+    Value: !Ref AWS::StackName
+  BucketName:
+    Description: "Private S3 bucket used as the CloudFront origin."
+    Value: !Ref SiteBucket
+  DistributionId:
+    Description: "CloudFront distribution ID."
+    Value: !Ref SiteDistribution
+  CloudFrontURL:
+    Description: "Production CloudFront URL."
+    Value: !Sub "https://${SiteDistribution.DomainName}"
+  LeaderboardApiUrl:
+    Description: "Public HTTPS endpoint used by the browser to read and submit leaderboard scores."
+    Value: !GetAtt LeaderboardFunctionUrl.FunctionUrl

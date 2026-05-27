@@ -79,7 +79,7 @@ export class MenuScene extends Phaser.Scene {
       true,
       () => this.scene.start("LeaderboardScene")
     );
-    this.createButton(scaleX(MENU.TITLE_X), scaleY(324), t("menu.about"), false, () => this.showModal("menu.comingSoon"));
+    this.createButton(scaleX(MENU.TITLE_X), scaleY(324), t("menu.about"), true, () => this.scene.start("AboutScene"));
 
     createTranslatedText(this, scaleX(MENU.TITLE_X), scaleY(MENU.FOOTER_Y), "menu.footer", {
       maxWidth: MENU.FOOTER_MAX_WIDTH,

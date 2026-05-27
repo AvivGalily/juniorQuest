@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:prod": "node scripts/deploy-prod.mjs",
+    "invalidate:prod": "node scripts/deploy-prod.mjs --invalidate-only"
   },
   "dependencies": {
     "phaser": "^3.70.0"

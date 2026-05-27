@@ -3,76 +3,101 @@ import { AUDIO_TONES, NPCS, PRELOAD, TEXTURES } from "../../config/physics";
 import { createTranslatedText } from "../utils/domText";
 import { BASE_HEIGHT, BASE_WIDTH } from "../utils/resolution";
 
+const assetModules = import.meta.glob<string>(
+  [
+    "../img/*.png",
+    "!../img/HR*.png",
+    "!../img/guard*.png",
+    "!../img/gurad*.png",
+    "!../img/level4-*.png",
+    "!../img/level5-*.png",
+    "!../img/linked-list-interviewer-avatar.png",
+    "!../img/panicked-senior-engineer-avatar.png",
+    "!../img/recruiter-linkedin-avatar.png",
+    "!../img/technical-interviewer-avatar.png",
+    "!../img/tresh-*.png",
+    "../entities/guard/img/*.png",
+    "../entities/recruiter/img/*.png"
+  ],
+  { eager: true, query: "?url", import: "default" }
+);
+
+const assetUrl = (path: string): string => {
+  const url = assetModules[path];
+  if (!url) {
+    throw new Error(`Missing bundled asset: ${path}`);
+  }
+  return url;
+};
+
 export class PreloadScene extends Phaser.Scene {
   constructor() {
     super("PreloadScene");
   }
 
   preload(): void {
-    const envBase = "../img/";
-    const playerBase = envBase;
-    this.load.image("player-walk-slow-left", new URL(`${playerBase}player-walk-slow-left.png`, import.meta.url).href);
-    this.load.image("player-walk-fast-left", new URL(`${playerBase}player-walk-fast-left.png`, import.meta.url).href);
-    this.load.image("player-walk-slow-right", new URL(`${playerBase}player-walk-slow-right.png`, import.meta.url).href);
-    this.load.image("player-walk-fast-right", new URL(`${playerBase}player-walk-fast-right.png`, import.meta.url).href);
-    this.load.image("player-walk-front", new URL(`${playerBase}player-walk-front.png`, import.meta.url).href);
-    this.load.image("player-walk-back", new URL(`${playerBase}player-walk-back.png`, import.meta.url).href);
-    this.load.image("player-cv-walk-front", new URL(`${playerBase}player-cv-walk-front.png`, import.meta.url).href);
-    this.load.image("player-cv-walk-back", new URL(`${playerBase}player-cv-walk-back.png`, import.meta.url).href);
-    this.load.image("player-cv-walk-slow-left", new URL(`${playerBase}player-cv-walk-slow-left.png`, import.meta.url).href);
-    this.load.image("player-cv-walk-fast-left", new URL(`${playerBase}player-cv-walk-fast-left.png`, import.meta.url).href);
-    this.load.image("player-cv-walk-slow-right", new URL(`${playerBase}player-cv-walk-slow-right.png`, import.meta.url).href);
-    this.load.image("player-cv-walk-fast-right", new URL(`${playerBase}player-cv-walk-fast-right.png`, import.meta.url).href);
-    this.load.image("player-carry-left", new URL(`${playerBase}Player-carry-left.png`, import.meta.url).href);
-    this.load.image("difficulty-university", new URL(`${playerBase}difficulty-university.png`, import.meta.url).href);
-    this.load.image("difficulty-college", new URL(`${playerBase}difficulty-college.png`, import.meta.url).href);
-    this.load.image("difficulty-bootcamp", new URL(`${playerBase}difficulty-bootcamp.png`, import.meta.url).href);
-    this.load.image("flag-israel", new URL(`${playerBase}flag-israel.png`, import.meta.url).href);
-    this.load.image("flag-england", new URL(`${playerBase}flag-england.png`, import.meta.url).href);
+    this.load.image("player-walk-slow-left", assetUrl("../img/player-walk-slow-left.png"));
+    this.load.image("player-walk-fast-left", assetUrl("../img/player-walk-fast-left.png"));
+    this.load.image("player-walk-slow-right", assetUrl("../img/player-walk-slow-right.png"));
+    this.load.image("player-walk-fast-right", assetUrl("../img/player-walk-fast-right.png"));
+    this.load.image("player-walk-front", assetUrl("../img/player-walk-front.png"));
+    this.load.image("player-walk-back", assetUrl("../img/player-walk-back.png"));
+    this.load.image("player-cv-walk-front", assetUrl("../img/player-cv-walk-front.png"));
+    this.load.image("player-cv-walk-back", assetUrl("../img/player-cv-walk-back.png"));
+    this.load.image("player-cv-walk-slow-left", assetUrl("../img/player-cv-walk-slow-left.png"));
+    this.load.image("player-cv-walk-fast-left", assetUrl("../img/player-cv-walk-fast-left.png"));
+    this.load.image("player-cv-walk-slow-right", assetUrl("../img/player-cv-walk-slow-right.png"));
+    this.load.image("player-cv-walk-fast-right", assetUrl("../img/player-cv-walk-fast-right.png"));
+    this.load.image("player-carry-left", assetUrl("../img/Player-carry-left.png"));
+    this.load.image("difficulty-university", assetUrl("../img/difficulty-university.png"));
+    this.load.image("difficulty-college", assetUrl("../img/difficulty-college.png"));
+    this.load.image("difficulty-bootcamp", assetUrl("../img/difficulty-bootcamp.png"));
+    this.load.image("flag-israel", assetUrl("../img/flag-israel.png"));
+    this.load.image("flag-england", assetUrl("../img/flag-england.png"));
+    this.load.image("about-aviv", assetUrl("../img/about-aviv.png"));
 
-    const guardBase = "../entities/guard/img/";
-    this.load.image("guard-stand", new URL(`${guardBase}gurad-stand.png`, import.meta.url).href);
-    this.load.image("guard-walk-front", new URL(`${guardBase}gurad-walk-front.png`, import.meta.url).href);
-    this.load.image("guard-walk-slow-left", new URL(`${guardBase}guard-walk-slow-left.png`, import.meta.url).href);
-    this.load.image("guard-walk-fast-left", new URL(`${guardBase}guard-walk-fast-left.png`, import.meta.url).href);
-    this.load.image("guard-walk-slow-right", new URL(`${guardBase}guard-walk-right-slow.png`, import.meta.url).href);
-    this.load.image("guard-walk-fast-right", new URL(`${guardBase}guard-walk-right-fast.png`, import.meta.url).href);
+    this.load.image("guard-stand", assetUrl("../entities/guard/img/gurad-stand.png"));
+    this.load.image("guard-walk-front", assetUrl("../entities/guard/img/gurad-walk-front.png"));
+    this.load.image("guard-walk-slow-left", assetUrl("../entities/guard/img/guard-walk-slow-left.png"));
+    this.load.image("guard-walk-fast-left", assetUrl("../entities/guard/img/guard-walk-fast-left.png"));
+    this.load.image("guard-walk-slow-right", assetUrl("../entities/guard/img/guard-walk-right-slow.png"));
+    this.load.image("guard-walk-fast-right", assetUrl("../entities/guard/img/guard-walk-right-fast.png"));
 
     const hrBase = "../entities/recruiter/img/";
-    this.load.image("hr-stand", new URL(`${hrBase}HR-stand.png`, import.meta.url).href);
-    this.load.image("hr-walk-slow-left", new URL(`${hrBase}HR-walk-slow-left.png`, import.meta.url).href);
-    this.load.image("hr-walk-fast-left", new URL(`${hrBase}HR-walk-fast-left.png`, import.meta.url).href);
-    this.load.image("hr-walk-slow-right", new URL(`${hrBase}HR-walk-slow-right.png`, import.meta.url).href);
-    this.load.image("hr-walk-fast-right", new URL(`${hrBase}HR-walk-fast-right.png`, import.meta.url).href);
+    this.load.image("hr-stand", assetUrl(`${hrBase}HR-stand.png`));
+    this.load.image("hr-walk-slow-left", assetUrl(`${hrBase}HR-walk-slow-left.png`));
+    this.load.image("hr-walk-fast-left", assetUrl(`${hrBase}HR-walk-fast-left.png`));
+    this.load.image("hr-walk-slow-right", assetUrl(`${hrBase}HR-walk-slow-right.png`));
+    this.load.image("hr-walk-fast-right", assetUrl(`${hrBase}HR-walk-fast-right.png`));
     for (let i = 1; i <= 5; i += 1) {
-      this.load.image(`hr-v${i}-stand`, new URL(`${hrBase}HR-v${i}-stand.png`, import.meta.url).href);
-      this.load.image(`hr-v${i}-walk-slow-left`, new URL(`${hrBase}HR-v${i}-walk-slow-left.png`, import.meta.url).href);
-      this.load.image(`hr-v${i}-walk-fast-left`, new URL(`${hrBase}HR-v${i}-walk-fast-left.png`, import.meta.url).href);
-      this.load.image(`hr-v${i}-walk-slow-right`, new URL(`${hrBase}HR-v${i}-walk-slow-right.png`, import.meta.url).href);
-      this.load.image(`hr-v${i}-walk-fast-right`, new URL(`${hrBase}HR-v${i}-walk-fast-right.png`, import.meta.url).href);
+      this.load.image(`hr-v${i}-stand`, assetUrl(`${hrBase}HR-v${i}-stand.png`));
+      this.load.image(`hr-v${i}-walk-slow-left`, assetUrl(`${hrBase}HR-v${i}-walk-slow-left.png`));
+      this.load.image(`hr-v${i}-walk-fast-left`, assetUrl(`${hrBase}HR-v${i}-walk-fast-left.png`));
+      this.load.image(`hr-v${i}-walk-slow-right`, assetUrl(`${hrBase}HR-v${i}-walk-slow-right.png`));
+      this.load.image(`hr-v${i}-walk-fast-right`, assetUrl(`${hrBase}HR-v${i}-walk-fast-right.png`));
     }
 
-    const npcBase = envBase;
+    const npcBase = "../img/";
     const loadNpc = (id: number, hasFast: boolean): void => {
-      this.load.image(`npc${id}-walk-front`, new URL(`${npcBase}npc${id}-walk-front.png`, import.meta.url).href);
-      this.load.image(`npc${id}-walk-back`, new URL(`${npcBase}npc${id}-walk-back.png`, import.meta.url).href);
-      this.load.image(`npc${id}-walk-slow-left`, new URL(`${npcBase}npc${id}-walk-slow-left.png`, import.meta.url).href);
-      this.load.image(`npc${id}-walk-slow-right`, new URL(`${npcBase}npc${id}-walk-slow-right.png`, import.meta.url).href);
+      this.load.image(`npc${id}-walk-front`, assetUrl(`${npcBase}npc${id}-walk-front.png`));
+      this.load.image(`npc${id}-walk-back`, assetUrl(`${npcBase}npc${id}-walk-back.png`));
+      this.load.image(`npc${id}-walk-slow-left`, assetUrl(`${npcBase}npc${id}-walk-slow-left.png`));
+      this.load.image(`npc${id}-walk-slow-right`, assetUrl(`${npcBase}npc${id}-walk-slow-right.png`));
       if (hasFast) {
-        this.load.image(`npc${id}-walk-fast-left`, new URL(`${npcBase}npc${id}-walk-fast-left.png`, import.meta.url).href);
-        this.load.image(`npc${id}-walk-fast-right`, new URL(`${npcBase}npc${id}-walk-fast-right.png`, import.meta.url).href);
+        this.load.image(`npc${id}-walk-fast-left`, assetUrl(`${npcBase}npc${id}-walk-fast-left.png`));
+        this.load.image(`npc${id}-walk-fast-right`, assetUrl(`${npcBase}npc${id}-walk-fast-right.png`));
       }
     };
     NPCS.VARIANTS.forEach((variant) => loadNpc(variant.id, variant.hasFast));
-    this.load.image("both1", new URL(`${envBase}both1.png`, import.meta.url).href);
-    this.load.image("both2", new URL(`${envBase}both2.png`, import.meta.url).href);
-    this.load.image("trash-empty", new URL(`${envBase}trash-bin-empty.png`, import.meta.url).href);
-    this.load.image("trash-full", new URL(`${envBase}trash-bin-with-cv.png`, import.meta.url).href);
-    this.load.image("level1-job-fair-bg", new URL(`${envBase}level1-job-fair-bg.png`, import.meta.url).href);
-    this.load.image("level2-bst-orchard-bg", new URL(`${envBase}level2-bst-orchard-bg.png`, import.meta.url).href);
-    this.load.image("level2-beetle-fly-left", new URL(`${envBase}level2-beetle-fly-left.png`, import.meta.url).href);
-    this.load.image("level2-beetle-fly-right", new URL(`${envBase}level2-beetle-fly-right.png`, import.meta.url).href);
-    this.load.image("level3-snake-bg", new URL(`${envBase}level3-snake-bg.png`, import.meta.url).href);
+    this.load.image("both1", assetUrl("../img/both1.png"));
+    this.load.image("both2", assetUrl("../img/both2.png"));
+    this.load.image("trash-empty", assetUrl("../img/trash-bin-empty.png"));
+    this.load.image("trash-full", assetUrl("../img/trash-bin-with-cv.png"));
+    this.load.image("level1-job-fair-bg", assetUrl("../img/level1-job-fair-bg.png"));
+    this.load.image("level2-bst-orchard-bg", assetUrl("../img/level2-bst-orchard-bg.png"));
+    this.load.image("level2-beetle-fly-left", assetUrl("../img/level2-beetle-fly-left.png"));
+    this.load.image("level2-beetle-fly-right", assetUrl("../img/level2-beetle-fly-right.png"));
+    this.load.image("level3-snake-bg", assetUrl("../img/level3-snake-bg.png"));
     this.load.image("level4-hitech-tower-bg", new URL("../img/level4-hitech-tower-bg.png", import.meta.url).href);
     this.load.image("level4-platform", new URL("../img/level4-platform.png", import.meta.url).href);
     this.load.image("level4-docker-whale", new URL("../img/level4-docker-whale.png", import.meta.url).href);
@@ -109,18 +134,18 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("level5-player-dragon-keyboard-front-walk", new URL("../img/level5-player-dragon-keyboard-front-walk.png", import.meta.url).href);
     this.load.image("level5-player-dragon-keyboard-back", new URL("../img/level5-player-dragon-keyboard-back.png", import.meta.url).href);
     this.load.image("level5-player-dragon-keyboard-back-walk", new URL("../img/level5-player-dragon-keyboard-back-walk.png", import.meta.url).href);
-    this.load.image("linked-snake-head", new URL(`${envBase}linked-snake-head.png`, import.meta.url).href);
-    this.load.image("linked-snake-head-hurt", new URL(`${envBase}linked-snake-head-hurt.png`, import.meta.url).href);
-    this.load.image("linked-snake-node", new URL(`${envBase}linked-snake-node.png`, import.meta.url).href);
-    this.load.image("linked-snake-tail", new URL(`${envBase}linked-snake-tail.png`, import.meta.url).href);
-    this.load.image("linked-snake-fireball", new URL(`${envBase}linked-snake-fireball.png`, import.meta.url).href);
-    this.load.image("linked-snake-burst", new URL(`${envBase}linked-snake-burst.png`, import.meta.url).href);
-    this.load.image("level3-interviewer-npc", new URL(`${envBase}level3-interviewer-npc.png`, import.meta.url).href);
-    this.load.spritesheet("level3-fire-impact-sheet", new URL(`${envBase}level3-fire-impact-sheet.png`, import.meta.url).href, {
+    this.load.image("linked-snake-head", assetUrl("../img/linked-snake-head.png"));
+    this.load.image("linked-snake-head-hurt", assetUrl("../img/linked-snake-head-hurt.png"));
+    this.load.image("linked-snake-node", assetUrl("../img/linked-snake-node.png"));
+    this.load.image("linked-snake-tail", assetUrl("../img/linked-snake-tail.png"));
+    this.load.image("linked-snake-fireball", assetUrl("../img/linked-snake-fireball.png"));
+    this.load.image("linked-snake-burst", assetUrl("../img/linked-snake-burst.png"));
+    this.load.image("level3-interviewer-npc", assetUrl("../img/level3-interviewer-npc.png"));
+    this.load.spritesheet("level3-fire-impact-sheet", assetUrl("../img/level3-fire-impact-sheet.png"), {
       frameWidth: 192,
       frameHeight: 160
     });
-    this.load.spritesheet("level3-rock-burst-sheet", new URL(`${envBase}level3-rock-burst-sheet.png`, import.meta.url).href, {
+    this.load.spritesheet("level3-rock-burst-sheet", assetUrl("../img/level3-rock-burst-sheet.png"), {
       frameWidth: 192,
       frameHeight: 150
     });
@@ -433,21 +458,49 @@ export class PreloadScene extends Phaser.Scene {
     const makeLoop = (freq: number): AudioBuffer => makeTone(freq, AUDIO_TONES.MUSIC.LOOP_DURATION, AUDIO_TONES.MUSIC.LOOP_VOLUME);
     const makeMenuLoop = (): AudioBuffer => {
       const sampleRate = ctx.sampleRate;
-      const duration = 4.8;
+      const duration = 9.6;
       const length = Math.floor(sampleRate * duration);
       const buffer = ctx.createBuffer(1, length, sampleRate);
       const data = buffer.getChannelData(0);
-      const notes = [261.63, 329.63, 392.0, 329.63, 293.66, 349.23, 440.0, 392.0];
+      const melodyNotes = [392.0, 493.88, 587.33, 659.25, 493.88, 587.33, 440.0, 523.25, 349.23, 440.0, 523.25, 587.33, 392.0, 493.88, 440.0, 329.63];
+      const chordRoots = [130.81, 164.81, 196.0, 146.83];
+      const bassPattern = [1, 1, 1.5, 1, 2, 1.5, 1, 1.25];
+      const smooth = (x: number): number => x * x * (3 - 2 * x);
+      const triangle = (phase: number): number => 2 * Math.abs(2 * (phase - Math.floor(phase + 0.5))) - 1;
+      const pulse = (beat: number, rate: number): number => Math.exp(-(beat % rate) * 28);
       for (let i = 0; i < length; i += 1) {
         const t = i / sampleRate;
-        const step = Math.floor(t / 0.6) % notes.length;
-        const local = t % 0.6;
-        const env = Math.min(1, local * 10) * Math.exp(-local * 1.8);
-        const base = notes[step];
-        const melody = Math.sin(2 * Math.PI * base * t) * env * 0.16;
-        const harmony = Math.sin(2 * Math.PI * (base * 0.5) * t) * 0.055;
-        const pad = Math.sin(2 * Math.PI * 130.81 * t) * 0.045 + Math.sin(2 * Math.PI * 196.0 * t) * 0.03;
-        data[i] = (melody + harmony + pad) * AUDIO_TONES.MUSIC.LOOP_VOLUME;
+        const stepDuration = 0.3;
+        const step = Math.floor(t / stepDuration) % melodyNotes.length;
+        const local = t % stepDuration;
+        const attack = Math.min(1, local / 0.035);
+        const release = Math.min(1, (stepDuration - local) / 0.08);
+        const env = smooth(Math.min(attack, release));
+        const base = melodyNotes[step];
+        const chord = chordRoots[Math.floor(t / 2.4) % chordRoots.length];
+        const bassStep = Math.floor(t / 0.3) % bassPattern.length;
+        const sixteenth = t % 0.15;
+        const kickBeat = t % 0.6;
+        const snareBeat = (t + 0.3) % 0.6;
+        const barPhase = (t % 4.8) / 4.8;
+        const melody =
+          Math.sin(2 * Math.PI * base * t) * env * 0.075 +
+          triangle(base * t) * env * 0.045;
+        const arp =
+          Math.sin(2 * Math.PI * melodyNotes[(step + 5) % melodyNotes.length] * t) *
+          pulse(local, 0.15) *
+          (0.028 + barPhase * 0.012);
+        const bass =
+          Math.sin(2 * Math.PI * chord * bassPattern[bassStep] * t) * 0.08 +
+          triangle(chord * bassPattern[bassStep] * 0.5 * t) * 0.045;
+        const pad =
+          Math.sin(2 * Math.PI * (chord * 2) * t) * 0.018 +
+          Math.sin(2 * Math.PI * (chord * 3) * t) * 0.012;
+        const kick = Math.sin(2 * Math.PI * (95 - kickBeat * 140) * t) * Math.exp(-kickBeat * 34) * 0.16;
+        const snare = Math.sin(2 * Math.PI * 190 * t) * Math.exp(-snareBeat * 38) * 0.05;
+        const hat = (Math.random() * 2 - 1) * Math.exp(-sixteenth * 52) * 0.032;
+        const riser = Math.sin(2 * Math.PI * (880 + barPhase * 180) * t) * Math.max(0, barPhase - 0.72) * 0.012;
+        data[i] = (melody + arp + bass + pad + kick + snare + hat + riser) * AUDIO_TONES.MUSIC.LOOP_VOLUME;
       }
       return buffer;
     };

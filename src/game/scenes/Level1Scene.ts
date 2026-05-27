@@ -88,6 +88,7 @@ export class Level1Scene extends BaseLevelScene {
   private levelCompleted = false;
   private allRecruitersGoneHandled = false;
   private cvItem?: Phaser.Physics.Arcade.Image;
+  private cvLabelBg?: Phaser.GameObjects.Rectangle;
   private cvLabel?: Phaser.GameObjects.DOMElement;
   private cvStartX = LEVEL1.CV_START.x;
   private cvStartY = LEVEL1.CV_START.y;
@@ -98,6 +99,7 @@ export class Level1Scene extends BaseLevelScene {
   private cvTrashWarning?: {
     bin: TrashBinState;
     arrow: Phaser.GameObjects.Triangle;
+    messageBg: Phaser.GameObjects.Rectangle;
     message: Phaser.GameObjects.DOMElement;
     tween: Phaser.Tweens.Tween;
   };
@@ -121,6 +123,7 @@ export class Level1Scene extends BaseLevelScene {
     this.hasCV = true;
     this.levelCompleted = false;
     this.cvItem = undefined;
+    this.cvLabelBg = undefined;
     this.cvLabel = undefined;
     this.cvTrashWarning = undefined;
     this.dialog = undefined;
@@ -260,12 +263,11 @@ export class Level1Scene extends BaseLevelScene {
     this.checkGuardDetection(delta);
     this.updateActorDepths();
 
+    const actionPressed = this.inputManager.justPressedPickup();
     const confirmPressed = this.inputManager.justPressedConfirm();
-    const interactPressed = this.inputManager.justPressedInteract();
-    const pickupPressed = this.inputManager.justPressedPickup() || confirmPressed;
-    const pickedUp = pickupPressed ? this.tryPickupCvOrTrash() : false;
+    const pickedUp = actionPressed ? this.tryPickupCvOrTrash() : false;
 
-    if (!pickedUp && (confirmPressed || interactPressed)) {
+    if (!pickedUp && (confirmPressed || actionPressed)) {
       const nearest = this.getNearestRecruiter();
       if (nearest) {
         this.tryRecruiterInteraction(nearest);
@@ -463,6 +465,7 @@ export class Level1Scene extends BaseLevelScene {
     });
     this.npcCouriers.forEach((courier) => courier.npc.setDepth(courier.npc.y + scaleY(12)));
     this.cvItem?.setDepth((this.cvItem.y ?? 0) + scaleY(4));
+    this.cvLabelBg?.setDepth(899);
     this.cvLabel?.setDepth(900);
   }
 
@@ -735,7 +738,6 @@ export class Level1Scene extends BaseLevelScene {
     this.getActiveRecruiterStates().forEach((state) => state.recruiter.clearTint());
     this.targetRecruiter = recruiter;
     if (recruiter) {
-      recruiter.setTint(LEVEL1.TARGET_TINT);
       this.targetCompany = recruiter.companyTag;
     } else {
       this.targetCompany = "None";
@@ -821,15 +823,23 @@ export class Level1Scene extends BaseLevelScene {
 
   private spawnCv(): void {
     this.cvItem?.destroy();
+    this.cvLabelBg?.destroy();
     this.cvLabel?.destroy();
     this.cvItem = this.physics.add.staticImage(this.cvStartX, this.cvStartY, "cv");
     this.cvItem.setScale(scale(LEVEL1.CV_ICON_SIZE) / LEVEL1.CV_ICON_SIZE);
     this.cvItem.refreshBody();
+    const labelX = this.cvStartX + scaleX(LEVEL1.CV_LABEL_OFFSET_X);
+    const labelY = this.cvStartY - scaleY(3);
+    this.cvLabelBg = this.add
+      .rectangle(labelX + scaleX(60), labelY, scaleX(136), scaleY(34), 0x111827, 0.92)
+      .setStrokeStyle(scale(3), 0xffd166, 1)
+      .setDepth(899);
     this.cvLabel = createTranslatedText(this, this.cvStartX + scaleX(LEVEL1.CV_LABEL_OFFSET_X), this.cvStartY, "level1.pickUpCv", {
-      maxWidth: LEVEL1.CV_LABEL_MAX_WIDTH,
-      fontSize: LEVEL1.CV_LABEL_FONT_SIZE,
-      color: "#e8eef2",
+      maxWidth: LEVEL1.CV_LABEL_MAX_WIDTH + 54,
+      fontSize: LEVEL1.CV_LABEL_FONT_SIZE + 4,
+      color: "#ffd166",
       align: "left",
+      weight: 900,
       originX: DOM_TEXT.ORIGIN_LEFT
     });
   }
@@ -842,6 +852,8 @@ export class Level1Scene extends BaseLevelScene {
     this.player.setCarrying(true);
     this.cvItem?.destroy();
     this.cvItem = undefined;
+    this.cvLabelBg?.destroy();
+    this.cvLabelBg = undefined;
     this.cvLabel?.destroy();
     this.cvLabel = undefined;
     this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS_LIGHT);
@@ -852,12 +864,12 @@ export class Level1Scene extends BaseLevelScene {
     if (this.hasCV) {
       return false;
     }
-    if (this.cvItem && this.isNear(this.cvItem.x, this.cvItem.y, scale(LEVEL1.NEAR_RANGE))) {
+    if (this.cvItem && this.isNear(this.cvItem.x, this.cvItem.y, scale(LEVEL1.CV_PICKUP_RANGE))) {
       this.pickupCv();
       return true;
     }
     const bin = this.getNearestFullTrash();
-    if (bin && this.isNear(bin.sprite.x, bin.sprite.y, scale(LEVEL1.NEAR_RANGE))) {
+    if (bin && this.isNear(bin.sprite.x, bin.sprite.y, scale(LEVEL1.TRASH_FULL_RANGE))) {
       this.takeCvFromTrash(bin);
       return true;
     }
@@ -908,6 +920,17 @@ export class Level1Scene extends BaseLevelScene {
     this.hideTrashWarning();
     const arrowY = bin.sprite.y - scaleY(LEVEL1.TRASH_WARNING_ARROW_OFFSET_Y);
     const messageY = bin.sprite.y - scaleY(LEVEL1.TRASH_WARNING_OFFSET_Y);
+    const messageBg = this.add
+      .rectangle(
+        bin.sprite.x,
+        messageY,
+        scaleX(LEVEL1.TRASH_WARNING_MAX_WIDTH + 22),
+        scaleY(46),
+        0x111827,
+        0.92
+      )
+      .setStrokeStyle(scale(3), 0xffd166, 1)
+      .setDepth(120);
     const arrow = this.add
       .triangle(
         bin.sprite.x,
@@ -931,7 +954,8 @@ export class Level1Scene extends BaseLevelScene {
         maxWidth: LEVEL1.TRASH_WARNING_MAX_WIDTH,
         fontSize: LEVEL1.TRASH_WARNING_FONT_SIZE,
         color: "#ffd166",
-        align: "center"
+        align: "center",
+        weight: 900
       }
     ).setDepth(121);
     const tween = this.tweens.add({
@@ -942,7 +966,7 @@ export class Level1Scene extends BaseLevelScene {
       repeat: -1,
       ease: "Sine.easeInOut"
     });
-    this.cvTrashWarning = { bin, arrow, message, tween };
+    this.cvTrashWarning = { bin, arrow, messageBg, message, tween };
   }
 
   private hideTrashWarning(bin?: TrashBinState): void {
@@ -951,6 +975,7 @@ export class Level1Scene extends BaseLevelScene {
     }
     this.cvTrashWarning.tween.stop();
     this.cvTrashWarning.arrow.destroy();
+    this.cvTrashWarning.messageBg.destroy();
     this.cvTrashWarning.message.destroy();
     this.cvTrashWarning = undefined;
   }

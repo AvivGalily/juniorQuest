@@ -70,19 +70,19 @@ export class VictoryScene extends Phaser.Scene {
       color: "#e8eef2"
     });
 
-    const submitScore = (): void => {
+    const submitScore = async (): Promise<void> => {
       if (this.submitted) {
         return;
       }
       this.submitted = true;
       const name = inputNode.value.trim() || t("victory.defaultName");
-      const entries = addLeaderboardEntry(name, runState.runScore);
+      const entries = await addLeaderboardEntry(name, runState.runScore);
       this.refreshLeaderboard(entries);
       this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS);
     };
 
-    submitBtn.on("pointerdown", submitScore);
-    this.input.keyboard.on("keydown-ENTER", submitScore);
+    submitBtn.on("pointerdown", () => void submitScore());
+    this.input.keyboard.on("keydown-ENTER", () => void submitScore());
 
     const backBtn = this.add.image(scaleX(VICTORY.TITLE_X), scaleY(VICTORY.BACK_Y), "button").setInteractive();
     backBtn.setScale(uiScale);
@@ -96,7 +96,7 @@ export class VictoryScene extends Phaser.Scene {
       this.scene.start("MenuScene");
     });
 
-    this.refreshLeaderboard(loadLeaderboard().entries);
+    void loadLeaderboard().then(({ entries }) => this.refreshLeaderboard(entries));
   }
 
   private refreshLeaderboard(entries: LeaderboardEntry[]): void {
