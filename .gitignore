@@ -1,1 +1,6 @@
 README.production.md
+private/
+dist/
+infra/prod/
+scripts/deploy-prod.mjs
+scripts/clear-prod-leaderboard.mjs

@@ -15,6 +15,8 @@ export class LeaderboardScene extends Phaser.Scene {
   private leaderboardLoadId = 0;
   private leaderboardActive = false;
   private leaderboardPanel?: Phaser.GameObjects.DOMElement;
+  private loadingSpinner?: Phaser.GameObjects.Container;
+  private loadingSpinnerTween?: Phaser.Tweens.Tween;
 
   constructor() {
     super("LeaderboardScene");
@@ -30,6 +32,7 @@ export class LeaderboardScene extends Phaser.Scene {
       this.leaderboardLoadId += 1;
       this.leaderboardPanel?.destroy();
       this.leaderboardPanel = undefined;
+      this.destroyLoadingSpinner();
       this.audio.stopMusic("music-menu");
     });
 
@@ -37,6 +40,7 @@ export class LeaderboardScene extends Phaser.Scene {
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.5);
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x0f172a, 0.18);
 
+    this.createLoadingSpinner();
     void this.createLeaderboardPanel(loadId);
     this.createBackButton();
     this.input.keyboard?.on("keydown-ESC", () => this.returnToMenu());
@@ -47,6 +51,7 @@ export class LeaderboardScene extends Phaser.Scene {
     if (!this.leaderboardActive || loadId !== this.leaderboardLoadId) {
       return;
     }
+    this.destroyLoadingSpinner();
 
     const direction = getDirection();
     const align = direction === "rtl" ? "right" : "left";
@@ -112,6 +117,51 @@ export class LeaderboardScene extends Phaser.Scene {
     `;
 
     this.leaderboardPanel = this.add.dom(this.scale.width / 2, scaleY(172)).createFromHTML(html).setOrigin(0.5);
+  }
+
+  private createLoadingSpinner(): void {
+    this.destroyLoadingSpinner();
+
+    const x = this.scale.width / 2;
+    const y = scaleY(172);
+    const radius = scaleX(24);
+    const lineWidth = Math.max(3, Math.round(scaleX(4)));
+    const spinner = this.add.graphics();
+    spinner.lineStyle(lineWidth, 0x38bdf8, 0.18);
+    spinner.strokeCircle(0, 0, radius);
+    spinner.lineStyle(lineWidth, 0xffd166, 1);
+    spinner.beginPath();
+    spinner.arc(0, 0, radius, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(170), false);
+    spinner.strokePath();
+
+    const loadingText = this.add
+      .text(0, scaleY(46), t("common.loading"), {
+        fontFamily: "'Courier New', Courier, monospace",
+        fontSize: `${Math.round(scaleY(15))}px`,
+        color: "#e8eef2",
+        fontStyle: "bold",
+        align: "center"
+      })
+      .setOrigin(0.5);
+
+    const container = this.add.container(x, y, [spinner, loadingText]).setDepth(1100);
+    this.loadingSpinner = container;
+    this.loadingSpinnerTween = this.tweens.add({
+      targets: spinner,
+      angle: 360,
+      duration: 760,
+      repeat: -1,
+      ease: "Linear"
+    });
+  }
+
+  private destroyLoadingSpinner(): void {
+    if (this.loadingSpinnerTween) {
+      this.loadingSpinnerTween.stop();
+      this.loadingSpinnerTween = undefined;
+    }
+    this.loadingSpinner?.destroy();
+    this.loadingSpinner = undefined;
   }
 
   private headerStyle(): string {
