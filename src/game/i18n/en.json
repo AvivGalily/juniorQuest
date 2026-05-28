@@ -133,8 +133,6 @@
     "continue": "Press X or click to continue"
   },
   "level1": {
-    "targetMoved": "Target moved to {company}.",
-    "allRecruitersGone": "All recruiters are done for today. Bring CV faster.",
     "finishedForToday": "Finished for today!",
     "noOpenTarget": "No open target at the moment.",
     "pickUpCvFirst": "Pick up your CV first.",

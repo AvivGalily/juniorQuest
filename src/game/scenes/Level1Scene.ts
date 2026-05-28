@@ -729,12 +729,6 @@ export class Level1Scene extends BaseLevelScene {
     if (this.targetRecruiter === state.recruiter) {
       const nextTarget = rngPick(this.getActiveRecruiterStates());
       this.setTargetRecruiter(nextTarget?.recruiter);
-      this.showDialog(
-        nextTarget
-          ? t("level1.targetMoved", { company: nextTarget.recruiter.companyTag })
-          : t("level1.allRecruitersGone"),
-        nextTarget?.recruiter ?? state.recruiter
-      );
     }
 
     this.time.delayedCall(LEVEL1.RECRUITER_EXIT_DELAY_MS, () => {

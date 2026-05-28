@@ -133,8 +133,6 @@
     "continue": "לחץ X או לחץ כאן כדי להמשיך"
   },
   "level1": {
-    "targetMoved": "המטרה עברה אל {company}.",
-    "allRecruitersGone": "כל המגייסות סיימו להיום. צריך להביא CV מהר יותר.",
     "finishedForToday": "סיימתי להיום!",
     "noOpenTarget": "אין כרגע מגייסת זמינה.",
     "pickUpCvFirst": "קודם צריך לאסוף את ה-CV.",

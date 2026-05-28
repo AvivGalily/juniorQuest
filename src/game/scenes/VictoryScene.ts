@@ -27,26 +27,30 @@ export class VictoryScene extends Phaser.Scene {
     createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.TITLE_Y), "victory.title", {
       maxWidth: VICTORY.TITLE_MAX_WIDTH,
       fontSize: VICTORY.TITLE_FONT_SIZE,
-      color: "#8fe388"
+      color: "#8fe388",
+      originY: 0
     });
 
     createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.BLURB_Y), "victory.blurb", {
       maxWidth: VICTORY.BLURB_MAX_WIDTH,
       fontSize: VICTORY.BLURB_FONT_SIZE,
-      color: "#e8eef2"
+      color: "#e8eef2",
+      originY: 0
     });
 
     createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.SUBTITLE_Y), "victory.subtitle", {
       maxWidth: VICTORY.SUBTITLE_MAX_WIDTH,
       fontSize: VICTORY.SUBTITLE_FONT_SIZE,
-      color: "#e8eef2"
+      color: "#e8eef2",
+      originY: 0
     });
 
     createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.SCORE_Y), "common.finalScore", {
       params: { score: runState.runScore },
       maxWidth: VICTORY.SCORE_MAX_WIDTH,
       fontSize: VICTORY.SCORE_FONT_SIZE,
-      color: "#ffd166"
+      color: "#ffd166",
+      originY: 0
     });
 
     const uiScale = getUiScale();

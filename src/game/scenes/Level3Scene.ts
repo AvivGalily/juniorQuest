@@ -182,12 +182,14 @@ export class Level3Scene extends BaseLevelScene {
     createTranslatedText(this, scaleX(LEVEL3.TITLE_X), scaleY(LEVEL3.TITLE_Y), "level3.title", {
       maxWidth: LEVEL3.TITLE_MAX_WIDTH,
       fontSize: LEVEL3.TITLE_FONT_SIZE,
-      color: "#e8eef2"
+      color: "#e8eef2",
+      originY: 0
     });
     createTranslatedText(this, scaleX(LEVEL3.TITLE_X), scaleY(LEVEL3.SUBTITLE_Y), "level3.subtitle", {
       maxWidth: LEVEL3.SUBTITLE_MAX_WIDTH,
       fontSize: LEVEL3.SUBTITLE_FONT_SIZE,
-      color: "#cbd5e1"
+      color: "#cbd5e1",
+      originY: 0
     });
 
     this.projectileGroup = this.physics.add.group();
@@ -583,7 +585,7 @@ export class Level3Scene extends BaseLevelScene {
   }
 
   private createReverseStepHud(): void {
-    const y = scaleY(82);
+    const y = scaleY(108);
     const chipWidth = scaleX(126);
     const chipHeight = scaleY(22);
     const gap = scaleX(6);
