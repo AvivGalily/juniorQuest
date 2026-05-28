@@ -21,7 +21,11 @@ import { PHASER } from "../config/physics";
 import { isDebug } from "./utils/debug";
 import { BASE_HEIGHT, BASE_WIDTH, getInitialRenderResolution } from "./utils/resolution";
 
-export const phaserConfig: Phaser.Types.Core.GameConfig = {
+type GameConfigWithResolution = Phaser.Types.Core.GameConfig & {
+  resolution?: number;
+};
+
+export const phaserConfig: GameConfigWithResolution = {
   type: Phaser.AUTO,
   width: BASE_WIDTH,
   height: BASE_HEIGHT,
@@ -49,7 +53,7 @@ export const phaserConfig: Phaser.Types.Core.GameConfig = {
   physics: {
     default: "arcade",
     arcade: {
-      gravity: { y: PHASER.DEFAULT_GRAVITY_Y },
+      gravity: { x: 0, y: PHASER.DEFAULT_GRAVITY_Y },
       debug: isDebug()
     }
   },

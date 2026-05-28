@@ -7,7 +7,7 @@ export const flashTween = (
   durationMs: number,
   flashes = ANIMATION.FLASH_DEFAULT_COUNT
 ): void => {
-  if (!(target as Phaser.GameObjects.Components.Alpha).setAlpha) {
+  if (!((target as unknown as Phaser.GameObjects.Components.Alpha).setAlpha)) {
     return;
   }
   scene.tweens.add({

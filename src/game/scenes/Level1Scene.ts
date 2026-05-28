@@ -63,7 +63,7 @@ type VisionBlocker = Phaser.Geom.Rectangle;
 const LEVEL1_DIALOG_DEPTH = DEPTH.HUD + 220;
 
 export class Level1Scene extends BaseLevelScene {
-  private player!: Player;
+  protected declare player: Player;
   private guards: Guard[] = [];
   private guardFovs: Phaser.GameObjects.Graphics[] = [];
   private recruiterStates: RecruiterState[] = [];
@@ -90,8 +90,8 @@ export class Level1Scene extends BaseLevelScene {
   private cvItem?: Phaser.Physics.Arcade.Image;
   private cvLabelBg?: Phaser.GameObjects.Rectangle;
   private cvLabel?: Phaser.GameObjects.DOMElement;
-  private cvStartX = LEVEL1.CV_START.x;
-  private cvStartY = LEVEL1.CV_START.y;
+  private cvStartX: number = LEVEL1.CV_START.x;
+  private cvStartY: number = LEVEL1.CV_START.y;
   private trashBins: TrashBinState[] = [];
   private walkableFloor!: Phaser.Geom.Polygon;
   private walkableFloorCenter!: Phaser.Math.Vector2;
@@ -181,7 +181,7 @@ export class Level1Scene extends BaseLevelScene {
     const playerStart = this.getSafeFloorPoint(scaleX(LEVEL1.PLAYER_START.x), scaleY(LEVEL1.PLAYER_START.y));
     this.player = new Player(this, playerStart.x, playerStart.y);
     this.player.setScaleMultiplier(LEVEL1.ACTOR_SCALE_MULTIPLIER);
-    this.player.body.allowGravity = false;
+    (this.player.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     this.player.setCarryStyle("cv");
     this.player.setCarrying(true);
     this.setPlayer(this.player);
@@ -201,7 +201,7 @@ export class Level1Scene extends BaseLevelScene {
       const spawn = this.getRecruiterSpawnPoint(i);
       const recruiter = new Recruiter(this, spawn.x, spawn.y, tags[i % tags.length], (i % LEVEL1.RECRUITER_VARIANT_COUNT) + 1);
       recruiter.setScaleMultiplier(LEVEL1.ACTOR_SCALE_MULTIPLIER);
-      recruiter.body.allowGravity = false;
+      (recruiter.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
       recruiter.setInteractive({ useHandCursor: true });
       recruiter.on("pointerdown", () => this.tryRecruiterInteraction(recruiter));
       this.recruiterStates.push(this.createRecruiterState(recruiter));
@@ -215,7 +215,7 @@ export class Level1Scene extends BaseLevelScene {
       const variant = ((i % LEVEL1.NPC_VARIANT_COUNT) + LEVEL1.NPC_VARIANT_MIN) as 1 | 2 | 3;
       const npc = new Npc(this, spawn.x, spawn.y, variant);
       npc.setScaleMultiplier(LEVEL1.ACTOR_SCALE_MULTIPLIER);
-      npc.body.allowGravity = false;
+      (npc.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
       this.npcCouriers.push({
         npc,
         deliveryCooldownMs: 0,
@@ -243,7 +243,7 @@ export class Level1Scene extends BaseLevelScene {
     }
     this.guardFovs = this.guards.map(() => this.add.graphics());
     this.guards.forEach((guard) => {
-      guard.body.allowGravity = false;
+      (guard.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
       this.physics.add.collider(guard, obstacles);
     });
 
@@ -420,7 +420,7 @@ export class Level1Scene extends BaseLevelScene {
   private getClosestWalkableFloorPoint(x: number, y: number): Phaser.Math.Vector2 {
     const points = this.walkableFloor.points;
     let best = new Phaser.Math.Vector2(points[0].x, points[0].y);
-    let bestDist = MATH.LARGE_NUMBER;
+    let bestDist: number = MATH.LARGE_NUMBER;
     for (let i = 0; i < points.length; i += 1) {
       const a = points[i];
       const b = points[(i + 1) % points.length];
@@ -826,7 +826,7 @@ export class Level1Scene extends BaseLevelScene {
 
   private getNearestRecruiter(): Recruiter | null {
     let best: Recruiter | null = null;
-    let bestDist = MATH.LARGE_NUMBER;
+    let bestDist: number = MATH.LARGE_NUMBER;
     for (const recruiter of this.getActiveRecruiterStates().map((state) => state.recruiter)) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, recruiter.x, recruiter.y);
       if (dist < scale(LEVEL1.NEAR_RANGE) && dist < bestDist) {
@@ -932,7 +932,7 @@ export class Level1Scene extends BaseLevelScene {
 
   private getNearestFullTrash(): TrashBinState | null {
     let best: TrashBinState | null = null;
-    let bestDist = MATH.LARGE_NUMBER;
+    let bestDist: number = MATH.LARGE_NUMBER;
     for (const bin of this.trashBins) {
       if (!bin.full) {
         continue;
@@ -1288,7 +1288,7 @@ export class Level1Scene extends BaseLevelScene {
       [rect.left, rect.bottom, rect.left, rect.top]
     ];
     let best: Phaser.Math.Vector2 | null = null;
-    let bestDist = MATH.LARGE_NUMBER;
+    let bestDist: number = MATH.LARGE_NUMBER;
     for (const [ax, ay, bx, by] of edges) {
       const hit = this.getSegmentIntersection(fromX, fromY, toX, toY, ax, ay, bx, by);
       if (!hit) {

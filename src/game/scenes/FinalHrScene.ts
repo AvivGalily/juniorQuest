@@ -27,7 +27,7 @@ export class FinalHrScene extends Phaser.Scene {
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.6);
 
     this.createEmailCard();
-    this.input.keyboard.on("keydown-X", () => this.continueToVictory());
+    this.input.keyboard?.on("keydown-X", () => this.continueToVictory());
   }
 
   private createEmailCard(): void {

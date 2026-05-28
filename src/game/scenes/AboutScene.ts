@@ -26,8 +26,8 @@ export class AboutScene extends Phaser.Scene {
 
     this.createEmailCard();
 
-    this.input.keyboard.on("keydown-ESC", () => this.backToMenu());
-    this.input.keyboard.on("keydown-X", () => this.backToMenu());
+    this.input.keyboard?.on("keydown-ESC", () => this.backToMenu());
+    this.input.keyboard?.on("keydown-X", () => this.backToMenu());
   }
 
   private createEmailCard(): void {

@@ -39,7 +39,7 @@ export class LeaderboardScene extends Phaser.Scene {
 
     void this.createLeaderboardPanel(loadId);
     this.createBackButton();
-    this.input.keyboard.on("keydown-ESC", () => this.returnToMenu());
+    this.input.keyboard?.on("keydown-ESC", () => this.returnToMenu());
   }
 
   private async createLeaderboardPanel(loadId: number): Promise<void> {

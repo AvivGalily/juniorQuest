@@ -22,7 +22,7 @@ export class BaseLevelScene extends Phaser.Scene {
   protected invulnerable = false;
   protected paused = false;
   protected deathTransitioning = false;
-  private pauseOverlayObjects: Phaser.GameObjects.GameObject[] = [];
+  private pauseOverlayObjects: Array<Phaser.GameObjects.GameObject & Phaser.GameObjects.Components.Visible> = [];
 
   protected initLevel(stageNumber: number): void {
     this.paused = false;

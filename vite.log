@@ -1349,3 +1349,39 @@
 [2m14:33:00[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/i18n/he.json[22m
 [2m14:43:47[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/AboutScene.ts[22m
 [2m14:43:47[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/AboutScene.ts[22m
+[2m14:48:36[22m [36m[1m[vite][22m[39m changed tsconfig file detected: C:\dev\juniorQuest\tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[2m14:48:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/phaserConfig.ts[22m
+[2m14:48:36[22m [36m[1m[vite][22m[39m changed tsconfig file detected: C:\dev\juniorQuest\tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[2m14:48:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/entities/BossAISpider.ts[22m
+[2m14:48:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/entities/guard/Guard.ts[22m
+[2m14:48:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/entities/npc/Npc.ts[22m
+[2m14:48:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/entities/recruiter/Recruiter.ts[22m
+[2m14:48:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/BaseLevelScene.ts[22m
+[2m14:48:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/systems/InputManager.ts[22m
+[2m14:48:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/utils/tween.ts[22m
+[2m14:48:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/systems/OrientationOverlay.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level1Scene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level5Scene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/MenuScene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/AboutScene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/FinalHrScene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/LeaderboardScene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level1IntroScene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level2IntroScene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level3IntroScene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level5IntroScene.ts[22m
+[2m14:49:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/PreloadScene.ts[22m
+[2m14:49:26[22m [36m[1m[vite][22m[39m changed tsconfig file detected: C:\dev\juniorQuest\tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[2m14:49:51[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/phaserConfig.ts[22m
+[2m14:49:51[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level1Scene.ts[22m
+[2m14:49:51[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/systems/OrientationOverlay.ts[22m
+[2m14:49:51[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level5Scene.ts[22m
+[2m14:50:05[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level1Scene.ts[22m
+[2m14:50:05[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/scenes/Level5Scene.ts[22m
+[2m14:50:29[22m [36m[1m[vite][22m[39m changed tsconfig file detected: C:\dev\juniorQuest\tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[2m15:10:47[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/i18n/en.json[22m
+[2m15:10:47[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/i18n/en.json[22m
+[2m15:10:47[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/i18n/he.json[22m
+[2m15:11:12[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/i18n/he.json[22m
+[2m15:11:52[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/i18n/en.json[22m
+[2m15:11:52[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/game/i18n/he.json[22m

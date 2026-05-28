@@ -22,7 +22,7 @@ export class MenuScene extends Phaser.Scene {
   private audio!: AudioManager;
   private modal?: MenuModal;
   private difficultyPopup?: { objects: Phaser.GameObjects.GameObject[] };
-  private selectedLevel = RUN.DEFAULT_LEVEL;
+  private selectedLevel: number = RUN.DEFAULT_LEVEL;
   private levelButtonLabel?: Phaser.GameObjects.DOMElement;
   private inputLocked = false;
 
@@ -136,19 +136,19 @@ export class MenuScene extends Phaser.Scene {
       this.setupAutoFullscreen();
     }
 
-    this.input.keyboard.on("keydown-ENTER", () => {
+    this.input.keyboard?.on("keydown-ENTER", () => {
       if (!this.difficultyPopup) {
         this.startGame();
       }
     });
 
-    this.input.keyboard.on("keydown-SPACE", () => {
+    this.input.keyboard?.on("keydown-SPACE", () => {
       if (!this.difficultyPopup) {
         this.startGame();
       }
     });
 
-    this.input.keyboard.on("keydown-ESC", () => this.closeDifficultyPopup());
+    this.input.keyboard?.on("keydown-ESC", () => this.closeDifficultyPopup());
   }
 
   private runWithLock(action: () => void): void {

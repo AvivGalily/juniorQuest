@@ -23,7 +23,7 @@ export class Level3IntroScene extends Phaser.Scene {
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.66);
 
     this.createEmailCard();
-    this.input.keyboard.on("keydown-X", () => this.continueToLevel());
+    this.input.keyboard?.on("keydown-X", () => this.continueToLevel());
   }
 
   private createEmailCard(): void {

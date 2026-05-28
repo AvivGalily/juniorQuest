@@ -181,7 +181,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private createTextures(): void {
-    const g = this.make.graphics({ x: 0, y: 0, add: false });
+    const g = this.make.graphics({ x: 0, y: 0 });
     const rect = (key: string, w: number, h: number, fill: number, stroke?: number): void => {
       g.clear();
       if (stroke !== undefined) {
@@ -536,7 +536,7 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   private createAudio(): void {
-    const ctx = this.sound.context;
+    const ctx = (this.sound as Phaser.Sound.WebAudioSoundManager).context;
     const makeTone = (freq: number, duration: number, volume: number): AudioBuffer => {
       const sampleRate = ctx.sampleRate;
       const length = Math.floor(sampleRate * duration);

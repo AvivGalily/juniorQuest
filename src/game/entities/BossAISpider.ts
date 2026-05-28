@@ -12,7 +12,7 @@ export class BossAISpider extends Phaser.Physics.Arcade.Sprite {
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setImmovable(true);
-    this.body.allowGravity = false;
+    (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     this.hp = hp;
     this.applyDisplaySize();
   }

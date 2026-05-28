@@ -90,9 +90,10 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
     this.applySteering(WANDER.TARGET_TURN_RATE);
   }
 
-  private applySteering(turnRate = WANDER.TURN_RATE): void {
-    const vx = Phaser.Math.Linear(this.body.velocity.x, this.desiredVelocity.x, turnRate);
-    const vy = Phaser.Math.Linear(this.body.velocity.y, this.desiredVelocity.y, turnRate);
+  private applySteering(turnRate: number = WANDER.TURN_RATE): void {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    const vx = Phaser.Math.Linear(body.velocity.x, this.desiredVelocity.x, turnRate);
+    const vy = Phaser.Math.Linear(body.velocity.y, this.desiredVelocity.y, turnRate);
     this.setVelocity(vx, vy);
   }
 

@@ -21,8 +21,12 @@ export class InputManager {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.cursors = scene.input.keyboard.createCursorKeys();
-    this.keys = scene.input.keyboard.addKeys({
+    const keyboard = scene.input.keyboard;
+    if (!keyboard) {
+      throw new Error("Keyboard input is not available");
+    }
+    this.cursors = keyboard.createCursorKeys();
+    this.keys = keyboard.addKeys({
       W: "W",
       A: "A",
       S: "S",
@@ -65,7 +69,8 @@ export class InputManager {
 
   justPressedConfirm(): boolean {
     const pointer = this.scene.input.activePointer;
-    return Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || Phaser.Input.Keyboard.JustDown(this.keys.ENTER) || pointer.justDown || VirtualGamepad.getInstance().justPressedJump() || VirtualGamepad.getInstance().justPressedAction();
+    const pointerJustDown = (pointer as Phaser.Input.Pointer & { justDown?: boolean }).justDown === true;
+    return Phaser.Input.Keyboard.JustDown(this.keys.SPACE) || Phaser.Input.Keyboard.JustDown(this.keys.ENTER) || pointerJustDown || VirtualGamepad.getInstance().justPressedJump() || VirtualGamepad.getInstance().justPressedAction();
   }
 
   justPressedInteract(): boolean {

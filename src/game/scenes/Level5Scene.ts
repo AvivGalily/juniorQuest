@@ -48,7 +48,7 @@ type MiniBoss = {
 };
 
 export class Level5Scene extends BaseLevelScene {
-  private player!: Player;
+  protected declare player: Player;
   private boss!: Phaser.Physics.Arcade.Sprite;
   private bossLegs: BossLeg[] = [];
   private bossMoveTarget = new Phaser.Math.Vector2();
@@ -75,12 +75,12 @@ export class Level5Scene extends BaseLevelScene {
   private bossBodyTextureKey: BossBodyTextureKey = "level5-computer-spider-body-angry";
   private arena!: Phaser.Geom.Rectangle;
   private playerShadow!: Phaser.GameObjects.Ellipse;
-  private bossMaxHp = LEVEL5.BOSS_HP;
-  private bossHp = LEVEL5.BOSS_HP;
+  private bossMaxHp: number = LEVEL5.BOSS_HP;
+  private bossHp: number = LEVEL5.BOSS_HP;
   private bossHpFill!: Phaser.GameObjects.Rectangle;
   private bossHpText!: Phaser.GameObjects.Text;
-  private miniBossTriggerHp = LEVEL5.MINI_BOSS_TRIGGER_HP;
-  private miniBossCount = LEVEL5.MINI_BOSS_COUNT;
+  private miniBossTriggerHp: number = LEVEL5.MINI_BOSS_TRIGGER_HP;
+  private miniBossCount: number = LEVEL5.MINI_BOSS_COUNT;
   private attackTimer?: Phaser.Time.TimerEvent;
   private waveTimer?: Phaser.Time.TimerEvent;
   private tauntTimer?: Phaser.Time.TimerEvent;
@@ -351,7 +351,7 @@ export class Level5Scene extends BaseLevelScene {
   }
 
   private createCombatTextures(): void {
-    const g = this.make.graphics({ x: 0, y: 0, add: false });
+    const g = this.make.graphics({ x: 0, y: 0 });
     const size = 72;
     const center = size / 2;
 

@@ -90,8 +90,9 @@ export class OrientationOverlay {
 
   private async tryLockOrientation(): Promise<void> {
     try {
-      if (screen.orientation && screen.orientation.lock) {
-        await screen.orientation.lock("landscape");
+      const orientation = screen.orientation as ScreenOrientation & { lock?: (orientation: "landscape") => Promise<void> };
+      if (orientation?.lock) {
+        await orientation.lock("landscape");
       }
     } catch (e) {
       // Locking might fail due to missing user gesture or lack of browser support, we gracefully ignore

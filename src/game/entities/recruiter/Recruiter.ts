@@ -60,8 +60,9 @@ export class Recruiter extends Phaser.Physics.Arcade.Sprite {
   }
 
   private applySteering(): void {
-    const vx = Phaser.Math.Linear(this.body.velocity.x, this.desiredVelocity.x, WANDER.TURN_RATE);
-    const vy = Phaser.Math.Linear(this.body.velocity.y, this.desiredVelocity.y, WANDER.TURN_RATE);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    const vx = Phaser.Math.Linear(body.velocity.x, this.desiredVelocity.x, WANDER.TURN_RATE);
+    const vy = Phaser.Math.Linear(body.velocity.y, this.desiredVelocity.y, WANDER.TURN_RATE);
     this.setVelocity(vx, vy);
   }
 
