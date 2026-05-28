@@ -10,6 +10,7 @@ import { UIHud } from "../systems/UIHud";
 import { flashTween } from "../utils/tween";
 import { Player } from "../entities/player/Player";
 import { createTranslatedText } from "../utils/domText";
+import { scaleX, scaleY } from "../utils/layout";
 
 export class BaseLevelScene extends Phaser.Scene {
   protected inputManager!: InputManager;
@@ -124,10 +125,13 @@ export class BaseLevelScene extends Phaser.Scene {
 
     const centerX = this.scale.width / 2;
     const centerY = this.scale.height / 2;
-    const panelWidth = 340;
-    const panelHeight = 142;
-    const buttonWidth = 252;
-    const buttonHeight = 28;
+    const panelWidth = scaleX(340);
+    const panelHeight = scaleY(142);
+    const buttonWidth = scaleX(252);
+    const buttonHeight = scaleY(28);
+    const titleOffsetY = scaleY(48);
+    const exitButtonOffsetY = scaleY(10);
+    const continueButtonOffsetY = scaleY(30);
     const baseDepth = DEPTH.PAUSE_OVERLAY + 50;
 
     const panel = this.add
@@ -137,7 +141,7 @@ export class BaseLevelScene extends Phaser.Scene {
       .setDepth(baseDepth)
       .setVisible(false);
 
-    const title = createTranslatedText(this, centerX, centerY - 48, "common.paused", {
+    const title = createTranslatedText(this, centerX, centerY - titleOffsetY, "common.paused", {
       maxWidth: BASE_LEVEL.PAUSE_MAX_WIDTH,
       fontSize: BASE_LEVEL.PAUSE_FONT_SIZE,
       color: "#ffd166",
@@ -147,15 +151,15 @@ export class BaseLevelScene extends Phaser.Scene {
       .setDepth(baseDepth + 2)
       .setVisible(false);
 
-    const exitButton = this.createPauseButton(centerX, centerY - 10, buttonWidth, buttonHeight, () => {
+    const exitButton = this.createPauseButton(centerX, centerY - exitButtonOffsetY, buttonWidth, buttonHeight, () => {
       if (!this.paused) {
         return;
       }
       this.setPaused(false);
       this.scene.start("MenuScene");
     });
-    const exitLabel = createTranslatedText(this, centerX, centerY - 10, "common.pauseExit", {
-      maxWidth: buttonWidth - 20,
+    const exitLabel = createTranslatedText(this, centerX, centerY - exitButtonOffsetY, "common.pauseExit", {
+      maxWidth: 232,
       fontSize: 15,
       color: "#f8fafc",
       weight: 700
@@ -164,13 +168,13 @@ export class BaseLevelScene extends Phaser.Scene {
       .setDepth(baseDepth + 2)
       .setVisible(false);
 
-    const continueButton = this.createPauseButton(centerX, centerY + 30, buttonWidth, buttonHeight, () => {
+    const continueButton = this.createPauseButton(centerX, centerY + continueButtonOffsetY, buttonWidth, buttonHeight, () => {
       if (this.paused) {
         this.setPaused(false);
       }
     });
-    const continueLabel = createTranslatedText(this, centerX, centerY + 30, "common.pauseContinue", {
-      maxWidth: buttonWidth - 20,
+    const continueLabel = createTranslatedText(this, centerX, centerY + continueButtonOffsetY, "common.pauseContinue", {
+      maxWidth: 232,
       fontSize: 15,
       color: "#f8fafc",
       weight: 700

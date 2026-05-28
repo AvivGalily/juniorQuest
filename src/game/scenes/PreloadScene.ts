@@ -41,9 +41,17 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("player-walk-slow-right", assetUrl("../img/player-walk-slow-right.png"));
     this.load.image("player-walk-fast-right", assetUrl("../img/player-walk-fast-right.png"));
     this.load.image("player-walk-front", assetUrl("../img/player-walk-front.png"));
+    this.load.image("player-walk-front-step", assetUrl("../img/player-walk-front-step.png"));
+    this.load.image("player-walk-front-step-alt", assetUrl("../img/player-walk-front-step-alt.png"));
     this.load.image("player-walk-back", assetUrl("../img/player-walk-back.png"));
+    this.load.image("player-walk-back-step", assetUrl("../img/player-walk-back-step.png"));
+    this.load.image("player-walk-back-step-alt", assetUrl("../img/player-walk-back-step-alt.png"));
     this.load.image("player-cv-walk-front", assetUrl("../img/player-cv-walk-front.png"));
+    this.load.image("player-cv-walk-front-step", assetUrl("../img/player-cv-walk-front-step.png"));
+    this.load.image("player-cv-walk-front-step-alt", assetUrl("../img/player-cv-walk-front-step-alt.png"));
     this.load.image("player-cv-walk-back", assetUrl("../img/player-cv-walk-back.png"));
+    this.load.image("player-cv-walk-back-step", assetUrl("../img/player-cv-walk-back-step.png"));
+    this.load.image("player-cv-walk-back-step-alt", assetUrl("../img/player-cv-walk-back-step-alt.png"));
     this.load.image("player-cv-walk-slow-left", assetUrl("../img/player-cv-walk-slow-left.png"));
     this.load.image("player-cv-walk-fast-left", assetUrl("../img/player-cv-walk-fast-left.png"));
     this.load.image("player-cv-walk-slow-right", assetUrl("../img/player-cv-walk-slow-right.png"));
@@ -80,7 +88,11 @@ export class PreloadScene extends Phaser.Scene {
     const npcBase = "../img/";
     const loadNpc = (id: number, hasFast: boolean): void => {
       this.load.image(`npc${id}-walk-front`, assetUrl(`${npcBase}npc${id}-walk-front.png`));
+      this.load.image(`npc${id}-walk-front-step`, assetUrl(`${npcBase}npc${id}-walk-front-step.png`));
+      this.load.image(`npc${id}-walk-front-step-alt`, assetUrl(`${npcBase}npc${id}-walk-front-step-alt.png`));
       this.load.image(`npc${id}-walk-back`, assetUrl(`${npcBase}npc${id}-walk-back.png`));
+      this.load.image(`npc${id}-walk-back-step`, assetUrl(`${npcBase}npc${id}-walk-back-step.png`));
+      this.load.image(`npc${id}-walk-back-step-alt`, assetUrl(`${npcBase}npc${id}-walk-back-step-alt.png`));
       this.load.image(`npc${id}-walk-slow-left`, assetUrl(`${npcBase}npc${id}-walk-slow-left.png`));
       this.load.image(`npc${id}-walk-slow-right`, assetUrl(`${npcBase}npc${id}-walk-slow-right.png`));
       if (hasFast) {
@@ -91,6 +103,8 @@ export class PreloadScene extends Phaser.Scene {
     NPCS.VARIANTS.forEach((variant) => loadNpc(variant.id, variant.hasFast));
     this.load.image("both1", assetUrl("../img/both1.png"));
     this.load.image("both2", assetUrl("../img/both2.png"));
+    this.load.image("job-booth-blue-ai", assetUrl("../img/job-booth-blue-ai.png"));
+    this.load.image("job-booth-yellow-ai", assetUrl("../img/job-booth-yellow-ai.png"));
     this.load.image("trash-empty", assetUrl("../img/trash-bin-empty.png"));
     this.load.image("trash-full", assetUrl("../img/trash-bin-with-cv.png"));
     this.load.image("level1-job-fair-bg", assetUrl("../img/level1-job-fair-bg.png"));
@@ -134,6 +148,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image("level5-player-dragon-keyboard-front-walk", new URL("../img/level5-player-dragon-keyboard-front-walk.png", import.meta.url).href);
     this.load.image("level5-player-dragon-keyboard-back", new URL("../img/level5-player-dragon-keyboard-back.png", import.meta.url).href);
     this.load.image("level5-player-dragon-keyboard-back-walk", new URL("../img/level5-player-dragon-keyboard-back-walk.png", import.meta.url).href);
+    this.load.image("victory-bg", assetUrl("../img/victory-bg.png"));
     this.load.image("linked-snake-head", assetUrl("../img/linked-snake-head.png"));
     this.load.image("linked-snake-head-hurt", assetUrl("../img/linked-snake-head-hurt.png"));
     this.load.image("linked-snake-node", assetUrl("../img/linked-snake-node.png"));
@@ -256,6 +271,7 @@ export class PreloadScene extends Phaser.Scene {
     g.generateTexture("arrow_left", TEXTURES.ARROW.WIDTH, TEXTURES.ARROW.HEIGHT);
 
     this.createJobFairBackgroundTexture(g);
+    this.createJobFairBoothTextures(g);
     this.createCrispTrashTextures(g);
     this.createLevel2OrchardTextures(g);
   }
@@ -318,6 +334,93 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     g.generateTexture("job-fair-bg", BASE_WIDTH, BASE_HEIGHT);
+  }
+
+  private createJobFairBoothTextures(g: Phaser.GameObjects.Graphics): void {
+    const width = 620;
+    const height = 420;
+
+    const drawBriefcase = (x: number, y: number, accent: number): void => {
+      g.fillStyle(0xf8fafc, 1);
+      g.fillRoundedRect(x, y + 16, 86, 58, 8);
+      g.lineStyle(5, 0x0f172a, 0.24);
+      g.strokeRoundedRect(x, y + 16, 86, 58, 8);
+      g.lineStyle(7, accent, 1);
+      g.strokeRoundedRect(x + 28, y, 30, 24, 8);
+      g.fillStyle(accent, 1);
+      g.fillRoundedRect(x, y + 38, 86, 10, 4);
+    };
+
+    const drawBooth = (key: string, canopy: number, canopyAlt: number, accent: number, wall: number): void => {
+      g.clear();
+
+      g.fillStyle(0x0f172a, 0.22);
+      g.fillEllipse(width * 0.5, height - 24, width * 0.76, 46);
+
+      g.fillStyle(0xffffff, 1);
+      g.fillRoundedRect(72, 118, 476, 224, 18);
+      g.fillStyle(wall, 1);
+      g.fillRoundedRect(92, 138, 436, 182, 12);
+      g.lineStyle(6, 0x0f172a, 0.16);
+      g.strokeRoundedRect(72, 118, 476, 224, 18);
+
+      g.fillStyle(0xffffff, 0.88);
+      g.fillRoundedRect(148, 164, 324, 82, 18);
+      g.lineStyle(5, accent, 1);
+      g.strokeRoundedRect(148, 164, 324, 82, 18);
+      drawBriefcase(267, 169, accent);
+
+      g.fillStyle(0x172033, 1);
+      g.fillRoundedRect(48, 278, 524, 82, 16);
+      g.fillStyle(0x334155, 1);
+      g.fillRoundedRect(68, 294, 484, 40, 10);
+      g.lineStyle(6, 0x020617, 0.28);
+      g.strokeRoundedRect(48, 278, 524, 82, 16);
+
+      g.fillStyle(0x0f172a, 0.92);
+      g.fillRoundedRect(92, 340, 62, 60, 8);
+      g.fillRoundedRect(466, 340, 62, 60, 8);
+      g.fillStyle(accent, 0.95);
+      g.fillRect(110, 350, 26, 42);
+      g.fillRect(484, 350, 26, 42);
+
+      g.fillStyle(0x243145, 1);
+      g.fillRect(96, 96, 18, 214);
+      g.fillRect(506, 96, 18, 214);
+      g.fillStyle(0x94a3b8, 1);
+      g.fillRect(102, 96, 6, 214);
+      g.fillRect(512, 96, 6, 214);
+
+      g.fillStyle(0x111827, 1);
+      g.fillRoundedRect(34, 76, 552, 60, 14);
+      const stripeCount = 8;
+      const stripeWidth = 552 / stripeCount;
+      for (let i = 0; i < stripeCount; i += 1) {
+        g.fillStyle(i % 2 === 0 ? canopy : canopyAlt, 1);
+        g.fillRect(34 + i * stripeWidth, 76, stripeWidth + 1, 58);
+      }
+      g.lineStyle(7, 0x111827, 1);
+      g.strokeRoundedRect(34, 76, 552, 60, 14);
+
+      for (let i = 0; i < stripeCount; i += 1) {
+        const left = 34 + i * stripeWidth;
+        const center = left + stripeWidth * 0.5;
+        g.fillStyle(i % 2 === 0 ? canopy : canopyAlt, 1);
+        g.fillTriangle(left, 132, left + stripeWidth, 132, center, 176);
+        g.lineStyle(4, 0x111827, 0.42);
+        g.lineBetween(left, 132, center, 176);
+        g.lineBetween(left + stripeWidth, 132, center, 176);
+      }
+
+      g.fillStyle(0xffffff, 0.2);
+      g.fillRoundedRect(82, 88, 188, 14, 7);
+      g.fillRoundedRect(344, 148, 132, 10, 5);
+
+      g.generateTexture(key, width, height);
+    };
+
+    drawBooth("job-booth-yellow", 0xfacc15, 0xfff7ad, 0x0891b2, 0xe0f2fe);
+    drawBooth("job-booth-blue", 0x38bdf8, 0xdbeafe, 0xf59e0b, 0xfffbeb);
   }
 
   private createCrispTrashTextures(g: Phaser.GameObjects.Graphics): void {
@@ -455,6 +558,54 @@ export class PreloadScene extends Phaser.Scene {
       add(tone.key, tone.freq, tone.duration, tone.volume);
     }
 
+    const makeRobotVoice = (): AudioBuffer => {
+      const sampleRate = ctx.sampleRate;
+      const duration = 1.45;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      const syllables = [78, 96, 71, 118, 84, 62];
+      for (let i = 0; i < length; i += 1) {
+        const t = i / sampleRate;
+        const syllable = Math.min(syllables.length - 1, Math.floor(t / 0.2));
+        const local = t % 0.2;
+        const gate = local < 0.14 ? 1 : 0.18;
+        const base = syllables[syllable];
+        const wobble = Math.sin(2 * Math.PI * 7.5 * t) * 9;
+        const carrier = base + wobble;
+        const square = Math.sign(Math.sin(2 * Math.PI * carrier * t));
+        const growl = Math.sign(Math.sin(2 * Math.PI * (carrier * 0.5) * t)) * 0.48;
+        const metallic =
+          Math.sin(2 * Math.PI * (carrier * 2.03) * t) * 0.34 +
+          Math.sin(2 * Math.PI * (carrier * 3.11) * t) * 0.2;
+        const click = Math.sin(2 * Math.PI * 1650 * t) * Math.exp(-local * 70) * 0.18;
+        const attack = Math.min(1, local / 0.025);
+        const release = Math.min(1, (duration - t) / 0.22);
+        data[i] = (square * 0.34 + growl + metallic + click) * gate * attack * release * 0.28;
+      }
+      return buffer;
+    };
+
+    const makeComputerShutdown = (): AudioBuffer => {
+      const sampleRate = ctx.sampleRate;
+      const duration = 1.55;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i += 1) {
+        const t = i / sampleRate;
+        const p = t / duration;
+        const sweep = 360 - p * 305;
+        const motor = Math.sin(2 * Math.PI * sweep * t) * (1 - p) * 0.34;
+        const lowDrop = Math.sin(2 * Math.PI * (92 - p * 58) * t) * Math.pow(1 - p, 0.55) * 0.42;
+        const glitchGate = Math.sin(2 * Math.PI * 18 * t) > 0.35 ? 1 : 0.18;
+        const glitch = Math.sin(2 * Math.PI * (720 + Math.sin(t * 44) * 90) * t) * glitchGate * Math.exp(-t * 3.2) * 0.2;
+        const finalClick = t > duration - 0.18 ? Math.sin(2 * Math.PI * 1200 * t) * Math.exp(-(t - (duration - 0.18)) * 48) * 0.32 : 0;
+        data[i] = (motor + lowDrop + glitch + finalClick) * 0.7;
+      }
+      return buffer;
+    };
+
     const makeLoop = (freq: number): AudioBuffer => makeTone(freq, AUDIO_TONES.MUSIC.LOOP_DURATION, AUDIO_TONES.MUSIC.LOOP_VOLUME);
     const makeMenuLoop = (): AudioBuffer => {
       const sampleRate = ctx.sampleRate;
@@ -567,6 +718,37 @@ export class PreloadScene extends Phaser.Scene {
       }
       return buffer;
     };
+    const makeVictoryLoop = (): AudioBuffer => {
+      const sampleRate = ctx.sampleRate;
+      const duration = 4.8;
+      const length = Math.floor(sampleRate * duration);
+      const buffer = ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      const notes = [523.25, 659.25, 783.99, 1046.5, 987.77, 783.99, 880.0, 1046.5];
+      const bassNotes = [130.81, 174.61, 196.0, 164.81];
+      const smooth = (x: number): number => x * x * (3 - 2 * x);
+      for (let i = 0; i < length; i += 1) {
+        const t = i / sampleRate;
+        const stepDuration = 0.3;
+        const step = Math.floor(t / stepDuration) % notes.length;
+        const local = t % stepDuration;
+        const attack = Math.min(1, local / 0.04);
+        const release = Math.min(1, (stepDuration - local) / 0.1);
+        const env = smooth(Math.min(attack, release));
+        const note = notes[step];
+        const bass = bassNotes[Math.floor(t / 1.2) % bassNotes.length];
+        const melody =
+          Math.sin(2 * Math.PI * note * t) * env * 0.13 +
+          Math.sin(2 * Math.PI * note * 2 * t) * env * 0.035;
+        const harmony = Math.sin(2 * Math.PI * notes[(step + 2) % notes.length] * 0.5 * t) * env * 0.08;
+        const pad =
+          Math.sin(2 * Math.PI * bass * 2 * t) * 0.055 +
+          Math.sin(2 * Math.PI * bass * 3 * t) * 0.034;
+        const chime = Math.sin(2 * Math.PI * 1567.98 * t) * Math.exp(-(t % 1.2) * 7) * 0.035;
+        data[i] = melody + harmony + pad + chime;
+      }
+      return buffer;
+    };
     const makeFairLoop = (): AudioBuffer => {
       const sampleRate = ctx.sampleRate;
       const duration = 1.92;
@@ -596,5 +778,8 @@ export class PreloadScene extends Phaser.Scene {
     this.cache.audio.add("music-level4-race", makeLevel4RaceLoop());
     this.cache.audio.add("music-boss", makeLoop(AUDIO_TONES.MUSIC.BOSS_FREQ));
     this.cache.audio.add("music-level5-intense", makeLevel5IntenseLoop());
+    this.cache.audio.add("music-victory", makeVictoryLoop());
+    this.cache.audio.add("sfx-robot-voice", makeRobotVoice());
+    this.cache.audio.add("sfx-computer-shutdown", makeComputerShutdown());
   }
 }

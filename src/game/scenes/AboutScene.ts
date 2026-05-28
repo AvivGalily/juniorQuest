@@ -37,7 +37,7 @@ export class AboutScene extends Phaser.Scene {
     const headerH = Math.round(scaleY(42));
     const pad = Math.round(scaleX(24));
     const smallFont = Math.round(scaleY(10));
-    const bodyFont = Math.round(scaleY(11.2));
+    const bodyFont = Math.round(scaleY(10.4));
     const subjectFont = Math.round(scaleY(12.4));
     const ctaFont = Math.round(scaleY(12));
     const direction = getDirection();
@@ -136,17 +136,23 @@ export class AboutScene extends Phaser.Scene {
             min-height:0;
             overflow:hidden;
             font-size:${bodyFont}px;
-            line-height:1.28;
+            line-height:1.24;
             color:#1e293b;
             font-weight:700;
             text-align:${textAlign};
           ">
-            <p style="margin:0 0 ${Math.round(scaleY(8))}px 0;">${escapeHtml(t("about.createdBy"))}</p>
-            <p style="margin:0 0 ${Math.round(scaleY(10))}px 0;">${escapeHtml(t("about.rights"))}</p>
-            <p style="margin:0 0 ${Math.round(scaleY(6))}px 0;">
+            <p style="margin:0 0 ${Math.round(scaleY(7))}px 0;">${escapeHtml(t("about.description"))}</p>
+            <p style="margin:0 0 ${Math.round(scaleY(6))}px 0;">${escapeHtml(t("about.createdBy"))}</p>
+            <p style="margin:0 0 ${Math.round(scaleY(8))}px 0;">${escapeHtml(t("about.rights"))}</p>
+            <p style="
+              margin:0;
+              display:flex;
+              flex-wrap:wrap;
+              gap:${Math.round(scaleY(4))}px ${Math.round(scaleX(12))}px;
+              justify-content:${direction === "rtl" ? "flex-end" : "flex-start"};
+              align-items:center;
+            ">
               <a href="${LINKEDIN_URL}" target="_blank" rel="noopener noreferrer" style="color:#0369a1;font-weight:900;text-decoration:underline;">${escapeHtml(t("about.linkedin"))}</a>
-            </p>
-            <p style="margin:0;">
               <a href="${GITHUB_URL}" target="_blank" rel="noopener noreferrer" style="color:#0369a1;font-weight:900;text-decoration:underline;">${escapeHtml(t("about.github"))}</a>
             </p>
           </div>

@@ -99,10 +99,11 @@ export class Level1Scene extends BaseLevelScene {
   private cvTrashWarning?: {
     bin: TrashBinState;
     arrow: Phaser.GameObjects.Triangle;
-    messageBg: Phaser.GameObjects.Rectangle;
+    bubble: Phaser.GameObjects.Image;
     message: Phaser.GameObjects.DOMElement;
     tween: Phaser.Tweens.Tween;
   };
+  private boothCollisionRects: Phaser.Geom.Rectangle[] = [];
 
   constructor() {
     super("Level1Scene");
@@ -115,6 +116,7 @@ export class Level1Scene extends BaseLevelScene {
     this.recruiterStates = [];
     this.npcCouriers = [];
     this.trashBins = [];
+    this.boothCollisionRects = [];
     this.targetRecruiter = undefined;
     this.targetCompany = "";
     this.detectionTimer = 0;
@@ -159,6 +161,7 @@ export class Level1Scene extends BaseLevelScene {
       scaleSpriteToHeight(booth, boothHeight);
       booth.setDepth(booth.y - booth.displayHeight * 0.3);
       booth.refreshBody();
+      this.boothCollisionRects.push(this.getBoothNpcCollisionRect(booth));
       this.visionBlockers.push(this.getBoothVisionBlocker(booth));
     });
 
@@ -177,6 +180,7 @@ export class Level1Scene extends BaseLevelScene {
 
     const playerStart = this.getSafeFloorPoint(scaleX(LEVEL1.PLAYER_START.x), scaleY(LEVEL1.PLAYER_START.y));
     this.player = new Player(this, playerStart.x, playerStart.y);
+    this.player.setScaleMultiplier(LEVEL1.ACTOR_SCALE_MULTIPLIER);
     this.player.body.allowGravity = false;
     this.player.setCarryStyle("cv");
     this.player.setCarrying(true);
@@ -189,13 +193,14 @@ export class Level1Scene extends BaseLevelScene {
     this.physics.add.collider(this.player, obstacles);
     this.physics.add.collider(this.player, trashGroup);
 
-    const tags = ["Cloudify", "DataNinjas", "PixelSoft", "LambdaLab", "SprintWorks", "StackLion", "ByteForge", "NodeWave", "Signal42", "BrightAI"];
+    const tags = ["HR1", "HR2", "HR3", "HR4", "HR5", "HR6", "HR7", "HR8", "HR9", "HR10"];
     const diff = difficultyPresets[runState.difficulty];
     const hrCount = diff.l1.recruiterCount;
     const npcCount = LEVEL1.NPC_COUNT;
     for (let i = 0; i < hrCount; i += 1) {
       const spawn = this.getRecruiterSpawnPoint(i);
       const recruiter = new Recruiter(this, spawn.x, spawn.y, tags[i % tags.length], (i % LEVEL1.RECRUITER_VARIANT_COUNT) + 1);
+      recruiter.setScaleMultiplier(LEVEL1.ACTOR_SCALE_MULTIPLIER);
       recruiter.body.allowGravity = false;
       recruiter.setInteractive({ useHandCursor: true });
       recruiter.on("pointerdown", () => this.tryRecruiterInteraction(recruiter));
@@ -209,6 +214,7 @@ export class Level1Scene extends BaseLevelScene {
       const spawn = this.getNpcSpawnPoint(i);
       const variant = ((i % LEVEL1.NPC_VARIANT_COUNT) + LEVEL1.NPC_VARIANT_MIN) as 1 | 2 | 3;
       const npc = new Npc(this, spawn.x, spawn.y, variant);
+      npc.setScaleMultiplier(LEVEL1.ACTOR_SCALE_MULTIPLIER);
       npc.body.allowGravity = false;
       this.npcCouriers.push({
         npc,
@@ -231,7 +237,9 @@ export class Level1Scene extends BaseLevelScene {
     this.guards = [];
     for (let i = 0; i < diff.l1.guardCount; i += 1) {
       const guardStart = this.getGuardSpawnPoint(i);
-      this.guards.push(new Guard(this, guardStart.x, guardStart.y, this.getGuardWaypoints(i), guardSpeed));
+      const guard = new Guard(this, guardStart.x, guardStart.y, this.getGuardWaypoints(i), guardSpeed);
+      guard.setScaleMultiplier(LEVEL1.ACTOR_SCALE_MULTIPLIER);
+      this.guards.push(guard);
     }
     this.guardFovs = this.guards.map(() => this.add.graphics());
     this.guards.forEach((guard) => {
@@ -258,7 +266,10 @@ export class Level1Scene extends BaseLevelScene {
       }
     });
     this.updateNpcCouriers(delta);
-    this.npcCouriers.forEach((courier) => this.keepSpriteOnWalkableFloor(courier.npc));
+    this.npcCouriers.forEach((courier) => {
+      this.keepSpriteOnWalkableFloor(courier.npc);
+      this.keepNpcOutOfBooths(courier.npc);
+    });
     this.updateRecruiterBars();
     this.checkGuardDetection(delta);
     this.updateActorDepths();
@@ -322,7 +333,7 @@ export class Level1Scene extends BaseLevelScene {
       .setDepth(depth)
       .setScrollFactor(0);
     const right = this.add
-      .rectangle(this.scale.width - scaleX(58), scaleY(41), scaleX(104), scaleY(70), panelColor, 0.42)
+      .rectangle(this.scale.width - scaleX(58), scaleY(34), scaleX(104), scaleY(54), panelColor, 0.42)
       .setStrokeStyle(scale(1), 0xffffff, 0.11)
       .setDepth(depth)
       .setScrollFactor(0);
@@ -452,6 +463,49 @@ export class Level1Scene extends BaseLevelScene {
     const x = booth.x - width / 2;
     const y = booth.y - height / 2 + booth.displayHeight * LEVEL1.VISION_BLOCKER_OFFSET_Y_RATIO;
     return new Phaser.Geom.Rectangle(x, y, width, height);
+  }
+
+  private getBoothNpcCollisionRect(booth: Phaser.Physics.Arcade.Image): Phaser.Geom.Rectangle {
+    const width = booth.displayWidth * LEVEL1.BOOTH_NPC_BLOCK_WIDTH_RATIO;
+    const height = booth.displayHeight * LEVEL1.BOOTH_NPC_BLOCK_HEIGHT_RATIO;
+    const x = booth.x - width / 2;
+    const y = booth.y - height / 2 + booth.displayHeight * LEVEL1.BOOTH_NPC_BLOCK_OFFSET_Y_RATIO;
+    return new Phaser.Geom.Rectangle(x, y, width, height);
+  }
+
+  private keepNpcOutOfBooths(npc: Npc): void {
+    const body = npc.body as Phaser.Physics.Arcade.Body | null;
+    if (!body) {
+      return;
+    }
+    const bounds = new Phaser.Geom.Rectangle(body.x, body.y, body.width, body.height);
+    for (const booth of this.boothCollisionRects) {
+      if (!Phaser.Geom.Intersects.RectangleToRectangle(bounds, booth)) {
+        continue;
+      }
+      const pushLeft = bounds.right - booth.left;
+      const pushRight = booth.right - bounds.left;
+      const pushUp = bounds.bottom - booth.top;
+      const pushDown = booth.bottom - bounds.top;
+      const minPush = Math.min(pushLeft, pushRight, pushUp, pushDown);
+
+      if (minPush === pushLeft) {
+        npc.x -= pushLeft;
+        npc.setVelocityX(Math.min(0, body.velocity.x));
+      } else if (minPush === pushRight) {
+        npc.x += pushRight;
+        npc.setVelocityX(Math.max(0, body.velocity.x));
+      } else if (minPush === pushUp) {
+        npc.y -= pushUp;
+        npc.setVelocityY(Math.min(0, body.velocity.y));
+      } else {
+        npc.y += pushDown;
+        npc.setVelocityY(Math.max(0, body.velocity.y));
+      }
+
+      body.updateFromGameObject();
+      bounds.setTo(body.x, body.y, body.width, body.height);
+    }
   }
 
   private updateActorDepths(): void {
@@ -918,22 +972,22 @@ export class Level1Scene extends BaseLevelScene {
 
   private showTrashWarning(bin: TrashBinState): void {
     this.hideTrashWarning();
-    const arrowY = bin.sprite.y - scaleY(LEVEL1.TRASH_WARNING_ARROW_OFFSET_Y);
-    const messageY = bin.sprite.y - scaleY(LEVEL1.TRASH_WARNING_OFFSET_Y);
-    const messageBg = this.add
-      .rectangle(
-        bin.sprite.x,
-        messageY,
-        scaleX(LEVEL1.TRASH_WARNING_MAX_WIDTH + 22),
-        scaleY(46),
-        0x111827,
-        0.92
-      )
-      .setStrokeStyle(scale(3), 0xffd166, 1)
-      .setDepth(120);
+    const depth = LEVEL1_DIALOG_DEPTH + 40;
+    const bubbleScale = getUiScale() * 1.04;
+    const halfWidth = (TEXTURES.SPEECH_BUBBLE.WIDTH * bubbleScale) / 2;
+    const halfHeight = (TEXTURES.SPEECH_BUBBLE.HEIGHT * bubbleScale) / 2;
+    const bubbleX = Phaser.Math.Clamp(bin.sprite.x, halfWidth + scaleX(8), this.scale.width - halfWidth - scaleX(8));
+    const bubbleY = Phaser.Math.Clamp(
+      bin.sprite.y - scaleY(LEVEL1.TRASH_WARNING_OFFSET_Y),
+      halfHeight + scaleY(8),
+      this.scale.height - halfHeight - scaleY(8)
+    );
+    const bubble = this.add.image(bubbleX, bubbleY, "speech_bubble").setScale(bubbleScale).setDepth(depth);
+    const arrowX = Phaser.Math.Clamp(bin.sprite.x, bubbleX - halfWidth + scaleX(14), bubbleX + halfWidth - scaleX(14));
+    const arrowY = bubbleY + halfHeight - scaleY(1);
     const arrow = this.add
       .triangle(
-        bin.sprite.x,
+        arrowX,
         arrowY,
         0,
         0,
@@ -941,23 +995,24 @@ export class Level1Scene extends BaseLevelScene {
         0,
         scaleX(LEVEL1.TRASH_WARNING_ARROW_WIDTH / 2),
         scaleY(LEVEL1.TRASH_WARNING_ARROW_HEIGHT),
-        0xffd166
+        TEXTURES.SPEECH_BUBBLE.FILL_COLOR
       )
-      .setOrigin(0.5)
-      .setDepth(120);
+      .setOrigin(0.5, 0)
+      .setDepth(depth + 1);
+    arrow.setStrokeStyle(scale(1), TEXTURES.SPEECH_BUBBLE.STROKE_COLOR, 1);
     const message = createTranslatedText(
       this,
-      bin.sprite.x,
-      messageY,
+      bubbleX,
+      bubbleY,
       "level1.trashWarning",
       {
         maxWidth: LEVEL1.TRASH_WARNING_MAX_WIDTH,
         fontSize: LEVEL1.TRASH_WARNING_FONT_SIZE,
-        color: "#ffd166",
+        color: "#1b1f24",
         align: "center",
-        weight: 900
+        weight: 700
       }
-    ).setDepth(121);
+    ).setDepth(depth + 2);
     const tween = this.tweens.add({
       targets: arrow,
       y: arrowY + scaleY(LEVEL1.TRASH_WARNING_BOB_Y),
@@ -966,7 +1021,7 @@ export class Level1Scene extends BaseLevelScene {
       repeat: -1,
       ease: "Sine.easeInOut"
     });
-    this.cvTrashWarning = { bin, arrow, messageBg, message, tween };
+    this.cvTrashWarning = { bin, arrow, bubble, message, tween };
   }
 
   private hideTrashWarning(bin?: TrashBinState): void {
@@ -975,7 +1030,7 @@ export class Level1Scene extends BaseLevelScene {
     }
     this.cvTrashWarning.tween.stop();
     this.cvTrashWarning.arrow.destroy();
-    this.cvTrashWarning.messageBg.destroy();
+    this.cvTrashWarning.bubble.destroy();
     this.cvTrashWarning.message.destroy();
     this.cvTrashWarning = undefined;
   }

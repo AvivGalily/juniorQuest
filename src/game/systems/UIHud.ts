@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { COMBO, DEPTH, DOM_TEXT, HUD, TIME } from "../../config/physics";
+import { DEPTH, DOM_TEXT, HUD, TIME } from "../../config/physics";
 import { runState } from "../RunState";
 import { createTranslatedText, setTranslatedText } from "../utils/domText";
 import { getUiScale } from "../utils/resolution";
@@ -12,7 +12,6 @@ export class UIHud {
   private readonly heartSpacing: number;
   private readonly uiScale: number;
   private scoreText: Phaser.GameObjects.DOMElement;
-  private comboText: Phaser.GameObjects.DOMElement;
   private timerText: Phaser.GameObjects.DOMElement;
 
   constructor(scene: Phaser.Scene, _stageNumber: number) {
@@ -32,16 +31,6 @@ export class UIHud {
       maxWidth: HUD.SCORE_MAX_WIDTH,
       fontSize: HUD.SCORE_FONT_SIZE,
       color: "#e8eef2",
-      align: "right",
-      originX: DOM_TEXT.ORIGIN_RIGHT,
-      originY: DOM_TEXT.ORIGIN_TOP
-    }).setScrollFactor(0).setDepth(DEPTH.HUD);
-
-    this.comboText = createTranslatedText(scene, this.heartRightX, HUD.COMBO_Y * uiScale, "hud.flow", {
-      params: { mult: "1.0" },
-      maxWidth: HUD.COMBO_MAX_WIDTH,
-      fontSize: HUD.COMBO_FONT_SIZE,
-      color: "#8fe388",
       align: "right",
       originX: DOM_TEXT.ORIGIN_RIGHT,
       originY: DOM_TEXT.ORIGIN_TOP
@@ -80,8 +69,6 @@ export class UIHud {
   updateAll(): void {
     this.updateHearts();
     setTranslatedText(this.scoreText, "hud.score", { score: runState.runScore });
-    const mult = COMBO.BASE_MULTIPLIER + Math.min(runState.comboSteps, COMBO.MAX_STEPS) * COMBO.STEP_MULTIPLIER;
-    setTranslatedText(this.comboText, "hud.flow", { mult: mult.toFixed(COMBO.DISPLAY_DECIMALS) });
     const elapsed = Math.floor((Date.now() - runState.levelStartTimeMs) / TIME.MS_PER_SEC);
     setTranslatedText(this.timerText, "hud.time", { seconds: elapsed });
   }

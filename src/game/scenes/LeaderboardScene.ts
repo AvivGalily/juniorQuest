@@ -12,15 +12,24 @@ const escapeHtml = (value: string): string =>
 
 export class LeaderboardScene extends Phaser.Scene {
   private audio!: AudioManager;
+  private leaderboardLoadId = 0;
+  private leaderboardActive = false;
+  private leaderboardPanel?: Phaser.GameObjects.DOMElement;
 
   constructor() {
     super("LeaderboardScene");
   }
 
   create(): void {
+    this.leaderboardActive = true;
+    const loadId = ++this.leaderboardLoadId;
     this.audio = new AudioManager(this);
     this.audio.playMusic("music-menu", AUDIO.MUSIC.MENU);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.leaderboardActive = false;
+      this.leaderboardLoadId += 1;
+      this.leaderboardPanel?.destroy();
+      this.leaderboardPanel = undefined;
       this.audio.stopMusic("music-menu");
     });
 
@@ -28,13 +37,17 @@ export class LeaderboardScene extends Phaser.Scene {
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x07111c, 0.5);
     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x0f172a, 0.18);
 
-    void this.createLeaderboardPanel();
+    void this.createLeaderboardPanel(loadId);
     this.createBackButton();
     this.input.keyboard.on("keydown-ESC", () => this.returnToMenu());
   }
 
-  private async createLeaderboardPanel(): Promise<void> {
+  private async createLeaderboardPanel(loadId: number): Promise<void> {
     const entries = (await loadLeaderboard()).entries;
+    if (!this.leaderboardActive || loadId !== this.leaderboardLoadId) {
+      return;
+    }
+
     const direction = getDirection();
     const align = direction === "rtl" ? "right" : "left";
     const panelW = Math.round(scaleX(540));
@@ -98,7 +111,7 @@ export class LeaderboardScene extends Phaser.Scene {
       </section>
     `;
 
-    this.add.dom(this.scale.width / 2, scaleY(172)).createFromHTML(html).setOrigin(0.5);
+    this.leaderboardPanel = this.add.dom(this.scale.width / 2, scaleY(172)).createFromHTML(html).setOrigin(0.5);
   }
 
   private headerStyle(): string {

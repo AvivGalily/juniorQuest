@@ -1221,13 +1221,19 @@ export class Level2Scene extends BaseLevelScene {
       0,
       this.placedCount * LEVEL2.SCORE_PER_PLACED_LEAF - elapsedSeconds * LEVEL2.SCORE_TIME_PENALTY_PER_SEC
     );
-    this.scoreSystem.addBase(baseScore);
+    const treeBonus = fullTree
+      ? LEVEL2.FULL_TREE_BONUS
+      : this.placedCount >= LEVEL2.PARTIAL_TREE_BONUS_MIN_LEAVES
+        ? LEVEL2.PARTIAL_TREE_BONUS
+        : 0;
+    const awardedScore = baseScore + treeBonus;
+    this.scoreSystem.addBase(awardedScore);
     this.audio.playSfx("sfx-level-complete", AUDIO.SFX.LEVEL_COMPLETE);
     FloatingText.spawn(
       this,
       scaleX(LEVEL2.COMPLETE_TEXT_X),
       scaleY(LEVEL2.COMPLETE_TEXT_Y),
-      fullTree ? t("common.points", { points: baseScore }) : t("common.partialPoints", { points: baseScore }),
+      fullTree ? t("common.points", { points: awardedScore }) : t("common.partialPoints", { points: awardedScore }),
       "#8fe388"
     );
     this.hud.updateAll();

@@ -430,6 +430,7 @@ export class Level5Scene extends BaseLevelScene {
     this.scheduleNextShotMultiplierPickup();
     this.scheduleNextPowerPylon();
     this.scheduleNextHeartPickup();
+    this.time.delayedCall(LEVEL5.BOSS_INTRO_VOICE_DELAY_MS, () => this.showBossIntroVoice());
   }
 
   private updateBoss(_: number): void {
@@ -1247,6 +1248,80 @@ export class Level5Scene extends BaseLevelScene {
     });
   }
 
+  private showBossIntroVoice(): void {
+    if (!this.fightActive || this.bossHp <= 0 || !this.boss.active) {
+      return;
+    }
+
+    this.audio.playSfx("sfx-robot-voice", AUDIO.SFX.ROBOT_VOICE);
+
+    const bubbleScale = getUiScale() * 0.9;
+    const x = Phaser.Math.Clamp(this.boss.x - scaleX(12), scaleX(116), this.scale.width - scaleX(116));
+    const y = Phaser.Math.Clamp(this.boss.y - scaleY(LEVEL5.BOSS_TAUNT_OFFSET_Y), scaleY(50), this.scale.height - scaleY(42));
+    const bubbleHalfHeight = 70 * bubbleScale * 0.5;
+    const bubble = this.add.image(x, y, "speech_bubble").setScale(bubbleScale).setDepth(1010);
+    const label = createDialogText(this, x, y, t("level5.robotIntro"), {
+      maxWidth: LEVEL5.BOSS_INTRO_VOICE_MAX_WIDTH,
+      fontSize: LEVEL5.BOSS_INTRO_VOICE_FONT_SIZE,
+      color: "#111827",
+      weight: 900,
+      align: "center"
+    }).setDepth(1012);
+    const tail = this.add
+      .triangle(
+        Phaser.Math.Clamp(this.boss.x, x - scaleX(82), x + scaleX(82)),
+        y + bubbleHalfHeight - scaleY(1),
+        0,
+        0,
+        scaleX(24),
+        0,
+        scaleX(12),
+        scaleY(20),
+        0xf9f7f7
+      )
+      .setOrigin(0.5, 0)
+      .setDepth(1011);
+    tail.setStrokeStyle(scale(1), 0x1c1c1c, 1);
+
+    const rings: Phaser.GameObjects.Arc[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      const ring = this.add
+        .circle(this.boss.x, this.boss.y - scaleY(8), scale(10 + i * 6), 0x38f6ff, 0)
+        .setStrokeStyle(scale(2), i === 1 ? 0xfacc15 : 0x38f6ff, 0.85)
+        .setDepth(1009);
+      rings.push(ring);
+      this.tweens.add({
+        targets: ring,
+        scale: 2.3 + i * 0.4,
+        alpha: 0,
+        delay: i * 120,
+        duration: 720,
+        repeat: 1,
+        ease: "Cubic.easeOut",
+        onComplete: () => ring.destroy()
+      });
+    }
+
+    this.tweens.add({
+      targets: [bubble, label, tail],
+      alpha: 0,
+      y: "-=" + scaleY(8),
+      delay: LEVEL5.BOSS_INTRO_VOICE_DURATION_MS - 380,
+      duration: 340,
+      ease: "Sine.easeIn",
+      onComplete: () => {
+        bubble.destroy();
+        label.destroy();
+        tail.destroy();
+        rings.forEach((ring) => {
+          if (ring.active) {
+            ring.destroy();
+          }
+        });
+      }
+    });
+  }
+
   private spawnBossProjectile(angle: number, kind: BossProjectileKind): void {
     const key = kind === "electric" ? "level5-electric-ball" : "level5-energy-ball";
     const projectile = this.physics.add.image(this.boss.x, this.boss.y + scaleY(26), key);
@@ -2021,7 +2096,7 @@ export class Level5Scene extends BaseLevelScene {
       this.scoreSystem.addBase(LEVEL5.PERFECT_HEARTS_BONUS);
     }
     this.scoreSystem.applyTimeBonus(LEVEL5.TIME_BONUS_MS);
-    this.audio.playSfx("sfx-level-complete", AUDIO.SFX.LEVEL_COMPLETE);
+    this.audio.playSfx("sfx-computer-shutdown", AUDIO.SFX.COMPUTER_SHUTDOWN);
     FloatingText.spawn(
       this,
       scaleX(LEVEL5.COMPLETE_TEXT_X),

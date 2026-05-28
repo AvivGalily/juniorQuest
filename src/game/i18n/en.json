@@ -27,11 +27,13 @@
     "leaderboard": "Leaderboard",
     "comingSoon": "Coming soon",
     "footer": "WASD or arrows to move. Space or Enter to jump. X to confirm and act.",
-    "languageButton": "EN"
+    "languageButton": "EN",
+    "fullscreenNotSupported": "Fullscreen is not supported in this browser.",
+    "iosFullscreenHint": "On iPhone, use Share > Add to Home Screen for fullscreen play."
   },
   "leaderboard": {
     "title": "Leaderboard",
-    "subtitle": "Local JSON scores",
+    "subtitle": "Global player scores",
     "total": "{count} scores",
     "rank": "#",
     "name": "Name",
@@ -44,6 +46,7 @@
     "from": "From: Aviv Galily <aviv@juniorquest.dev>",
     "to": "To: Candidate",
     "subject": "Subject: About the game",
+    "description": "Junior Quest is a humorous take on the modern high-tech job search: applications, interviews, algorithms, rejections, and one stubborn junior trying to survive the process. I hope you enjoyed the journey.",
     "createdBy": "This game was created by Aviv Galily.",
     "rights": "All rights reserved to Aviv Galily 2026.",
     "linkedin": "Aviv Galily on LinkedIn",
@@ -237,6 +240,7 @@
     "shotMultiplierPickup": "MULTI SHOT x{mult}",
     "pylonStun": "AI STUNNED",
     "failed": "FAILED",
+    "robotIntro": "HUMAN INPUT REJECTED",
     "tauntFired": "You're fired.",
     "tauntLayoffs": "Time for layoffs.",
     "tauntProgrammersOver": "The age of programmers is over.",
@@ -249,7 +253,8 @@
     "blurb": "Save your score before returning to the job hunt.",
     "saveScore": "Save Score",
     "skipSave": "Don't Save",
-    "saved": "Score saved."
+    "saved": "Score saved.",
+    "saveFailed": "Could not save score. Try again."
   },
   "victory": {
     "title": "Run Complete",
@@ -258,6 +263,8 @@
     "namePlaceholder": "NAME",
     "defaultName": "ANON",
     "submitScore": "Submit Score",
-    "noScores": "No local scores yet"
+    "saved": "Score saved.",
+    "saveFailed": "Could not save score. Try again.",
+    "noScores": "No scores yet"
   }
 }

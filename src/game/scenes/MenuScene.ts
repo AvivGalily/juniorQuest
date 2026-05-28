@@ -7,6 +7,7 @@ import { Level2IntroScene } from "./Level2IntroScene";
 import { runState } from "../RunState";
 import { AudioManager } from "../systems/AudioManager";
 import { createDialogText, createTranslatedText, setDomText } from "../utils/domText";
+import { canUseElementFullscreen, enterAppFullscreen, exitAppFullscreen, getFullscreenElement, isStandaloneDisplay, shouldShowIOSInstallFullscreenHint } from "../utils/fullscreen";
 import { getLocale, t, toggleLocale } from "../i18n/i18n";
 import { scale, scaleX, scaleY } from "../utils/layout";
 import { getUiScale } from "../utils/resolution";
@@ -163,8 +164,8 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private startGame(): void {
-    if (!document.fullscreenElement && isTouchDevice()) {
-      document.documentElement.requestFullscreen?.().catch(() => { });
+    if (isTouchDevice()) {
+      void enterAppFullscreen();
     }
 
     (document.activeElement as HTMLElement | null)?.blur();
@@ -252,6 +253,10 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private createFullscreenButton(): void {
+    if (isStandaloneDisplay()) {
+      return;
+    }
+
     const x = scaleX(80);
     const y = scaleY(42);
 
@@ -269,24 +274,28 @@ export class MenuScene extends Phaser.Scene {
     hit.on("pointerdown", () => {
       this.audio.playSfx("sfx-select", AUDIO.SFX.SELECT);
 
-      if (!document.fullscreenElement) {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => { });
-        } else {
-          this.showModal("menu.fullscreenNotSupported");
+      if (!getFullscreenElement()) {
+        if (shouldShowIOSInstallFullscreenHint()) {
+          this.showModal("menu.iosFullscreenHint");
+          return;
         }
+
+        if (canUseElementFullscreen()) {
+          void enterAppFullscreen();
+          return;
+        }
+
+        this.showModal("menu.fullscreenNotSupported");
       } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen().catch(() => { });
-        }
+        void exitAppFullscreen();
       }
     });
   }
 
   private setupAutoFullscreen(): void {
     const trigger = () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen?.().catch(() => { });
+      if (!getFullscreenElement()) {
+        void enterAppFullscreen();
       }
 
       document.removeEventListener("touchstart", trigger);

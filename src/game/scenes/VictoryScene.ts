@@ -1,16 +1,17 @@
 import Phaser from "phaser";
-import { AUDIO, DOM_TEXT, LEADERBOARD, VICTORY } from "../../config/physics";
+import { AUDIO, LEADERBOARD, VICTORY } from "../../config/physics";
 import { runState } from "../RunState";
 import { AudioManager } from "../systems/AudioManager";
-import { addLeaderboardEntry, loadLeaderboard, LeaderboardEntry } from "../systems/SaveSystem";
-import { createTranslatedText, setDomText } from "../utils/domText";
+import { addLeaderboardEntry } from "../systems/SaveSystem";
+import { createTranslatedText } from "../utils/domText";
+import { configureGameTextInput } from "../utils/domInput";
 import { t } from "../i18n/i18n";
 import { scaleX, scaleY } from "../utils/layout";
 import { getUiScale } from "../utils/resolution";
 
 export class VictoryScene extends Phaser.Scene {
   private audio!: AudioManager;
-  private leaderboardText?: Phaser.GameObjects.DOMElement;
+  private submitStatusText?: Phaser.GameObjects.DOMElement;
   private submitted = false;
 
   constructor() {
@@ -19,9 +20,10 @@ export class VictoryScene extends Phaser.Scene {
 
   create(): void {
     this.audio = new AudioManager(this);
-    this.audio.playMusic("music-menu", AUDIO.MUSIC.MENU);
+    this.audio.playMusic("music-victory", AUDIO.MUSIC.VICTORY);
 
-    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, VICTORY.BG_COLOR);
+    this.add.image(this.scale.width / 2, this.scale.height / 2, "victory-bg").setDisplaySize(this.scale.width, this.scale.height);
+    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, VICTORY.BG_COLOR, 0.58);
     createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.TITLE_Y), "victory.title", {
       maxWidth: VICTORY.TITLE_MAX_WIDTH,
       fontSize: VICTORY.TITLE_FONT_SIZE,
@@ -76,13 +78,34 @@ export class VictoryScene extends Phaser.Scene {
       }
       this.submitted = true;
       const name = inputNode.value.trim() || t("victory.defaultName");
-      const entries = await addLeaderboardEntry(name, runState.runScore);
-      this.refreshLeaderboard(entries);
-      this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS);
+      inputNode.disabled = true;
+      try {
+        await addLeaderboardEntry(name, runState.runScore);
+        this.submitStatusText?.destroy();
+        this.submitStatusText = createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.LEADERBOARD_Y), "victory.saved", {
+          maxWidth: VICTORY.SCORE_MAX_WIDTH,
+          fontSize: VICTORY.LEADERBOARD_FONT_SIZE,
+          color: "#8fe388",
+          align: "center"
+        });
+        this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS);
+      } catch {
+        this.submitted = false;
+        inputNode.disabled = false;
+        inputNode.focus();
+        this.submitStatusText?.destroy();
+        this.submitStatusText = createTranslatedText(this, scaleX(VICTORY.TITLE_X), scaleY(VICTORY.LEADERBOARD_Y), "victory.saveFailed", {
+          maxWidth: VICTORY.SCORE_MAX_WIDTH,
+          fontSize: VICTORY.LEADERBOARD_FONT_SIZE,
+          color: "#ff6b6b",
+          align: "center"
+        });
+        this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT);
+      }
     };
+    configureGameTextInput(inputNode, { onEnter: () => void submitScore() });
 
     submitBtn.on("pointerdown", () => void submitScore());
-    this.input.keyboard.on("keydown-ENTER", () => void submitScore());
 
     const backBtn = this.add.image(scaleX(VICTORY.TITLE_X), scaleY(VICTORY.BACK_Y), "button").setInteractive();
     backBtn.setScale(uiScale);
@@ -95,27 +118,5 @@ export class VictoryScene extends Phaser.Scene {
     backBtn.on("pointerdown", () => {
       this.scene.start("MenuScene");
     });
-
-    void loadLeaderboard().then(({ entries }) => this.refreshLeaderboard(entries));
-  }
-
-  private refreshLeaderboard(entries: LeaderboardEntry[]): void {
-    const lines = entries.slice(0, LEADERBOARD.DISPLAY_COUNT).map((entry, index) => {
-      return `${index + 1}. ${entry.name} - ${entry.score}`;
-    });
-    const body = lines.length > 0 ? lines.join("\n") : t("victory.noScores");
-    if (this.leaderboardText) {
-      setDomText(this.leaderboardText, body);
-      return;
-    }
-    this.leaderboardText = createTranslatedText(this, scaleX(VICTORY.LEADERBOARD_X), scaleY(VICTORY.LEADERBOARD_Y), "victory.noScores", {
-      maxWidth: VICTORY.LEADERBOARD_MAX_WIDTH,
-      fontSize: VICTORY.LEADERBOARD_FONT_SIZE,
-      color: "#9aa7b1",
-      align: "left",
-      originX: DOM_TEXT.ORIGIN_LEFT,
-      originY: DOM_TEXT.ORIGIN_TOP
-    });
-    setDomText(this.leaderboardText, body);
   }
 }

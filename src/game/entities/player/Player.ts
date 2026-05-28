@@ -131,7 +131,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   private getDirectionalKey(prefix: "player-walk" | "player-cv-walk"): string {
     if (this.facing === "front" || this.facing === "back") {
-      return `${prefix}-${this.facing}`;
+      if (!this.moving) {
+        return `${prefix}-${this.facing}`;
+      }
+      const stepKey = this.walkPhase === 0 ? "-step" : "-step-alt";
+      return `${prefix}-${this.facing}${stepKey}`;
     }
     const speedKey = this.moving ? (this.walkPhase === 0 ? "slow" : "fast") : "slow";
     return `${prefix}-${speedKey}-${this.facing}`;

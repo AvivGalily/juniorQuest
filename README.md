@@ -24,7 +24,7 @@ Production uses a minimal AWS setup managed by CloudFormation:
 - S3 Block Public Access fully enabled
 - CloudFront distribution with Origin Access Control
 - S3 bucket policy that allows `s3:GetObject` only from that specific CloudFront distribution
-- S3-backed leaderboard stored at `leaderboard/leaderboard.json`
+- DynamoDB-backed leaderboard
 - Lambda Function URL used by the browser to read and submit leaderboard scores
 - No Route53, no ACM certificate, and no custom domain
 
@@ -44,9 +44,16 @@ The deploy script runs `npm run build`, creates or updates the CloudFormation st
 
 Leaderboard notes:
 
-- In production, scores are read from and written to the private S3 bucket through a small Lambda Function URL.
+- In production, scores are read from and written to DynamoDB through a small Lambda Function URL.
+- The leaderboard returns and displays only the top 100 scores.
 - In local development, `public/env.js` leaves the leaderboard API blank, so the game falls back to LocalStorage.
 - The public leaderboard endpoint is intentionally minimal and unauthenticated for this simple game setup. It validates name and score, but it is not an anti-cheat system.
+
+Clear the production leaderboard:
+
+```bash
+npm run leaderboard:clear:prod
+```
 
 Invalidate CloudFront without rebuilding:
 
@@ -73,5 +80,5 @@ Deleting the stack permanently removes the CloudFront distribution, OAC, bucket 
 
 Notes:
 - Uses runtime-generated placeholder assets (no external art files needed).
-- Production leaderboard is stored in S3; local development falls back to LocalStorage under key `juniorquest_leaderboard_v1`.
+- Production leaderboard is stored in DynamoDB; local development falls back to LocalStorage under key `juniorquest_leaderboard_v1`.
 "# juniorQuest" 

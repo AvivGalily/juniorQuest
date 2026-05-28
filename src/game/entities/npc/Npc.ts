@@ -136,7 +136,12 @@ export class Npc extends Phaser.Physics.Arcade.Sprite {
   private updateTexture(force = false): void {
     let key = "";
     if (this.facing === "front" || this.facing === "back") {
-      key = `npc${this.variant}-walk-${this.facing}`;
+      if (this.moving) {
+        const stepKey = this.walkPhase === 0 ? "step" : "step-alt";
+        key = `npc${this.variant}-walk-${this.facing}-${stepKey}`;
+      } else {
+        key = `npc${this.variant}-walk-${this.facing}`;
+      }
     } else {
       const speedKey = this.moving ? (this.walkPhase === 0 ? "slow" : "fast") : "slow";
       key = this.getSideKey(speedKey, this.facing);

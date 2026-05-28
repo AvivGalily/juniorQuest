@@ -54,7 +54,7 @@ export class OrientationOverlay {
         top: 0;
         left: 0;
         width: 100vw;
-        height: 100vh;
+        height: var(--app-height, 100dvh);
         background: #0f1318;
         color: #e8eef2;
         display: flex;

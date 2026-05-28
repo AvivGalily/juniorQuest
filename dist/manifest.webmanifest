@@ -1,0 +1,10 @@
+{
+  "name": "Junior Quest",
+  "short_name": "Junior Quest",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0f1318",
+  "theme_color": "#0f1318"
+}

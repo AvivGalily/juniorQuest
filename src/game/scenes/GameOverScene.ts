@@ -4,6 +4,7 @@ import { runState } from "../RunState";
 import { AudioManager } from "../systems/AudioManager";
 import { addLeaderboardEntry } from "../systems/SaveSystem";
 import { createTranslatedText } from "../utils/domText";
+import { configureGameTextInput } from "../utils/domInput";
 import { t } from "../i18n/i18n";
 import { scaleX, scaleY } from "../utils/layout";
 import { getUiScale } from "../utils/resolution";
@@ -98,18 +99,32 @@ export class GameOverScene extends Phaser.Scene {
       this.submitted = true;
       const name = inputNode.value.trim() || t("victory.defaultName");
       inputNode.disabled = true;
-      await addLeaderboardEntry(name, runState.runScore);
-      this.submitStatusText?.destroy();
-      this.submitStatusText = createTranslatedText(this, scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.LEADERBOARD_Y), "gameOver.saved", {
-        maxWidth: GAME_OVER.SCORE_MAX_WIDTH,
-        fontSize: GAME_OVER.LEADERBOARD_FONT_SIZE,
-        color: "#8fe388",
-        align: "center"
-      });
-      this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS);
+      try {
+        await addLeaderboardEntry(name, runState.runScore);
+        this.submitStatusText?.destroy();
+        this.submitStatusText = createTranslatedText(this, scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.LEADERBOARD_Y), "gameOver.saved", {
+          maxWidth: GAME_OVER.SCORE_MAX_WIDTH,
+          fontSize: GAME_OVER.LEADERBOARD_FONT_SIZE,
+          color: "#8fe388",
+          align: "center"
+        });
+        this.audio.playSfx("sfx-success", AUDIO.SFX.SUCCESS);
+      } catch {
+        this.submitted = false;
+        inputNode.disabled = false;
+        inputNode.focus();
+        this.submitStatusText?.destroy();
+        this.submitStatusText = createTranslatedText(this, scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.LEADERBOARD_Y), "gameOver.saveFailed", {
+          maxWidth: GAME_OVER.SCORE_MAX_WIDTH,
+          fontSize: GAME_OVER.LEADERBOARD_FONT_SIZE,
+          color: "#ff6b6b",
+          align: "center"
+        });
+        this.audio.playSfx("sfx-hit", AUDIO.SFX.HIT);
+      }
     };
+    configureGameTextInput(inputNode, { onEnter: () => void submitScore() });
     submitBtn.on("pointerdown", () => void submitScore());
-    this.input.keyboard?.on("keydown-ENTER", () => void submitScore());
 
     const skipBtn = this.add.image(scaleX(GAME_OVER.TITLE_X), scaleY(GAME_OVER.SKIP_Y), "button").setInteractive();
     skipBtn.setScale(uiScale);

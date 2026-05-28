@@ -27,11 +27,13 @@
     "leaderboard": "טבלת שיאים",
     "comingSoon": "בקרוב",
     "footer": "WASD או חצים לתזוזה. רווח או Enter לקפיצה. X לאישור ופעולה.",
-    "languageButton": "עב"
+    "languageButton": "עב",
+    "fullscreenNotSupported": "מסך מלא לא נתמך בדפדפן הזה.",
+    "iosFullscreenHint": "באייפון, למסך מלא: Share ואז Add to Home Screen."
   },
   "leaderboard": {
     "title": "טבלת שיאים",
-    "subtitle": "ציונים מקומיים ב-JSON",
+    "subtitle": "שיאים גלובליים של שחקנים",
     "total": "{count} ציונים",
     "rank": "#",
     "name": "שם",
@@ -44,6 +46,7 @@
     "from": "מאת: אביב גלילי <aviv@juniorquest.dev>",
     "to": "אל: מועמד/ת",
     "subject": "נושא: אודות המשחק",
+    "description": "Junior Quest נוצר כדי לדמות בצורה הומוריסטית את תהליך מציאת העבודה בהייטק בתקופה הנוכחית: קורות חיים, ראיונות, אלגוריתמים, דחיות וג׳וניור אחד שמנסה לשרוד את הדרך. מקווה שאהבתם את המסע.",
     "createdBy": "המשחק הזה נוצר על ידי אביב גלילי",
     "rights": "כל הזכויות שמורות לאביב גלילי 2026",
     "linkedin": "הלינקדאין של אביב גלילי",
@@ -237,6 +240,7 @@
     "shotMultiplierPickup": "ירי כפול x{mult}",
     "pylonStun": "ה-AI משותק",
     "failed": "נכשל",
+    "robotIntro": "קלט אנושי נדחה",
     "tauntFired": "אתה מפוטר",
     "tauntLayoffs": "הגיע זמן הקיצוצים",
     "tauntProgrammersOver": "נגמר עידן המתכנתים",
@@ -249,7 +253,8 @@
     "blurb": "אפשר לשמור את הניקוד לפני שחוזרים לחיפוש העבודה.",
     "saveScore": "שמור ניקוד",
     "skipSave": "לא לשמור",
-    "saved": "הניקוד נשמר."
+    "saved": "הניקוד נשמר.",
+    "saveFailed": "לא הצלחנו לשמור. נסה שוב."
   },
   "victory": {
     "title": "המסע הושלם",
@@ -258,6 +263,8 @@
     "namePlaceholder": "שם",
     "defaultName": "אנונימי",
     "submitScore": "שלח ניקוד",
-    "noScores": "אין עדיין שיאים מקומיים"
+    "saved": "הניקוד נשמר.",
+    "saveFailed": "לא הצלחנו לשמור. נסה שוב.",
+    "noScores": "אין עדיין שיאים"
   }
 }

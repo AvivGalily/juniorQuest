@@ -18,6 +18,9 @@ declare global {
 
 const KEY = `${LEADERBOARD.KEY_PREFIX}${LEADERBOARD.VERSION}`;
 const MAX_ENTRIES = 100;
+const CACHE_TTL_MS = 30_000;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 500;
 
 const sanitizeName = (name: string): string =>
   name.trim().replace(/[^A-Za-z0-9\u0590-\u05FF]/g, "").slice(0, LEADERBOARD.NAME_MAX_LEN) || "ANON";
@@ -41,12 +44,34 @@ const getSeedLeaderboard = (): LeaderboardData => ({
   entries: normalizeEntries((seedLeaderboard as { entries?: unknown }).entries)
 });
 
+// --- In-memory cache ---
+
+let cachedEntries: LeaderboardEntry[] | null = null;
+let cacheTimestamp = 0;
+
+const isCacheValid = (): boolean =>
+  cachedEntries !== null && Date.now() - cacheTimestamp < CACHE_TTL_MS;
+
+const setCache = (entries: LeaderboardEntry[]): void => {
+  cachedEntries = entries;
+  cacheTimestamp = Date.now();
+};
+
+const invalidateCache = (): void => {
+  cachedEntries = null;
+  cacheTimestamp = 0;
+};
+
+// --- Environment detection ---
+
 const getLeaderboardApiUrl = (): string => {
   if (typeof window === "undefined") {
     return "";
   }
   return window.JUNIORQUEST_CONFIG?.leaderboardApiUrl?.trim().replace(/\/+$/, "") ?? "";
 };
+
+// --- Local storage ---
 
 const loadLocalLeaderboard = (): LeaderboardData => {
   try {
@@ -65,8 +90,36 @@ const saveLocalLeaderboard = (data: LeaderboardData): void => {
   localStorage.setItem(KEY, JSON.stringify({ entries: normalizeEntries(data.entries) }));
 };
 
+// --- Remote API with retry ---
+
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+const fetchWithRetry = async (
+  url: string,
+  options: RequestInit,
+  retries: number = MAX_RETRIES
+): Promise<Response> => {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok || response.status < 500) {
+        return response;
+      }
+      if (attempt < retries) {
+        await delay(RETRY_DELAY_MS * (attempt + 1));
+      }
+    } catch (error) {
+      if (attempt >= retries) {
+        throw error;
+      }
+      await delay(RETRY_DELAY_MS * (attempt + 1));
+    }
+  }
+  throw new Error("All retry attempts exhausted");
+};
+
 const loadRemoteLeaderboard = async (apiUrl: string): Promise<LeaderboardData> => {
-  const response = await fetch(apiUrl, {
+  const response = await fetchWithRetry(apiUrl, {
     method: "GET",
     headers: { Accept: "application/json" },
     cache: "no-store"
@@ -79,7 +132,7 @@ const loadRemoteLeaderboard = async (apiUrl: string): Promise<LeaderboardData> =
 };
 
 const addRemoteLeaderboardEntry = async (apiUrl: string, name: string, score: number): Promise<LeaderboardData> => {
-  const response = await fetch(apiUrl, {
+  const response = await fetchWithRetry(apiUrl, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -94,17 +147,26 @@ const addRemoteLeaderboardEntry = async (apiUrl: string, name: string, score: nu
   return { entries: normalizeEntries(data.entries) };
 };
 
+// --- Public API ---
+
 export const loadLeaderboard = async (): Promise<LeaderboardData> => {
   const apiUrl = getLeaderboardApiUrl();
+
   if (!apiUrl) {
     return loadLocalLeaderboard();
   }
 
+  if (isCacheValid()) {
+    return { entries: cachedEntries! };
+  }
+
   try {
-    return await loadRemoteLeaderboard(apiUrl);
+    const data = await loadRemoteLeaderboard(apiUrl);
+    setCache(data.entries);
+    return data;
   } catch (error) {
-    console.warn("Remote leaderboard unavailable; falling back to local scores.", error);
-    return loadLocalLeaderboard();
+    console.warn("Remote leaderboard unavailable.", error);
+    return { entries: cachedEntries ?? [] };
   }
 };
 
@@ -119,9 +181,12 @@ export const addLeaderboardEntry = async (name: string, score: number): Promise<
 
   if (apiUrl) {
     try {
-      return (await addRemoteLeaderboardEntry(apiUrl, sanitized, roundedScore)).entries;
+      const result = await addRemoteLeaderboardEntry(apiUrl, sanitized, roundedScore);
+      setCache(result.entries);
+      return result.entries;
     } catch (error) {
-      console.warn("Remote leaderboard save failed; saving score locally.", error);
+      invalidateCache();
+      throw error;
     }
   }
 
